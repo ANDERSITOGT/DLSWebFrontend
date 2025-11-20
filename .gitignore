@@ -1,53 +1,85 @@
-# Node
+# ----------------------------------------
+# Node / npm
+# ----------------------------------------
 node_modules/
 npm-debug.log*
+yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
 
-# Build
+# ----------------------------------------
+# Build output
+# ----------------------------------------
 dist/
 build/
-.esbuild/
-
-# Vite
 .vite/
 
-# Environment variables
+# ----------------------------------------
+# Vite cache
+# ----------------------------------------
+.vite
+vite.config.ts.timestamp-*
+vite.config.js.timestamp-*
+
+# ----------------------------------------
+# Environment files
+# ----------------------------------------
 .env
 .env.local
+.env.development
+.env.production
 .env.*.local
 
+# ----------------------------------------
+# Editor / OS files
+# ----------------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
+*.temp
+
+# ----------------------------------------
+# VSCode
+# ----------------------------------------
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+
+# ----------------------------------------
+# TypeScript build artifacts
+# ----------------------------------------
+*.tsbuildinfo
+
+# ----------------------------------------
 # Logs
+# ----------------------------------------
 logs/
 *.log
 *.log.*
-pids/
-*.pid
-*.seed
-*.pid.lock
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-
-# Typescript
-*.tsbuildinfo
-
-# Mac / Windows
-.DS_Store
-Thumbs.db
-
-# Coverage
-coverage/
-
-# Prisma
+# ----------------------------------------
+# Prisma (solo si hay backend en este repo)
+# ----------------------------------------
 prisma/*.db
-prisma/dev.db-journal
+prisma/*.db-journal
 
-# Temporary files
+# ----------------------------------------
+# Tests
+# ----------------------------------------
+coverage/
+*.test.ts
+*.spec.ts
+*.test.js
+
+# ----------------------------------------
+# Temporary folders
+# ----------------------------------------
 tmp/
 temp/
 
-# Docker
+# ----------------------------------------
+# Docker (opcional)
+# ----------------------------------------
 docker-data/
