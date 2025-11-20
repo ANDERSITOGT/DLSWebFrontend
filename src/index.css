@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Fondo global similar a Figma */
+body {
+  @apply bg-slate-50;
+  /* por si no quieres Tailwind aquí: background-color: #F5F7FA; */
+}

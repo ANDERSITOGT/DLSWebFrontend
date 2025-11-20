@@ -1,71 +1,53 @@
-# ----------------------------------------
-# Node / npm
-# ----------------------------------------
+# Node
 node_modules/
 npm-debug.log*
-yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-package-lock.json
 
-# ----------------------------------------
-# Build output
-# ----------------------------------------
+# Build
 dist/
 build/
+.esbuild/
+
+# Vite
 .vite/
 
-# ----------------------------------------
-# Vite cache
-# ----------------------------------------
-.vite
-vite.config.ts.timestamp-*
-vite.config.js.timestamp-*
-
-# ----------------------------------------
-# Environment files
-# ----------------------------------------
+# Environment variables
 .env
 .env.local
-.env.development
-.env.production
+.env.*.local
 
-# ----------------------------------------
-# Editor / OS files
-# ----------------------------------------
-.DS_Store
-Thumbs.db
+# Logs
+logs/
+*.log
+*.log.*
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# IDE
+.vscode/
+.idea/
 *.swp
-*.tmp
-*.temp
+*.swo
 
-# ----------------------------------------
-# VSCode
-# ----------------------------------------
-.vscode/*
-!.vscode/settings.json
-!.vscode/extensions.json
-!.vscode/launch.json
-
-# ----------------------------------------
-# TypeScript build artifacts
-# ----------------------------------------
+# Typescript
 *.tsbuildinfo
 
-# ----------------------------------------
-# Figma export documentation (optional)
-# If you DON'T want to track Figma export docs, uncomment these:
-#
-# documentacion exportacion/
-# *.md
-#
-# If you DO want to keep them in git, leave those lines commented.
-# ----------------------------------------
+# Mac / Windows
+.DS_Store
+Thumbs.db
 
-# ----------------------------------------
-# Tests
-# ----------------------------------------
+# Coverage
 coverage/
-*.test.ts
-*.spec.ts
-*.test.js
+
+# Prisma
+prisma/*.db
+prisma/dev.db-journal
+
+# Temporary files
+tmp/
+temp/
+
+# Docker
+docker-data/
