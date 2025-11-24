@@ -1,20 +1,95 @@
 // src/modules/inicio/InicioBodeguero.tsx
+import { useEffect, useState } from "react";
 import { StatCard } from "../../components/ui/StatCard";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardTitle,
 } from "../../components/ui/Card";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { Badge } from "../../components/ui/Badge";
 import { cn } from "../../utils/cn";
+import { fetchInicioBodeguero, type InicioBodegueroResponse } from "../../services/apiInicio";
 
-// ICONOS
-import { ClipboardList, AlertTriangle } from "lucide-react";
+// ICONOS (igual que ya teníamos)
+import {
+  ClipboardList,
+  AlertTriangle,
+  ArrowUpRight,
+  ArrowDownRight,
+  ArrowRightLeft,
+} from "lucide-react";
+
+type MovimientoVariant = "success" | "danger" | "outline";
+
+type MovimientoRowProps = {
+  codigo: string;
+  tipo: string;
+  productos: string;
+  fecha: string;
+  variant: MovimientoVariant;
+};
 
 export function InicioBodeguero() {
+  const [data, setData] = useState<InicioBodegueroResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Llamada al backend al montar el componente
+  useEffect(() => {
+    let isMounted = true;
+
+    async function load() {
+      try {
+        setLoading(true);
+        setError(null);
+        const apiData = await fetchInicioBodeguero();
+        if (isMounted) {
+          setData(apiData);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          setError("No se pudo cargar la información del inicio.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    load();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Mientras carga, mostramos algo sencillo
+  if (loading && !data) {
+    return (
+      <div className="p-4 text-sm text-slate-500">
+        Cargando panel de inicio...
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="p-4 text-sm text-red-600">
+        {error}
+      </div>
+    );
+  }
+
+  // Si por alguna razón no hay data pero tampoco error
+  if (!data) {
+    return null;
+  }
+
+  const { resumen, solicitudesPorAtender, movimientosDelDia } = data;
+
   return (
     <div className="space-y-6">
       <header className="mb-2">
@@ -28,14 +103,14 @@ export function InicioBodeguero() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-w-3xl">
         <StatCard
           label="Pendientes"
-          value={2}
+          value={resumen.pendientes}
           variant="blue"
           description="Solicitudes por atender"
           icon={<ClipboardList className="w-4 h-4 text-sky-500" />}
         />
         <StatCard
           label="Stock Bajo"
-          value={8}
+          value={resumen.stockBajo}
           variant="orange"
           description="Productos con existencias críticas"
           icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
@@ -54,53 +129,44 @@ export function InicioBodeguero() {
         />
 
         <div className="grid gap-3 md:grid-cols-2 max-w-4xl">
-          {/* Solicitud pendiente */}
-          <Card className="rounded-2xl">
-            <CardContent className="flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <CardTitle className="text-sm font-semibold">
-                    SOL-2025-0012
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    Juan Pérez
-                    <br />
-                    Bodega Central
-                  </CardDescription>
+          {solicitudesPorAtender.map((solicitud) => (
+            <Card key={solicitud.codigo} className="rounded-2xl">
+              <CardContent className="flex flex-col gap-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-sm font-semibold">
+                      {solicitud.codigo}
+                    </CardTitle>
+                    <CardDescription className="text-xs">
+                      {solicitud.cliente}
+                      <br />
+                      {solicitud.bodega}
+                    </CardDescription>
+                  </div>
+                  <Badge
+                    variant={
+                      solicitud.estado === "APROBADA"
+                        ? "success"
+                        : solicitud.estado === "PENDIENTE"
+                        ? "warning"
+                        : "outline"
+                    }
+                    className="text-[11px] px-3 py-0.5 uppercase tracking-wide"
+                  >
+                    {solicitud.estado}
+                  </Badge>
                 </div>
-                <Badge variant="warning">PENDIENTE</Badge>
-              </div>
 
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                <span>5 productos</span>
-                <span>2025-11-17</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Solicitud aprobada */}
-          <Card className="rounded-2xl">
-            <CardContent className="flex flex-col gap-2">
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <CardTitle className="text-sm font-semibold">
-                    SOL-2025-0011
-                  </CardTitle>
-                  <CardDescription className="text-xs">
-                    María González
-                    <br />
-                    Bodega Norte
-                  </CardDescription>
+                <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
+                  <span>
+                    {solicitud.productos}{" "}
+                    {solicitud.productos === 1 ? "producto" : "productos"}
+                  </span>
+                  <span>{solicitud.fecha}</span>
                 </div>
-                <Badge variant="success">APROBADA</Badge>
-              </div>
-
-              <div className="flex items-center justify-between text-[11px] text-slate-500 mt-2">
-                <span>3 productos</span>
-                <span>2025-11-16</span>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 
@@ -110,30 +176,33 @@ export function InicioBodeguero() {
 
         <Card className="rounded-2xl">
           <CardContent className="divide-y divide-slate-100 p-0">
-            {/* Movimiento 1 */}
-            <MovimientoRow
-              codigo="SAL-2025-00034"
-              tipo="SALIDA"
-              variant="danger"
-              productos="2 productos"
-              fecha="2025-11-18 14:30"
-            />
-            {/* Movimiento 2 */}
-            <MovimientoRow
-              codigo="ING-2025-00089"
-              tipo="INGRESO"
-              variant="success"
-              productos="1 productos"
-              fecha="2025-11-18 12:15"
-            />
-            {/* Movimiento 3 */}
-            <MovimientoRow
-              codigo="TRF-2025-00012"
-              tipo="TRANSFERENCIA"
-              variant="outline"
-              productos="1 productos"
-              fecha="2025-11-18 10:45"
-            />
+            {movimientosDelDia.map((mov) => {
+              let variant: MovimientoVariant = "outline";
+              let icon: JSX.Element = <ArrowRightLeft className="w-3 h-3" />;
+
+              if (mov.tipo === "SALIDA") {
+                variant = "danger";
+                icon = <ArrowUpRight className="w-3 h-3" />;
+              } else if (mov.tipo === "INGRESO") {
+                variant = "success";
+                icon = <ArrowDownRight className="w-3 h-3" />;
+              }
+
+              return (
+                <MovimientoRow
+                  key={mov.codigo}
+                  codigo={mov.codigo}
+                  tipo={mov.tipo}
+                  variant={variant}
+                  productos={
+                    mov.productos +
+                    (mov.productos === 1 ? " producto" : " productos")
+                  }
+                  fecha={mov.fecha}
+                  icon={icon}
+                />
+              );
+            })}
           </CardContent>
         </Card>
       </section>
@@ -141,14 +210,8 @@ export function InicioBodeguero() {
   );
 }
 
-type MovimientoVariant = "success" | "danger" | "outline";
-
-type MovimientoRowProps = {
-  codigo: string;
-  tipo: string;
-  productos: string;
-  fecha: string;
-  variant: MovimientoVariant;
+type MovimientoRowWithIconProps = MovimientoRowProps & {
+  icon: JSX.Element;
 };
 
 function MovimientoRow({
@@ -157,7 +220,8 @@ function MovimientoRow({
   productos,
   fecha,
   variant,
-}: MovimientoRowProps) {
+  icon,
+}: MovimientoRowWithIconProps) {
   const colorMap: Record<MovimientoVariant, string> = {
     success: "text-emerald-500 border-emerald-200",
     danger: "text-rose-500 border-rose-200",
@@ -173,7 +237,7 @@ function MovimientoRow({
             colorMap[variant]
           )}
         >
-          ●
+          {icon}
         </span>
         <div className="flex flex-col">
           <span className="text-sm font-medium text-slate-900">
