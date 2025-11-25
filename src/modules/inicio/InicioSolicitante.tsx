@@ -1,4 +1,5 @@
 // src/modules/inicio/InicioSolicitante.tsx
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -9,12 +10,64 @@ import { SectionTitle } from "../../components/ui/SectionTitle";
 import { Badge } from "../../components/ui/Badge";
 import { StatCard } from "../../components/ui/StatCard";
 
-// ------------------------------
 // ICONOS
-// ------------------------------
 import { Loader2, CheckCircle, CalendarDays } from "lucide-react";
 
+// --------------------------------------------------
+// Tipos que coinciden con la API /api/inicio/solicitante
+// --------------------------------------------------
+type SolicitudDTO = {
+  id: string;
+  codigo: string;
+  bodega: string;
+  productos: string;
+  fecha: string | null;
+  estado: string;
+};
+
+type SolicitanteDashboard = {
+  resumen: {
+    pendientes: number;
+    aprobadas: number;
+    estaSemana: number;
+  };
+  enProceso: SolicitudDTO[];
+  historial: SolicitudDTO[];
+};
+
 export function InicioSolicitante() {
+  const [data, setData] = useState<SolicitanteDashboard | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchDashboard = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/inicio/solicitante");
+
+        if (!res.ok) {
+          throw new Error("Error al cargar el dashboard del solicitante");
+        }
+
+        const json = (await res.json()) as SolicitanteDashboard;
+        setData(json);
+      } catch (err: unknown) {
+        console.error(err);
+
+        const message =
+          err instanceof Error ? err.message : "Error desconocido";
+
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboard();
+  }, []);
+
+  const resumen = data?.resumen;
+
   return (
     <div className="space-y-6">
       <header className="mb-2">
@@ -28,7 +81,7 @@ export function InicioSolicitante() {
       <div className="grid gap-4 md:grid-cols-3 max-w-4xl">
         <StatCard
           label="Pendientes"
-          value={1}
+          value={resumen?.pendientes ?? 0}
           variant="yellow"
           description="Solicitudes aún en proceso"
           icon={<Loader2 className="w-4 h-4 text-yellow-500" />}
@@ -36,7 +89,7 @@ export function InicioSolicitante() {
 
         <StatCard
           label="Aprobadas"
-          value={1}
+          value={resumen?.aprobadas ?? 0}
           variant="green"
           description="Aprobadas recientemente"
           icon={<CheckCircle className="w-4 h-4 text-emerald-500" />}
@@ -44,37 +97,49 @@ export function InicioSolicitante() {
 
         <StatCard
           label="Esta semana"
-          value={2}
+          value={resumen?.estaSemana ?? 0}
           variant="blue"
           description="Solicitudes creadas esta semana"
           icon={<CalendarDays className="w-4 h-4 text-sky-500" />}
         />
       </div>
 
+      {loading && (
+        <p className="text-sm text-slate-500">Cargando información…</p>
+      )}
+
+      {error && (
+        <p className="text-sm text-red-500">Ocurrió un error: {error}</p>
+      )}
+
       {/* En Proceso */}
       <section className="space-y-3">
         <SectionTitle title="En Proceso" />
 
         <div className="grid gap-3 md:grid-cols-2 max-w-4xl">
-          {/* Solicitud aprobada */}
-          <SolicitudCard
-            codigo="SOL-2025-0010"
-            bodega="Bodega Central"
-            productos="4 productos"
-            fecha="2025-11-15"
-            estado="APROBADA"
-            estadoVariant="success"
-          />
-
-          {/* Solicitud pendiente */}
-          <SolicitudCard
-            codigo="SOL-2025-0013"
-            bodega="Bodega Norte"
-            productos="2 productos"
-            fecha="2025-11-17"
-            estado="PENDIENTE"
-            estadoVariant="warning"
-          />
+          {data?.enProceso.length ? (
+            data.enProceso.map((s) => (
+              <SolicitudCard
+                key={s.id}
+                codigo={s.codigo}
+                bodega={s.bodega}
+                productos={s.productos}
+                fecha={s.fecha ?? ""}
+                estado={s.estado}
+                estadoVariant={
+                  s.estado === "PENDIENTE"
+                    ? "warning"
+                    : s.estado === "APROBADA"
+                    ? "success"
+                    : "outline"
+                }
+              />
+            ))
+          ) : (
+            <p className="text-xs text-slate-500">
+              No hay solicitudes en proceso.
+            </p>
+          )}
         </div>
       </section>
 
@@ -83,30 +148,33 @@ export function InicioSolicitante() {
         <SectionTitle title="Historial" />
 
         <div className="grid gap-3 md:grid-cols-2 max-w-4xl">
-          <SolicitudCard
-            codigo="SOL-2025-0009"
-            bodega="Bodega Sur"
-            productos="2 productos"
-            fecha="2025-11-14"
-            estado="ENTREGADA"
-            estadoVariant="outline"
-            estadoExtraClass="text-sky-600 border-sky-300 bg-sky-50"
-          />
-
-          <SolicitudCard
-            codigo="SOL-2025-0008"
-            bodega="Bodega Central"
-            productos="3 productos"
-            fecha="2025-11-13"
-            estado="ENTREGADA"
-            estadoVariant="outline"
-            estadoExtraClass="text-sky-600 border-sky-300 bg-sky-50"
-          />
+          {data?.historial.length ? (
+            data.historial.map((s) => (
+              <SolicitudCard
+                key={s.id}
+                codigo={s.codigo}
+                bodega={s.bodega}
+                productos={s.productos}
+                fecha={s.fecha ?? ""}
+                estado={s.estado}
+                estadoVariant="outline"
+                estadoExtraClass="text-sky-600 border-sky-300 bg-sky-50"
+              />
+            ))
+          ) : (
+            <p className="text-xs text-slate-500">
+              No hay solicitudes en el historial.
+            </p>
+          )}
         </div>
       </section>
     </div>
   );
 }
+
+// ==========================================================
+// COMPONENTE SOLICITUD CARD
+// ==========================================================
 
 type EstadoVariant = "success" | "warning" | "outline";
 
@@ -134,12 +202,8 @@ function SolicitudCard({
       <CardContent className="flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <CardTitle className="text-sm font-semibold">
-              {codigo}
-            </CardTitle>
-            <CardDescription className="text-xs">
-              {bodega}
-            </CardDescription>
+            <CardTitle className="text-sm font-semibold">{codigo}</CardTitle>
+            <CardDescription className="text-xs">{bodega}</CardDescription>
           </div>
 
           <Badge
