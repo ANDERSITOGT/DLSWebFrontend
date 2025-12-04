@@ -6,6 +6,7 @@ import { DesktopLayout } from "./layouts/desktop/DesktopLayout";
 import { InicioPage } from "./modules/inicio/InicioPage";
 import { UserRoleProvider } from "./hooks/useUserRole";
 import { FakeLoginPage } from "./modules/auth/FakeLoginPage";
+import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
 
 // NUEVO: inventario (mismo módulo para todos los roles)
 import { Inventario } from "./modules/inventario/Inventario";
@@ -27,8 +28,9 @@ function App() {
           {/* Inventario (misma vista para todos los roles) */}
           <Route path="/inventario" element={<Inventario />} />
 
-          {/* aquí después puedes ir agregando más rutas:
-              /movimientos, /solicitudes, etc. */}
+          {/* Movimientos misma vista para todos los roles */}
+          <Route path="/movimientos" element={<MovimientosPage />} />{" "}
+          {/* ⬅️ NUEVO */}
         </Routes>
       </Layout>
     </UserRoleProvider>
