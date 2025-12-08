@@ -7,6 +7,8 @@ import { InicioPage } from "./modules/inicio/InicioPage";
 import { UserRoleProvider } from "./hooks/useUserRole";
 import { FakeLoginPage } from "./modules/auth/FakeLoginPage";
 import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
+import { MovimientosLotesPage } from "./modules/movimientos/MovimientosLotesPage";
+
 
 // NUEVO: inventario (mismo módulo para todos los roles)
 import { Inventario } from "./modules/inventario/Inventario";
@@ -29,7 +31,9 @@ function App() {
           <Route path="/inventario" element={<Inventario />} />
 
           {/* Movimientos misma vista para todos los roles */}
-          <Route path="/movimientos" element={<MovimientosPage />} />{" "}
+          <Route path="/movimientos" element={<MovimientosPage />} />
+          <Route path="/movimientos/lotes" element={<MovimientosLotesPage />} />
+
           {/* ⬅️ NUEVO */}
         </Routes>
       </Layout>
