@@ -1,5 +1,5 @@
 // src/modules/movimientos/MovimientosPage.tsx
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -11,153 +11,131 @@ import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
 
+const API_BASE = "http://localhost:3001";
+
 // ------------------------------------
-// Tipos
+// Tipos que corresponden al backend
 // ------------------------------------
-type TipoDocumento = "INGRESO" | "SALIDA" | "TRANSFERENCIA";
-type EstadoDocumento = "BORRADOR" | "APROBADO";
+type MovimientoTipo =
+  | "INGRESO"
+  | "SALIDA"
+  | "TRANSFERENCIA"
+  | "AJUSTE"
+  | "DEVOLUCION";
+
+type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO";
 
 type MovimientoResumen = {
   id: string;
-  codigo: string; // SAL-2025-00034
-  tipo: TipoDocumento;
-  estado: EstadoDocumento;
-  origen?: string | null;
-  destino?: string | null;
-  proveedor?: string | null;
-  productosCount: number;
-  fecha: string; // ISO
+  codigo: string;
+  tipo: MovimientoTipo;
+  estado: MovimientoEstado;
+  origen: string | null;
+  destino: string | null;
+  proveedor: string | null;
+  productos: string; // "2 productos"
+  fecha: string | null; // ISO
 };
 
-type MovimientoProductoDetalle = {
+type ProductoEnMovimiento = {
   id: string;
-  nombreProducto: string;
-  codigoProducto: string;
-  cantidad: string; // "50 kg", "10 L"
-  loteCodigo: string;
+  productoNombre: string;
+  productoCodigo: string;
+  cantidad: string; // "50 kg"
+  unidad: string;
+  loteCodigo: string | null;
+  loteId: string | null;
+  fincaNombre: string | null;
 };
 
-type DetalleDocumento = {
-  documento: MovimientoResumen;
-  productos: MovimientoProductoDetalle[];
-};
-
-// ------------------------------------
-// MOCK DATA (luego se conectará al backend)
-// ------------------------------------
-const MOCK_MOVIMIENTOS: MovimientoResumen[] = [
-  {
-    id: "m1",
-    codigo: "SAL-2025-00034",
-    tipo: "SALIDA",
-    estado: "APROBADO",
-    origen: "Bodega Central",
-    destino: null,
-    proveedor: null,
-    productosCount: 2,
-    fecha: "2025-11-17T00:00:00",
-  },
-  {
-    id: "m2",
-    codigo: "ING-2025-00089",
-    tipo: "INGRESO",
-    estado: "APROBADO",
-    origen: null,
-    destino: "Bodega Central",
-    proveedor: "Agroquímicos del Valle S.A.",
-    productosCount: 1,
-    fecha: "2025-11-17T00:00:00",
-  },
-  {
-    id: "m3",
-    codigo: "TRF-2025-00012",
-    tipo: "TRANSFERENCIA",
-    estado: "APROBADO",
-    origen: "Bodega Central",
-    destino: "Bodega Norte",
-    proveedor: null,
-    productosCount: 1,
-    fecha: "2025-11-16T00:00:00",
-  },
-];
-
-const MOCK_DETALLE_POR_DOC: Record<string, DetalleDocumento> = {
-  m1: {
-    documento: MOCK_MOVIMIENTOS[0],
-    productos: [
-      {
-        id: "p1",
-        nombreProducto: "Fertilizante NPK 20-20-20",
-        codigoProducto: "FERT-001",
-        cantidad: "50 kg",
-        loteCodigo: "L-2024-089",
-      },
-      {
-        id: "p2",
-        nombreProducto: "Herbicida Glifosato",
-        codigoProducto: "HERB-012",
-        cantidad: "10 L",
-        loteCodigo: "L-2024-095",
-      },
-    ],
-  },
-  m2: {
-    documento: MOCK_MOVIMIENTOS[1],
-    productos: [
-      {
-        id: "p3",
-        nombreProducto: "Insecticida Orgánico",
-        codigoProducto: "INSEC-019",
-        cantidad: "25 L",
-        loteCodigo: "L-2024-102",
-      },
-    ],
-  },
-  m3: {
-    documento: MOCK_MOVIMIENTOS[2],
-    productos: [
-      {
-        id: "p4",
-        nombreProducto: "Fertilizante NPK 20-20-20",
-        codigoProducto: "FERT-001",
-        cantidad: "40 kg",
-        loteCodigo: "L-2024-110",
-      },
-    ],
-  },
+type MovimientoDetalle = {
+  id: string;
+  codigo: string;
+  tipo: MovimientoTipo;
+  estado: MovimientoEstado;
+  fecha: string | null;
+  origen: string | null;
+  destino: string | null;
+  proveedor: string | null;
+  solicitante: string | null;
+  creador: string | null;
+  productos: ProductoEnMovimiento[];
+  observacion: string | null;
 };
 
 // ------------------------------------
 // Página principal de Movimientos
 // ------------------------------------
 export function MovimientosPage() {
-  const [movimientos] = useState<MovimientoResumen[]>(MOCK_MOVIMIENTOS);
+  const [movimientos, setMovimientos] = useState<MovimientoResumen[]>([]);
+  const [loadingLista, setLoadingLista] = useState(true);
+  const [errorLista, setErrorLista] = useState<string | null>(null);
 
   const [detalleSeleccionado, setDetalleSeleccionado] =
-    useState<DetalleDocumento | null>(null);
+    useState<MovimientoDetalle | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  // Al hacer click en una tarjeta abrimos el modal rápido y cargamos detalle
+  // Cargar listado desde el backend
+  useEffect(() => {
+    const cargarMovimientos = async () => {
+      try {
+        setLoadingLista(true);
+        setErrorLista(null);
+
+        const res = await fetch(`${API_BASE}/api/movimientos`);
+        if (!res.ok) {
+          throw new Error(`Error HTTP ${res.status}`);
+        }
+
+        const json = await res.json();
+        const data: MovimientoResumen[] = json.movimientos ?? [];
+        setMovimientos(data);
+      } catch (err) {
+        console.error("Error al cargar movimientos:", err);
+        setErrorLista("No se pudieron cargar los movimientos.");
+      } finally {
+        setLoadingLista(false);
+      }
+    };
+
+    cargarMovimientos();
+  }, []);
+
+  // Al hacer click en una tarjeta:
+  // 1) Abrimos el modal inmediatamente con info básica.
+  // 2) Mostramos "Cargando productos…" mientras llega el detalle real.
   const handleClickMovimiento = async (mov: MovimientoResumen) => {
+    // 1) Base para mostrar algo inmediato en el modal
+    const detalleBase: MovimientoDetalle = {
+      id: mov.id,
+      codigo: mov.codigo,
+      tipo: mov.tipo,
+      estado: mov.estado,
+      fecha: mov.fecha,
+      origen: mov.origen,
+      destino: mov.destino,
+      proveedor: mov.proveedor,
+      solicitante: null,
+      creador: null,
+      observacion: null,
+      productos: [],
+    };
+
+    setDetalleSeleccionado(detalleBase);
     setCargandoDetalle(true);
 
     try {
-      // Más adelante aquí haremos fetch al backend:
-      // const res = await fetch(`/api/movimientos/${mov.id}`);
-      // const detalleReal = await res.json();
-      // Por ahora usamos el mock:
-      const detalleMock = MOCK_DETALLE_POR_DOC[mov.id] ?? {
-        documento: mov,
-        productos: [],
-      };
+      // 2) Pedimos el detalle real al backend
+      const res = await fetch(`${API_BASE}/api/movimientos/${mov.id}`);
+      if (!res.ok) {
+        throw new Error(`Error HTTP ${res.status}`);
+      }
 
-      setDetalleSeleccionado(detalleMock);
+      const data = (await res.json()) as MovimientoDetalle;
+      setDetalleSeleccionado(data);
     } catch (error) {
       console.error("Error al cargar detalle de movimiento:", error);
-      setDetalleSeleccionado({
-        documento: mov,
-        productos: [],
-      });
+      // Dejamos el detalle base y solo apagamos el loader
     } finally {
       setCargandoDetalle(false);
     }
@@ -168,14 +146,29 @@ export function MovimientosPage() {
     setCargandoDetalle(false);
   };
 
+  // Export general (toda la lista)
+  const handleExportListado = () => {
+    window.open(`${API_BASE}/api/movimientos/export`, "_blank");
+  };
+
   return (
     <div className="space-y-6">
       {/* Encabezado */}
-      <header className="mb-2">
-        <h1 className="text-xl font-semibold text-slate-900">Movimientos</h1>
-        <p className="text-sm text-slate-500">
-          Documentos de entrada y salida.
-        </p>
+      <header className="mb-2 flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-900">Movimientos</h1>
+          <p className="text-sm text-slate-500">
+            Documentos de entrada y salida.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleExportListado}
+          className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-medium text-white hover:bg-emerald-700"
+        >
+          📄 Exportar listado
+        </button>
       </header>
 
       {/* Tabs superiores */}
@@ -206,6 +199,14 @@ export function MovimientosPage() {
           </Link>
         </div>
       </section>
+
+      {/* Estado de carga / error */}
+      {loadingLista && (
+        <p className="text-xs text-slate-500">Cargando movimientos…</p>
+      )}
+      {errorLista && (
+        <p className="text-xs text-rose-500">{errorLista}</p>
+      )}
 
       {/* Grid de tarjetas de movimientos */}
       <section className="space-y-3">
@@ -245,14 +246,20 @@ function MovimientoCard({ movimiento, onClick }: MovimientoCardProps) {
     INGRESO: "bg-emerald-50 text-emerald-700 border-emerald-100",
     SALIDA: "bg-rose-50 text-rose-700 border-rose-100",
     TRANSFERENCIA: "bg-sky-50 text-sky-700 border-sky-100",
+    AJUSTE: "bg-amber-50 text-amber-700 border-amber-100",
+    DEVOLUCION: "bg-violet-50 text-violet-700 border-violet-100",
   }[movimiento.tipo];
 
   const estadoColor: string =
     movimiento.estado === "APROBADO"
       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-      : "bg-amber-50 text-amber-700 border-amber-100";
+      : movimiento.estado === "BORRADOR"
+      ? "bg-amber-50 text-amber-700 border-amber-100"
+      : "bg-slate-50 text-slate-600 border-slate-200";
 
-  const fechaCorta = new Date(movimiento.fecha).toLocaleDateString();
+  const fechaCorta = movimiento.fecha
+    ? new Date(movimiento.fecha).toLocaleDateString()
+    : "-";
 
   return (
     <Card
@@ -314,10 +321,7 @@ function MovimientoCard({ movimiento, onClick }: MovimientoCardProps) {
 
         {/* Footer: productos + fecha */}
         <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1">
-          <span>
-            {movimiento.productosCount}{" "}
-            {movimiento.productosCount === 1 ? "producto" : "productos"}
-          </span>
+          <span>{movimiento.productos}</span>
           <span>{fechaCorta}</span>
         </div>
       </CardContent>
@@ -329,7 +333,7 @@ function MovimientoCard({ movimiento, onClick }: MovimientoCardProps) {
 // Modal de detalle de movimiento
 // ------------------------------------
 type MovimientoDetalleModalProps = {
-  detalle: DetalleDocumento;
+  detalle: MovimientoDetalle;
   loading: boolean;
   onClose: () => void;
 };
@@ -339,20 +343,28 @@ function MovimientoDetalleModal({
   loading,
   onClose,
 }: MovimientoDetalleModalProps) {
-  const { documento, productos } = detalle;
-
   const tipoColor: string = {
     INGRESO: "bg-emerald-50 text-emerald-700 border-emerald-100",
     SALIDA: "bg-rose-50 text-rose-700 border-rose-100",
     TRANSFERENCIA: "bg-sky-50 text-sky-700 border-sky-100",
-  }[documento.tipo];
+    AJUSTE: "bg-amber-50 text-amber-700 border-amber-100",
+    DEVOLUCION: "bg-violet-50 text-violet-700 border-violet-100",
+  }[detalle.tipo];
 
   const estadoColor: string =
-    documento.estado === "APROBADO"
+    detalle.estado === "APROBADO"
       ? "bg-emerald-50 text-emerald-700 border-emerald-100"
-      : "bg-amber-50 text-amber-700 border-amber-100";
+      : detalle.estado === "BORRADOR"
+      ? "bg-amber-50 text-amber-700 border-amber-100"
+      : "bg-slate-50 text-slate-600 border-slate-200";
 
-  const fechaCorta = new Date(documento.fecha).toLocaleDateString();
+  const fechaCorta = detalle.fecha
+    ? new Date(detalle.fecha).toLocaleDateString()
+    : "-";
+
+  const handleExportDocumento = () => {
+    window.open(`${API_BASE}/api/movimientos/${detalle.id}/export`, "_blank");
+  };
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-2 md:px-4">
@@ -361,7 +373,7 @@ function MovimientoDetalleModal({
         <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4">
           <div className="space-y-2">
             <h2 className="text-sm font-semibold text-slate-900">
-              {documento.codigo}
+              {detalle.codigo}
             </h2>
             <div className="flex gap-2">
               <Badge
@@ -371,7 +383,7 @@ function MovimientoDetalleModal({
                   tipoColor
                 )}
               >
-                {documento.tipo}
+                {detalle.tipo}
               </Badge>
               <Badge
                 variant="outline"
@@ -380,16 +392,25 @@ function MovimientoDetalleModal({
                   estadoColor
                 )}
               >
-                {documento.estado}
+                {detalle.estado}
               </Badge>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="rounded-full border border-slate-200 bg-white px-2 text-xs text-slate-500 hover:bg-slate-50"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleExportDocumento}
+              className="rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-medium text-white hover:bg-emerald-700"
+            >
+              📄 Exportar
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-full border border-slate-200 bg-white px-2 text-xs text-slate-500 hover:bg-slate-50"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {/* Body scrollable */}
@@ -404,28 +425,40 @@ function MovimientoDetalleModal({
                 <p className="text-slate-500">Fecha</p>
                 <p className="font-medium">{fechaCorta}</p>
               </div>
-              {documento.origen && (
+              {detalle.origen && (
                 <div>
-                  <p className="text-slate-500">
-                    {documento.tipo === "INGRESO" ? "Bodega Destino" : "Bodega Origen"}
-                  </p>
-                  <p className="font-medium">{documento.origen}</p>
+                  <p className="text-slate-500">Bodega Origen</p>
+                  <p className="font-medium">{detalle.origen}</p>
                 </div>
               )}
-              {documento.destino && (
+              {detalle.destino && (
                 <div>
-                  <p className="text-slate-500">
-                    {documento.tipo === "TRANSFERENCIA"
-                      ? "Bodega Destino"
-                      : "Destino"}
-                  </p>
-                  <p className="font-medium">{documento.destino}</p>
+                  <p className="text-slate-500">Bodega Destino</p>
+                  <p className="font-medium">{detalle.destino}</p>
                 </div>
               )}
-              {documento.proveedor && (
+              {detalle.proveedor && (
                 <div className="col-span-2">
                   <p className="text-slate-500">Proveedor</p>
-                  <p className="font-medium">{documento.proveedor}</p>
+                  <p className="font-medium">{detalle.proveedor}</p>
+                </div>
+              )}
+              {detalle.solicitante && (
+                <div>
+                  <p className="text-slate-500">Solicitante</p>
+                  <p className="font-medium">{detalle.solicitante}</p>
+                </div>
+              )}
+              {detalle.creador && (
+                <div>
+                  <p className="text-slate-500">Registrado por</p>
+                  <p className="font-medium">{detalle.creador}</p>
+                </div>
+              )}
+              {detalle.observacion && (
+                <div className="col-span-2">
+                  <p className="text-slate-500">Observación</p>
+                  <p className="font-medium">{detalle.observacion}</p>
                 </div>
               )}
             </div>
@@ -435,7 +468,8 @@ function MovimientoDetalleModal({
           <section className="space-y-2">
             <p className="font-semibold text-slate-800">
               Productos{" "}
-              {productos.length > 0 && `(${productos.length})`}
+              {detalle.productos.length > 0 &&
+                `(${detalle.productos.length})`}
             </p>
 
             {loading && (
@@ -444,14 +478,14 @@ function MovimientoDetalleModal({
               </p>
             )}
 
-            {!loading && productos.length === 0 && (
+            {!loading && detalle.productos.length === 0 && (
               <p className="text-[11px] text-slate-500">
                 No hay productos registrados en este documento.
               </p>
             )}
 
             <div className="space-y-2">
-              {productos.map((p) => (
+              {detalle.productos.map((p) => (
                 <div
                   key={p.id}
                   className="flex items-start gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
@@ -462,18 +496,23 @@ function MovimientoDetalleModal({
                   <div className="flex-1 space-y-0.5">
                     <div className="flex items-center justify-between">
                       <span className="text-[11px] font-medium text-slate-800">
-                        {p.nombreProducto}
+                        {p.productoNombre}
                       </span>
                       <span className="text-[11px] font-semibold text-slate-900">
                         {p.cantidad}
                       </span>
                     </div>
                     <CardDescription className="text-[10px]">
-                      Código: {p.codigoProducto}
+                      Código: {p.productoCodigo}
                     </CardDescription>
                     <p className="text-[10px] text-slate-500">
-                      Lote: {p.loteCodigo}
+                      Lote: {p.loteCodigo ?? "-"}
                     </p>
+                    {p.fincaNombre && (
+                      <p className="text-[10px] text-slate-400">
+                        Finca: {p.fincaNombre}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
