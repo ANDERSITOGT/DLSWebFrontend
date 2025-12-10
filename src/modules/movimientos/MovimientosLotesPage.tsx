@@ -1,4 +1,5 @@
 // src/modules/movimientos/MovimientosLotesPage.tsx
+import { Link } from "react-router-dom";
 import { useState } from "react";
 import {
   Card,
@@ -299,26 +300,31 @@ export function MovimientosLotesPage() {
       <section className="space-y-4">
         <SectionTitle title="Lotes" />
 
+
         <div className="flex rounded-full bg-slate-100 p-1 w-full max-w-xs">
-          <button
-            type="button"
+          {/* Tab que regresa a la lista de movimientos */}
+          <Link
+            to="/movimientos"
             className={cn(
-              "flex-1 rounded-full py-1.5 text-xs font-medium",
-              "text-slate-500"
+              "flex-1 text-center rounded-full py-1.5 text-xs font-medium",
+              "text-slate-500 hover:text-slate-900"
             )}
           >
             Movimientos
-          </button>
+          </Link>
+
+          {/* Tab actual (Lotes) */}
           <button
             type="button"
             className={cn(
               "flex-1 rounded-full py-1.5 text-xs font-medium",
-              "bg-white text-slate-900 shadow-sm"
+              "bg-white text-slate-900 shadow-sm cursor-default"
             )}
           >
             Lotes
           </button>
         </div>
+
       </section>
 
       {/* Grid de lotes */}
