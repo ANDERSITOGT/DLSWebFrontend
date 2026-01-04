@@ -8,10 +8,10 @@ import { UserRoleProvider } from "./hooks/useUserRole";
 import { FakeLoginPage } from "./modules/auth/FakeLoginPage";
 import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
 import { MovimientosLotesPage } from "./modules/movimientos/MovimientosLotesPage";
-
-
-// NUEVO: inventario (mismo módulo para todos los roles)
 import { Inventario } from "./modules/inventario/Inventario";
+
+// 1. IMPORTAR LA PÁGINA DE SOLICITUDES
+import SolicitudesPage from "./modules/solicitudes/SolicitudesPage";
 
 function App() {
   const isMobile = useIsMobile();
@@ -27,14 +27,16 @@ function App() {
           {/* Login de prueba para cambiar rol */}
           <Route path="/login" element={<FakeLoginPage />} />
 
-          {/* Inventario (misma vista para todos los roles) */}
+          {/* Inventario */}
           <Route path="/inventario" element={<Inventario />} />
 
-          {/* Movimientos misma vista para todos los roles */}
+          {/* Movimientos */}
           <Route path="/movimientos" element={<MovimientosPage />} />
           <Route path="/movimientos/lotes" element={<MovimientosLotesPage />} />
 
-          {/* ⬅️ NUEVO */}
+          {/* 2. AGREGAR LA RUTA DE SOLICITUDES */}
+          <Route path="/solicitudes" element={<SolicitudesPage />} />
+          
         </Routes>
       </Layout>
     </UserRoleProvider>
