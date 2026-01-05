@@ -1,7 +1,7 @@
-import { createContext, useContext, useState, useEffect } from "react";
-import type { ReactNode } from "react";
+// src/context/AuthContext.tsx
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react";
 
-// Definimos la forma del Usuario (coincide con tu Backend)
+// Definimos la forma del Usuario
 interface User {
   id: string;
   email: string;
@@ -22,16 +22,28 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  // 👇 NUEVO ESTADO: Iniciamos cargando
+  const [loading, setLoading] = useState(true); 
 
-  // Al cargar la página, revisamos si ya había sesión guardada
   useEffect(() => {
+    // 1. Intentamos leer del almacenamiento local
     const storedToken = localStorage.getItem("dls_token");
     const storedUser = localStorage.getItem("dls_user");
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        // Si hay error al leer (ej. json corrupto), limpiamos todo
+        console.error("Error recuperando sesión", error);
+        localStorage.removeItem("dls_token");
+        localStorage.removeItem("dls_user");
+      }
     }
+    
+    // 2. IMPORTANTE: Avisamos que ya terminamos de revisar
+    setLoading(false);
   }, []);
 
   const login = (newToken: string, newUser: User) => {
@@ -48,6 +60,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   };
 
+  // 👇 LA MAGIA: Si estamos cargando, no renderizamos la App todavía
+  // Esto evita que el "RequireAuth" te expulse antes de tiempo.
+  if (loading) {
+    return (
+      <div className="h-screen w-full flex items-center justify-center bg-slate-100">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 bg-blue-200 rounded-full mb-4"></div>
+          <div className="h-4 w-32 bg-slate-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <AuthContext.Provider value={{ user, token, isAuthenticated: !!user, login, logout }}>
       {children}
@@ -55,7 +80,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// Hook para usar la auth en cualquier parte
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

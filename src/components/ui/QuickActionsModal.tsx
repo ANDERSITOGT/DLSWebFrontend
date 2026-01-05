@@ -38,9 +38,16 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
   );
 }
 
-export function QuickActionsModal({ onClose }: { onClose: () => void }) {
+// 👇 1. Agregamos onIngresoClick a los props aceptados
+export function QuickActionsModal({ 
+  onClose, 
+  onIngresoClick 
+}: { 
+  onClose: () => void;
+  onIngresoClick: () => void; 
+}) {
   const navigate = useNavigate();
-  const { user } = useAuth(); // 👇 AQUÍ OBTENEMOS EL ROL REAL
+  const { user } = useAuth();
   const rol = user?.rol; 
 
   const handleNav = (path: string) => {
@@ -48,19 +55,16 @@ export function QuickActionsModal({ onClose }: { onClose: () => void }) {
     onClose();
   };
 
-  // Lógica de Permisos (Basada en tus imágenes)
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
   const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE"; 
   const showCatalogos = rol === "ADMIN";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      {/* Fondo clickeable para cerrar */}
       <div className="absolute inset-0" onClick={onClose}></div>
 
       <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
         
-        {/* Header */}
         <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
           <div>
             <h3 className="font-bold text-gray-800">Acciones Rápidas</h3>
@@ -71,19 +75,23 @@ export function QuickActionsModal({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Body scrollable */}
         <div className="p-4 overflow-y-auto max-h-[70vh] space-y-6">
           
-          {/* GRUPO: MOVIMIENTOS (Admin + Bodeguero) */}
           {showMovimientos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
+              
+              {/* 👇 2. Botón conectado al nuevo Modal */}
               <ActionItem 
                 icon={<ArrowDownToLine size={20} />} 
                 title="Registrar Ingreso" 
                 desc="Registrar entrada de productos"
-                onClick={() => handleNav("/movimientos/nuevo?tipo=INGRESO")} 
+                onClick={() => {
+                  onClose();        // Cierra este menú
+                  onIngresoClick(); // Abre el formulario
+                }} 
               />
+              
               <ActionItem 
                 icon={<ArrowRightLeft size={20} />} 
                 title="Registrar Transferencia" 
@@ -94,7 +102,6 @@ export function QuickActionsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* GRUPO: SOLICITUDES (Admin + Solicitante) */}
           {showSolicitudes && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
@@ -108,7 +115,6 @@ export function QuickActionsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* GRUPO: CATÁLOGOS (Solo Admin) */}
           {showCatalogos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Catálogos</p>
@@ -120,7 +126,6 @@ export function QuickActionsModal({ onClose }: { onClose: () => void }) {
             </div>
           )}
 
-          {/* Mensaje si no hay permisos */}
           {!showMovimientos && !showSolicitudes && !showCatalogos && (
             <div className="text-center py-8 text-gray-400 text-sm">
               No tienes acciones rápidas disponibles para tu rol ({rol}).
