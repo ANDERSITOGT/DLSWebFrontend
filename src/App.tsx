@@ -5,15 +5,16 @@ import { useIsMobile } from "./hooks/useIsMobile";
 import { MobileLayout } from "./layouts/mobile/MobileLayout";
 import { DesktopLayout } from "./layouts/desktop/DesktopLayout";
 import { InicioPage } from "./modules/inicio/InicioPage";
-import LoginPage from "./modules/auth/LoginPage"; // <--- Login Real
+import LoginPage from "./modules/auth/LoginPage";
 import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
 import { MovimientosLotesPage } from "./modules/movimientos/MovimientosLotesPage";
 import { Inventario } from "./modules/inventario/Inventario";
 import SolicitudesPage from "./modules/solicitudes/SolicitudesPage";
 import { ConfiguracionPage } from "./modules/configuracion/ConfiguracionPage";
 
-// 1. Importar el Provider y el Hook
+// 1. Importar los Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { RefreshProvider } from "./context/RefreshContext"; // 👈 NUEVO: Importar el contexto de refresco
 
 // Componente Guardia: Protege las rutas
 function RequireAuth({ children }: { children: ReactNode }) { 
@@ -61,7 +62,10 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      {/* 2. ENVOLVER LA APP: Esto permite que el Layout hable con las Páginas */}
+      <RefreshProvider>
+        <AppContent />
+      </RefreshProvider>
     </AuthProvider>
   );
 }

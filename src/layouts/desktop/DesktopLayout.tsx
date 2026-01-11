@@ -3,6 +3,8 @@ import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
 import { IngresoModal } from "../../modules/movimientos/IngresoModal"; // 👈 Importante
+import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
+import { useRefresh } from "../../context/RefreshContext";
 import {
   Home,
   Boxes,
@@ -24,7 +26,9 @@ type MenuItem = {
 export function DesktopLayout({ children }: DesktopLayoutProps) {
   const [showActions, setShowActions] = useState(false);
   const [showIngresoModal, setShowIngresoModal] = useState(false); // 👈 Estado nuevo
+  const [showSolicitudModal, setShowSolicitudModal] = useState(false);
   const location = useLocation();
+  const { triggerRefreshSolicitudes } = useRefresh(); // 👈 USAR HOOK
 
   const menuItems: MenuItem[] = [
     { label: "Inicio", to: "/", icon: <Home className="w-4 h-4" /> },
@@ -101,6 +105,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         <QuickActionsModal 
           onClose={() => setShowActions(false)} 
           onIngresoClick={() => setShowIngresoModal(true)} // Conexión
+          onSolicitudClick={() => setShowSolicitudModal(true)}
         />
       )}
 
@@ -109,7 +114,19 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           onClose={() => setShowIngresoModal(false)}
           onSuccess={() => {
             setShowIngresoModal(false);
-            // Aquí recargaremos la tabla en el futuro
+            triggerRefreshSolicitudes(); // 👈 ¡AQUÍ DISPARAMOS LA RECARGA!
+
+          }}
+        />
+      )}
+
+      {/* 👇 RENDERIZAR MODAL DE SOLICITUD */}
+      {showSolicitudModal && (
+        <NuevaSolicitudModal
+          onClose={() => setShowSolicitudModal(false)}
+          onSuccess={() => {
+            setShowSolicitudModal(false);
+            // Aquí podríamos recargar la lista si estuviéramos en la página de solicitudes
           }}
         />
       )}

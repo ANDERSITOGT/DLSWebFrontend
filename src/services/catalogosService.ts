@@ -28,5 +28,14 @@ export const catalogosService = {
     const res = await fetch(`${API_URL}/catalogos/productos-busqueda${query}`);
     if (!res.ok) throw new Error("Error al buscar productos");
     return res.json();
+  },
+
+
+  // Obtener Fincas con sus Lotes (Cascada)
+  async getFincasLotes() {
+    const res = await fetch(`${API_URL}/catalogos/fincas-lotes`);
+    if (!res.ok) throw new Error("Error al cargar fincas");
+    return res.json();
   }
+
 };

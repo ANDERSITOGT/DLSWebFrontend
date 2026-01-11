@@ -2,7 +2,9 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
-import { IngresoModal } from "../../modules/movimientos/IngresoModal"; // 👈 Importante
+import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
+import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal"; 
+import { useRefresh } from "../../context/RefreshContext"; // 👈 Importamos el contexto
 import {
   Home,
   Boxes,
@@ -23,8 +25,14 @@ type MenuItem = {
 };
 
 export function MobileLayout({ children }: MobileLayoutProps) {
+  // Estados para controlar los modales
   const [showActions, setShowActions] = useState(false);
-  const [showIngresoModal, setShowIngresoModal] = useState(false); // 👈 Estado nuevo
+  const [showIngresoModal, setShowIngresoModal] = useState(false); 
+  const [showSolicitudModal, setShowSolicitudModal] = useState(false);
+
+  // Hook para refrescar las listas
+  const { triggerRefreshSolicitudes } = useRefresh(); 
+
   const location = useLocation();
 
   const menuItems: MenuItem[] = [
@@ -57,6 +65,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
           {children}
       </main>
 
+      {/* Botón flotante central (+) */}
       <button
         onClick={() => setShowActions(true)}
         className="fixed bottom-20 right-4 w-14 h-14 bg-blue-600 rounded-full shadow-lg shadow-blue-600/30 flex items-center justify-center text-white active:scale-95 transition-transform z-40 hover:bg-blue-700"
@@ -64,6 +73,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <Plus size={28} strokeWidth={2.5} />
       </button>
 
+      {/* Barra de navegación inferior */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-slate-200 flex items-center justify-around shadow-[0_-2px_10px_rgba(0,0,0,0.05)] z-50">
         {menuItems.map((item) => {
           const active = location.pathname === item.to;
@@ -96,7 +106,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       {showActions && (
         <QuickActionsModal 
           onClose={() => setShowActions(false)} 
-          onIngresoClick={() => setShowIngresoModal(true)} // Conexión
+          onIngresoClick={() => setShowIngresoModal(true)} 
+          onSolicitudClick={() => setShowSolicitudModal(true)}
         />
       )}
 
@@ -104,6 +115,17 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <IngresoModal 
           onClose={() => setShowIngresoModal(false)}
           onSuccess={() => setShowIngresoModal(false)}
+        />
+      )}
+
+      {/* 👇 RENDERIZAR MODAL DE SOLICITUD (Corregido) */}
+      {showSolicitudModal && (
+        <NuevaSolicitudModal
+          onClose={() => setShowSolicitudModal(false)}
+          onSuccess={() => {
+            setShowSolicitudModal(false);
+            triggerRefreshSolicitudes(); // 👈 ¡ESTO ES LO QUE FALTABA!
+          }}
         />
       )}
     </div>

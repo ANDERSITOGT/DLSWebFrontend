@@ -41,10 +41,12 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
 // 👇 1. Agregamos onIngresoClick a los props aceptados
 export function QuickActionsModal({ 
   onClose, 
-  onIngresoClick 
+  onIngresoClick,
+  onSolicitudClick
 }: { 
   onClose: () => void;
-  onIngresoClick: () => void; 
+  onIngresoClick: () => void;
+  onSolicitudClick: () => void; 
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -110,7 +112,11 @@ export function QuickActionsModal({
                 title="Nueva Solicitud" 
                 desc="Solicitar productos de bodega"
                 color="text-emerald-600 bg-emerald-50"
-                onClick={() => handleNav("/solicitudes/nueva")} 
+                onClick={() => {
+                  onClose();          // Cierra menú
+                  onSolicitudClick(); // Abre formulario
+                }}
+                
               />
             </div>
           )}
