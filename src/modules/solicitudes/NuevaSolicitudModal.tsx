@@ -87,7 +87,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
   // --- LÓGICA PRODUCTOS ---
   const handleBuscar = async () => {
-    if (!busqueda.trim()) return;
+    // CAMBIO: Permitimos búsqueda vacía
     setBuscandoProd(true);
     try {
       const res = await catalogosService.buscarProductos(busqueda);
@@ -116,16 +116,14 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
     setItems([...items, nuevoItem]);
     
-    // --- RESETEAR FORMULARIO (LOGICA "STICKY" APLICADA) ---
+    // --- RESETEAR FORMULARIO (LOGICA "STICKY") ---
+    // Solo reseteamos producto, cantidad y notas.
+    // MANTENEMOS Finca y Lote para agilizar la carga masiva.
     setProdSeleccionado(null);
     setTempCant(1);
     setTempNotas("");
     
-    // 👇 ESTAS DOS LÍNEAS SE ELIMINAN PARA MANTENER LA SELECCIÓN PREVIA
-    // setTempFinca(""); 
-    // setTempLote("");  
-    
-    // Limpiar búsqueda
+    // Limpiar búsqueda y cerrar
     setBusqueda("");
     setResultados([]);
     setShowAddForm(false); 
@@ -170,7 +168,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
       if (!res.ok) throw new Error(data.message || "Error al guardar");
       
       setSuccessData({ id: data.solicitud.id }); 
-      // Nota: onSuccess() se llama al cerrar el modal de éxito
 
     } catch (error) {
       alert("Error: " + error);
@@ -299,13 +296,20 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                                 type="text" value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-                                placeholder="Buscar..."
+                                // CAMBIO: Placeholder descriptivo
+                                placeholder="Buscar nombre o código (vacío para ver todo)..."
                                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                               />
-                              <button onClick={handleBuscar} className="bg-slate-100 p-2 rounded-lg border border-slate-300">
+                              <button onClick={handleBuscar} className="bg-slate-100 p-2 rounded-lg border border-slate-300 hover:bg-slate-200 transition" title="Buscar">
                                 {buscandoProd ? <Loader2 className="animate-spin"/> : <Search size={20}/>}
                               </button>
                             </div>
+                            
+                            {/* CAMBIO: Texto de ayuda */}
+                            <p className="text-[10px] text-slate-400 mt-1 ml-1">
+                              💡 Tip: Dale a la lupa sin escribir nada para ver el catálogo rápido.
+                            </p>
+
                             {resultados.length > 0 && (
                               <div className="mt-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg">
                                 {resultados.map(p => (

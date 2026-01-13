@@ -8,8 +8,9 @@ import {
 import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
-// 1. Importamos el contexto
 import { useRefresh } from "../../context/RefreshContext"; 
+import { useAuth } from "../../context/AuthContext"; 
+import { CheckCircle2, AlertTriangle, XCircle, PackageCheck, FileText, Loader2 } from "lucide-react"; // Nuevos iconos
 
 const API_BASE = "http://localhost:3001";
 
@@ -57,8 +58,7 @@ export default function SolicitudesPage() {
   const [loadingLista, setLoadingLista] = useState(true);
   const [errorLista, setErrorLista] = useState<string | null>(null);
   
-  // 2. Usamos el valor del contexto para saber cuándo recargar
-  const { refreshSolicitudes } = useRefresh(); 
+  const { refreshSolicitudes, triggerRefreshSolicitudes } = useRefresh(); 
 
   const filtros: Array<"Todas" | SolicitudEstado> = ["Todas", "PENDIENTE", "APROBADA", "RECHAZADA", "ENTREGADA"];
   const [filtroActivo, setFiltroActivo] = useState<"Todas" | SolicitudEstado>("Todas");
@@ -67,7 +67,7 @@ export default function SolicitudesPage() {
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
   const [modalAbierto, setModalAbierto] = useState(false);
 
-  // 3. Función de carga extraída (useCallback) para poder reusarla
+  // Función de carga
   const cargarSolicitudes = useCallback(async (silencioso = false) => {
     try {
       if (!silencioso) setLoadingLista(true);
@@ -91,15 +91,13 @@ export default function SolicitudesPage() {
     }
   }, [filtroActivo]);
 
-  // 4. Efecto Principal: Se dispara al inicio, al cambiar filtro O al cambiar refreshSolicitudes
   useEffect(() => {
     cargarSolicitudes();
-  }, [cargarSolicitudes, refreshSolicitudes]); // 👈 ¡La clave está aquí!
+  }, [cargarSolicitudes, refreshSolicitudes]);
 
-  // 5. Efecto Polling: Actualiza silenciosamente cada 15 segundos
   useEffect(() => {
     const intervalo = setInterval(() => {
-      cargarSolicitudes(true); // Carga silenciosa
+      cargarSolicitudes(true); 
     }, 15000);
     return () => clearInterval(intervalo);
   }, [cargarSolicitudes]);
@@ -144,9 +142,13 @@ export default function SolicitudesPage() {
      }
   };
 
+  const handleAccionExitosa = () => {
+    triggerRefreshSolicitudes(); 
+    // No cerramos el modal aquí, el modal interno maneja su cierre tras el éxito
+  };
+
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
       <header className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-slate-900">Solicitudes</h1>
@@ -154,7 +156,6 @@ export default function SolicitudesPage() {
         </div>
       </header>
 
-      {/* Tabs */}
       <section className="space-y-4">
         <SectionTitle title="Mis Solicitudes" />
         <div className="flex flex-wrap gap-1 rounded-full bg-slate-100 p-1 w-full sm:w-auto overflow-x-auto">
@@ -173,7 +174,6 @@ export default function SolicitudesPage() {
         </div>
       </section>
 
-      {/* Lista */}
       {loadingLista && <p className="text-xs text-slate-500">Cargando solicitudes...</p>}
       {errorLista && <p className="text-xs text-rose-500">{errorLista}</p>}
 
@@ -204,6 +204,7 @@ export default function SolicitudesPage() {
           loading={cargandoDetalle}
           onClose={cerrarModal}
           onExport={handleExportPDF}
+          onAccionExitosa={handleAccionExitosa}
         />
       )}
     </div>
@@ -243,13 +244,183 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
   );
 }
 
-function SolicitudDetalleModal({ detalle, loading, onClose, onExport }: { detalle: SolicitudDetalle; loading: boolean; onClose: () => void; onExport: () => void; }) {
+// Props del Modal
+interface DetalleModalProps {
+    detalle: SolicitudDetalle;
+    loading: boolean;
+    onClose: () => void;
+    onExport: () => void;
+    onAccionExitosa: () => void;
+}
+
+// Tipos de acciones posibles
+type TipoAccion = "APROBAR" | "RECHAZAR" | "ENTREGAR" | null;
+
+function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionExitosa }: DetalleModalProps) {
+  const { token, user } = useAuth();
+  
+  // Estados para controlar los "Modales Bonitos" dentro del modal
+  const [confirmarAccion, setConfirmarAccion] = useState<TipoAccion>(null);
+  const [procesando, setProcesando] = useState(false);
+  const [exitoMsg, setExitoMsg] = useState<{titulo: string, msg: string} | null>(null);
+
   const estadoColor = getEstadoColor(detalle.estado);
   const fechaCorta = new Date(detalle.fecha).toLocaleDateString();
 
+  // 1. Lógica para APROBAR o RECHAZAR
+  const handleCambiarEstado = async () => {
+     if (!confirmarAccion) return;
+     const nuevoEstado = confirmarAccion === "APROBAR" ? "APROBADA" : "RECHAZADA";
+
+     setProcesando(true);
+     try {
+        const res = await fetch(`${API_BASE}/api/solicitudes/${detalle.id}/estado`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+            body: JSON.stringify({ estado: nuevoEstado })
+        });
+        if (!res.ok) throw new Error("Error al actualizar estado");
+        
+        // Éxito
+        setConfirmarAccion(null); // Quitar confirmación
+        setExitoMsg({
+            titulo: nuevoEstado === "APROBADA" ? "¡Solicitud Aprobada!" : "Solicitud Rechazada",
+            msg: nuevoEstado === "APROBADA" 
+                ? "La solicitud ha sido aprobada correctamente. Ahora puede generar la salida."
+                : "La solicitud ha sido rechazada."
+        });
+        onAccionExitosa(); // Recargar lista de fondo
+     } catch (error) {
+        alert("Error: " + error);
+        setConfirmarAccion(null);
+     } finally {
+        setProcesando(false);
+     }
+  };
+
+  // 2. Lógica para ENTREGAR (Generar Salida)
+  const handleEntregar = async () => {
+    setProcesando(true);
+    try {
+        // Llamada al NUEVO ENDPOINT del Backend
+        const res = await fetch(`${API_BASE}/api/solicitudes/${detalle.id}/entregar`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` }
+        });
+        
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || "Error al entregar");
+
+        // Éxito
+        setConfirmarAccion(null);
+        setExitoMsg({
+            titulo: "¡Entrega Exitosa!",
+            msg: `Se ha generado el documento de salida: ${data.codigoDoc}. El inventario ha sido descontado.`
+        });
+        onAccionExitosa();
+    } catch (error) {
+        alert("Error: " + error);
+        setConfirmarAccion(null);
+    } finally {
+        setProcesando(false);
+    }
+  };
+
+  // Permisos
+  const esAdminBodega = user?.rol === "ADMIN" || user?.rol === "BODEGUERO";
+  const puedeAprobar = esAdminBodega && detalle.estado === "PENDIENTE";
+  const puedeEntregar = esAdminBodega && detalle.estado === "APROBADA";
+
+  // --- RENDERS DE SUB-PANTALLAS (MODALES BONITOS) ---
+
+  // A. PANTALLA DE ÉXITO
+  if (exitoMsg) {
+    return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+             <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <CheckCircle2 className="text-green-600 w-8 h-8 animate-bounce" />
+                </div>
+                <h3 className="text-xl font-bold text-slate-800 mb-2">{exitoMsg.titulo}</h3>
+                <p className="text-sm text-slate-500 mb-6">{exitoMsg.msg}</p>
+                <button 
+                    onClick={onClose} 
+                    className="w-full bg-slate-900 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-slate-800 transition"
+                >
+                    Entendido, cerrar
+                </button>
+             </div>
+        </div>
+    );
+  }
+
+  // B. PANTALLA DE CONFIRMACIÓN (APROBAR / RECHAZAR / ENTREGAR)
+  if (confirmarAccion) {
+     const config = {
+         APROBAR: {
+             titulo: "¿Aprobar solicitud?",
+             desc: `Se aprobará la solicitud ${detalle.codigo}. Luego podrás generar el documento de salida.`,
+             btnColor: "bg-emerald-600 hover:bg-emerald-700",
+             btnText: "Aprobar",
+             icon: <CheckCircle2 className="text-emerald-600 w-10 h-10" />,
+             bgIcon: "bg-emerald-100",
+             action: handleCambiarEstado
+         },
+         RECHAZAR: {
+             titulo: "¿Rechazar solicitud?",
+             desc: `Se rechazará la solicitud ${detalle.codigo}. Esta acción no se puede deshacer.`,
+             btnColor: "bg-rose-600 hover:bg-rose-700",
+             btnText: "Rechazar",
+             icon: <XCircle className="text-rose-600 w-10 h-10" />,
+             bgIcon: "bg-rose-100",
+             action: handleCambiarEstado
+         },
+         ENTREGAR: {
+            titulo: "¿Generar Salida de Inventario?",
+            desc: `Se creará un documento de salida y se descontarán los productos del inventario real.`,
+            btnColor: "bg-blue-600 hover:bg-blue-700",
+            btnText: "Confirmar Entrega",
+            icon: <PackageCheck className="text-blue-600 w-10 h-10" />,
+            bgIcon: "bg-blue-100",
+            action: handleEntregar
+         }
+     }[confirmarAccion];
+
+     return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in">
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+                <div className={`w-16 h-16 ${config.bgIcon} rounded-full flex items-center justify-center mx-auto mb-4`}>
+                    {config.icon}
+                </div>
+                <h3 className="text-lg font-bold text-slate-800 mb-2">{config.titulo}</h3>
+                <p className="text-sm text-slate-500 mb-6 px-2">{config.desc}</p>
+                <div className="flex gap-3">
+                    <button 
+                        onClick={() => setConfirmarAccion(null)}
+                        className="flex-1 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition"
+                    >
+                        Cancelar
+                    </button>
+                    <button 
+                        onClick={config.action}
+                        disabled={procesando}
+                        className={`flex-1 ${config.btnColor} text-white py-2.5 rounded-xl font-bold text-sm transition flex items-center justify-center gap-2`}
+                    >
+                        {procesando && <Loader2 className="animate-spin w-4 h-4"/>}
+                        {config.btnText}
+                    </button>
+                </div>
+            </div>
+        </div>
+     );
+  }
+
+  // C. PANTALLA DE DETALLE (NORMAL)
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 px-2 md:px-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="max-h-[90vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
+        
+        {/* Header Modal */}
         <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 bg-slate-50/50">
           <div className="space-y-1">
             <h2 className="text-sm font-bold text-slate-900">{detalle.codigo}</h2>
@@ -262,6 +433,8 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport }: { detall
             <button onClick={onClose} className="rounded-full bg-slate-100 p-1.5 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors">✕</button>
           </div>
         </div>
+
+        {/* Body Scrollable */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-5 text-xs">
           <section className="space-y-2">
             <p className="font-semibold text-slate-800">Información</p>
@@ -271,11 +444,13 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport }: { detall
               <div className="flex justify-between"><span className="text-slate-500">Bodega</span><span className="font-medium text-slate-800">{detalle.bodega?.nombre ?? "---"}</span></div>
               {detalle.documentoSalidaConsecutivo && (
                    <div className="flex justify-between pt-2 border-t border-slate-200 mt-2">
-                    <span className="text-slate-500">Doc. Salida</span><span className="font-medium text-blue-700">{detalle.documentoSalidaConsecutivo}</span>
+                    <span className="text-slate-500">Doc. Salida</span>
+                    <span className="font-mono font-bold text-blue-600 bg-blue-50 px-2 rounded">{detalle.documentoSalidaConsecutivo}</span>
                   </div>
               )}
             </div>
           </section>
+          
           <section className="space-y-2">
             <div className="flex justify-between items-center">
                 <p className="font-semibold text-slate-800">Productos ({detalle.productos.length})</p>
@@ -304,6 +479,39 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport }: { detall
             </div>
           </section>
         </div>
+
+        {/* FOOTER DINÁMICO */}
+        
+        {/* CASO 1: PENDIENTE (Botones Aprobar/Rechazar) */}
+        {puedeAprobar && (
+            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
+                <button 
+                    onClick={() => setConfirmarAccion("RECHAZAR")}
+                    className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-semibold py-2.5 rounded-xl text-xs transition active:scale-95"
+                >
+                    Rechazar
+                </button>
+                <button 
+                    onClick={() => setConfirmarAccion("APROBAR")}
+                    className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl text-xs transition shadow-sm active:scale-95"
+                >
+                    Aprobar Solicitud
+                </button>
+            </div>
+        )}
+
+        {/* CASO 2: APROBADA (Botón Generar Salida) */}
+        {puedeEntregar && (
+             <div className="p-4 border-t border-slate-100 bg-slate-50">
+                <button 
+                    onClick={() => setConfirmarAccion("ENTREGAR")}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-xl text-xs transition shadow-sm flex items-center justify-center gap-2 active:scale-95"
+                >
+                    <FileText size={16}/> Generar Documento de Salida
+                </button>
+             </div>
+        )}
+
       </div>
     </div>
   );
