@@ -157,7 +157,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
         }))
       };
 
-      const res = await fetch("import.meta.env.VITE_API_URL/api/solicitudes", {
+      const res = await fetch(import.meta.env.VITE_API_URL + "/api/movimientos/ingreso", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload)

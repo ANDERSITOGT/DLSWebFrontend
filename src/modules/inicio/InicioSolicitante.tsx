@@ -43,7 +43,7 @@ export function InicioSolicitante() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("import.meta.env.VITE_API_URL/api/inicio/solicitante");
+        const res = await fetch(import.meta.env.VITE_API_URL + "/api/inicio/solicitante");
 
         if (!res.ok) {
           throw new Error("Error al cargar el dashboard del solicitante");
