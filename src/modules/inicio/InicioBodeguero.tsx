@@ -1,4 +1,5 @@
 // src/modules/inicio/InicioBodeguero.tsx
+
 import { useEffect, useState } from "react";
 import { StatCard } from "../../components/ui/StatCard";
 import {
@@ -178,7 +179,7 @@ export function InicioBodeguero() {
           <CardContent className="divide-y divide-slate-100 p-0">
             {movimientosDelDia.map((mov) => {
               let variant: MovimientoVariant = "outline";
-              let icon: JSX.Element = <ArrowRightLeft className="w-3 h-3" />;
+              let icon = <ArrowRightLeft className="w-3 h-3" />;
 
               if (mov.tipo === "SALIDA") {
                 variant = "danger";
@@ -211,7 +212,7 @@ export function InicioBodeguero() {
 }
 
 type MovimientoRowWithIconProps = MovimientoRowProps & {
-  icon: JSX.Element;
+  icon: React.ReactNode;
 };
 
 function MovimientoRow({
