@@ -127,7 +127,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
       const payload = {
         bodegaId: selectedBodega,
         proveedorId: selectedProveedor || null,
-        fecha,
+        fecha: fecha ? new Date(fecha).toISOString() : new Date().toISOString(),
         factura,
         observaciones: obs,
         items: items.map(i => ({
