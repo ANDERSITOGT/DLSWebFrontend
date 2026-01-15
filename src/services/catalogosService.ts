@@ -1,5 +1,5 @@
 // src/services/catalogosService.ts
-const API_URL = "http://localhost:3001/api";
+const API_URL = "import.meta.env.VITE_API_URL/api";
 
 // Helper para obtener el token (si lo necesitas para bodegas, aunque usualmente catalogos son publicos o protegidos igual)
 // En tu backend catalogos.ts NO pusimos authenticateToken, así que no es necesario header por ahora.

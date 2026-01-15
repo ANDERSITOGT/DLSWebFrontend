@@ -56,7 +56,7 @@ export function InicioAdmin() {
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const res = await fetch("http://localhost:3001/api/inicio/admin");
+        const res = await fetch("import.meta.env.VITE_API_URL/api/inicio/admin");
         if (!res.ok) {
           throw new Error("Error al cargar el dashboard del admin");
         }
