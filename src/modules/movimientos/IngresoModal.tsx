@@ -1,8 +1,6 @@
 // src/modules/movimientos/IngresoModal.tsx
 import { useState, useEffect } from "react";
-import { 
-  X, ChevronRight, ChevronLeft, Loader2, Plus, Trash2, Search, Save 
-} from "lucide-react";
+import { X, ChevronLeft, Loader2, Plus, Trash2, Search, Save, FileText, Receipt, CheckCircle2 } from "lucide-react";
 import { catalogosService } from "../../services/catalogosService";
 import { useAuth } from "../../context/AuthContext";
 
@@ -12,61 +10,76 @@ interface IngresoModalProps {
 }
 
 type Bodega = { id: string; nombre: string };
-type Proveedor = { id: string; nombre: string };
-type ProductoResult = { id: string; nombre: string; codigo: string; unidad: { abreviatura: string } };
+type Proveedor = { id: string; nombre: string; nit: string };
 
-// Estructura de un item en la lista de compra
+// 👇 ACTUALIZADO: Agregamos 'precioref' (puede ser opcional)
+type ProductoResult = { 
+    id: string; 
+    nombre: string; 
+    codigo: string; 
+    precioref?: number; // <--- DATO NUEVO
+    unidad: { abreviatura: string } 
+};
+
 type ItemIngreso = {
   productoId: string;
   nombre: string;
-  codigo: string;
   unidad: string;
   cantidad: number;
   costo: number;
 };
 
 export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
-  const { token } = useAuth(); // Necesitamos el token para guardar
+  const { token } = useAuth();
   
-  // --- ESTADOS GLOBALES ---
-  const [step, setStep] = useState(1); // 1: General, 2: Productos, 3: Resumen
+  // --- ESTADOS ---
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
+  
+  const [successData, setSuccessData] = useState<{ codigo: string } | null>(null);
 
-  // --- PASO 1: DATOS GENERALES ---
+  // Datos de Catálogos
   const [bodegas, setBodegas] = useState<Bodega[]>([]);
   const [proveedores, setProveedores] = useState<Proveedor[]>([]);
-  
+
+  // Paso 1: Encabezado
   const [selectedBodega, setSelectedBodega] = useState("");
   const [selectedProveedor, setSelectedProveedor] = useState("");
   const [fecha, setFecha] = useState(new Date().toISOString().split('T')[0]);
-  const [factura, setFactura] = useState("");
   const [obs, setObs] = useState("");
 
-  // --- PASO 2: PRODUCTOS ---
+  // Datos Comprobante
+  const [tipoComprobante, setTipoComprobante] = useState<"FACTURA" | "RECIBO">("FACTURA");
+  const [factura, setFactura] = useState("");
+  const [serie, setSerie] = useState("");
+  const [uuid, setUuid] = useState("");
+
+  // Paso 2: Items
   const [items, setItems] = useState<ItemIngreso[]>([]);
+  const [showAddForm, setShowAddForm] = useState(false);
+  
+  // Formulario Producto
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<ProductoResult[]>([]);
   const [buscandoProd, setBuscandoProd] = useState(false);
-
-  // Estados temporales para agregar un producto
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
-  const [tempCant, setTempCant] = useState<number>(1);
-  const [tempCosto, setTempCosto] = useState<number>(0);
+  
+  const [tempCant, setTempCant] = useState<number | string>(1);
+  const [tempCosto, setTempCosto] = useState<number | string>(0);
 
-  // Cargar catálogos iniciales
   useEffect(() => {
     async function loadData() {
       setLoading(true);
       try {
-        const [listaBodegas, listaProv] = await Promise.all([
+        const [listaBodegas, listaProveedores] = await Promise.all([
           catalogosService.getBodegas(),
           catalogosService.getProveedores()
         ]);
         setBodegas(listaBodegas);
-        setProveedores(listaProv);
+        setProveedores(listaProveedores);
       } catch (error) {
-        console.error("Error cargando catálogos", error);
+        console.error(error);
       } finally {
         setLoading(false);
       }
@@ -74,61 +87,57 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     loadData();
   }, []);
 
-  // --- FUNCIONES DE LÓGICA ---
-
-  // Buscar productos en el backend
   const handleBuscar = async () => {
-    if (!busqueda.trim()) return;
     setBuscandoProd(true);
     try {
       const res = await catalogosService.buscarProductos(busqueda);
       setResultados(res);
-    } catch (error) {
-      console.error(error);
-    } finally {
-      setBuscandoProd(false);
-    }
+    } catch (error) { console.error(error); } 
+    finally { setBuscandoProd(false); }
   };
 
-  // Agregar producto a la lista temporal
   const handleAgregarItem = () => {
-    if (!prodSeleccionado || tempCant <= 0) return;
+    const cantNum = Number(tempCant);
+    const costoNum = Number(tempCosto);
 
-    const nuevoItem: ItemIngreso = {
+    if (!prodSeleccionado || isNaN(cantNum) || cantNum < 0.1 || isNaN(costoNum) || costoNum < 0.1) {
+        return; 
+    }
+
+    const nuevo: ItemIngreso = {
       productoId: prodSeleccionado.id,
       nombre: prodSeleccionado.nombre,
-      codigo: prodSeleccionado.codigo,
       unidad: prodSeleccionado.unidad.abreviatura,
-      cantidad: tempCant,
-      costo: tempCosto
+      cantidad: cantNum,
+      costo: costoNum
     };
 
-    setItems([...items, nuevoItem]);
-    
-    // Resetear formulario de producto
+    setItems([...items, nuevo]);
     setProdSeleccionado(null);
     setTempCant(1);
     setTempCosto(0);
-    setResultados([]);
     setBusqueda("");
+    setResultados([]);
+    setShowAddForm(false);
   };
 
-  // Eliminar producto de la lista
   const handleEliminarItem = (index: number) => {
-    const nuevaLista = [...items];
-    nuevaLista.splice(index, 1);
-    setItems(nuevaLista);
+    const nueva = [...items];
+    nueva.splice(index, 1);
+    setItems(nueva);
   };
 
-  // GUARDAR TODO EN EL BACKEND
   const handleFinalizar = async () => {
     setGuardando(true);
     try {
       const payload = {
         bodegaId: selectedBodega,
         proveedorId: selectedProveedor || null,
-        fecha: new Date().toISOString(),
+        fecha: fecha ? new Date(fecha).toISOString() : new Date().toISOString(),
+        tipoComprobante,
         factura,
+        serie: tipoComprobante === "FACTURA" ? serie : "",
+        uuid: tipoComprobante === "FACTURA" ? uuid : "",
         observaciones: obs,
         items: items.map(i => ({
           productoId: i.productoId,
@@ -141,7 +150,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}` // Importante: Enviamos el token
+          "Authorization": `Bearer ${token}` 
         },
         body: JSON.stringify(payload)
       });
@@ -150,296 +159,322 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
 
       if (!res.ok) throw new Error(data.message || "Error al guardar");
 
-      // Todo salió bien
-      onSuccess(); // Avisamos al padre que recargue
-      onClose();   // Cerramos el modal
+      setSuccessData({ 
+          codigo: data.documento.consecutivo || "INGRESO REGISTRADO" 
+      });
 
     } catch (error) {
       alert("Error al guardar: " + error);
-    } finally {
       setGuardando(false);
     }
   };
 
-  // Cálculos de totales
-  const totalItems = items.length;
-  const totalDinero = items.reduce((acc, item) => acc + (item.cantidad * item.costo), 0);
-
-  // --- RENDERIZADO ---
+  if (successData) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <CheckCircle2 className="text-green-600 w-10 h-10 animate-bounce" strokeWidth={3} />
+          </div>
+          <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Ingreso Exitoso!</h2>
+          <p className="text-slate-500 mb-6">
+            El inventario ha sido actualizado correctamente.
+            <br/>
+            Referencia: <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded mt-2 inline-block">{successData.codigo}</span>
+          </p>
+          <button 
+            onClick={() => {
+              onSuccess();
+              onClose();
+            }}
+            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition transform active:scale-95"
+          >
+            Aceptar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
       <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]">
         
-        {/* HEADER AZUL */}
-        <div className="bg-blue-600 p-4 flex justify-between items-center text-white shrink-0">
+        {/* Header */}
+        <div className="bg-slate-900 p-4 flex justify-between items-center text-white shrink-0">
           <div>
-            <h2 className="text-lg font-bold">Registrar Ingreso</h2>
-            <div className="flex items-center gap-2 text-xs text-blue-100">
-              <span className={step === 1 ? "font-bold text-white" : ""}>1. Datos</span>
-              <ChevronRight size={12} />
-              <span className={step === 2 ? "font-bold text-white" : ""}>2. Productos</span>
-              <ChevronRight size={12} />
-              <span className={step === 3 ? "font-bold text-white" : ""}>3. Confirmar</span>
-            </div>
+            <h2 className="text-lg font-bold">Nuevo Ingreso</h2>
+            <p className="text-slate-400 text-xs">Paso {step} de 2</p>
           </div>
-          <button onClick={onClose} className="hover:bg-blue-700 p-1 rounded-full transition">
+          <button onClick={onClose} className="hover:bg-slate-700 p-1 rounded-full transition">
             <X size={20} />
           </button>
         </div>
 
-        {/* CONTENIDO VARIABLE SEGÚN EL PASO */}
+        {/* Contenido */}
         <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
-          
           {loading ? (
-             <div className="flex justify-center py-20">
-                <Loader2 className="animate-spin text-blue-600" size={40}/>
-             </div>
+             <div className="flex justify-center py-20"><Loader2 className="animate-spin text-slate-600" size={40}/></div>
           ) : (
             <>
-              {/* === PASO 1: DATOS GENERALES === */}
               {step === 1 && (
-                <div className="space-y-5 animate-in slide-in-from-right-4 duration-300">
+                <div className="space-y-6 animate-in slide-in-from-right-4">
                    <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                     <h3 className="font-bold text-slate-700 text-sm border-b pb-2 mb-2">Información General</h3>
+                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase">Bodega Destino *</label>
-                          <select 
-                            value={selectedBodega}
-                            onChange={(e) => setSelectedBodega(e.target.value)}
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
-                          >
-                            <option value="">Seleccione una bodega...</option>
-                            {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-                          </select>
+                           <label className="text-xs font-bold text-slate-500 uppercase">Bodega Destino *</label>
+                           <select 
+                             value={selectedBodega}
+                             onChange={(e) => setSelectedBodega(e.target.value)}
+                             className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                           >
+                             <option value="">Seleccione...</option>
+                             {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                           </select>
                         </div>
                         <div>
-                          <label className="text-xs font-bold text-slate-500 uppercase">Fecha *</label>
-                          <input 
-                            type="date" 
-                            value={fecha}
-                            onChange={(e) => setFecha(e.target.value)}
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                          />
+                           <label className="text-xs font-bold text-slate-500 uppercase">Fecha Ingreso</label>
+                           <input 
+                             type="date" 
+                             value={fecha}
+                             onChange={(e) => setFecha(e.target.value)}
+                             className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                           />
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase">Proveedor</label>
+                     </div>
+                     <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase">Proveedor *</label>
                         <select 
                            value={selectedProveedor}
                            onChange={(e) => setSelectedProveedor(e.target.value)}
-                           className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white"
+                           className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
                         >
-                          <option value="">Seleccione un proveedor (opcional)</option>
-                          {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                           <option value="">Seleccione...</option>
+                           {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre} (NIT: {p.nit || "C/F"})</option>)}
                         </select>
+                     </div>
+                   </div>
+
+                   <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+                      <h3 className="font-bold text-slate-700 text-sm border-b pb-2 mb-2">Datos del Documento</h3>
+                      
+                      <div className="flex gap-4 mb-4">
+                          <button 
+                            onClick={() => setTipoComprobante("FACTURA")}
+                            className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 transition ${
+                                tipoComprobante === "FACTURA" 
+                                ? "bg-blue-50 border-blue-500 text-blue-700 font-bold" 
+                                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                            }`}
+                          >
+                             <FileText size={18} /> Factura (FEL)
+                          </button>
+                          <button 
+                            onClick={() => setTipoComprobante("RECIBO")}
+                            className={`flex-1 p-3 rounded-lg border flex items-center justify-center gap-2 transition ${
+                                tipoComprobante === "RECIBO" 
+                                ? "bg-amber-50 border-amber-500 text-amber-700 font-bold" 
+                                : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                            }`}
+                          >
+                             <Receipt size={18} /> Recibo / Otro
+                          </button>
                       </div>
 
-                      <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase">Factura / Referencia</label>
-                         <input 
-                            type="text" 
-                            value={factura}
-                            onChange={(e) => setFactura(e.target.value)}
-                            placeholder="Ej: FAC-001"
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                         />
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in">
+                          {tipoComprobante === "FACTURA" && (
+                              <div>
+                                  <label className="text-xs font-bold text-slate-500 uppercase">Serie</label>
+                                  <input 
+                                      type="text" 
+                                      value={serie}
+                                      onChange={(e) => setSerie(e.target.value)}
+                                      placeholder="Ej. A"
+                                      className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                  />
+                              </div>
+                          )}
+
+                          <div className={tipoComprobante === "RECIBO" ? "md:col-span-3" : ""}>
+                              <label className="text-xs font-bold text-slate-500 uppercase">
+                                  {tipoComprobante === "FACTURA" ? "Número de Factura *" : "Número de Recibo *"}
+                              </label>
+                              <input 
+                                  type="text" 
+                                  value={factura}
+                                  onChange={(e) => setFactura(e.target.value)}
+                                  placeholder="Ej. 12345678"
+                                  className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                              />
+                          </div>
+
+                          {tipoComprobante === "FACTURA" && (
+                              <div className="md:col-span-1">
+                                  <label className="text-xs font-bold text-slate-500 uppercase">UUID (Autorización)</label>
+                                  <input 
+                                      type="text" 
+                                      value={uuid}
+                                      onChange={(e) => setUuid(e.target.value)}
+                                      placeholder="Código largo SAT..."
+                                      className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                                  />
+                              </div>
+                          )}
                       </div>
-                      
-                      <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
-                         <textarea 
-                            value={obs}
-                            onChange={(e) => setObs(e.target.value)}
-                            rows={3}
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
-                         />
-                      </div>
+                   </div>
+
+                   <div>
+                      <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
+                      <textarea 
+                        value={obs}
+                        onChange={(e) => setObs(e.target.value)}
+                        rows={2}
+                        placeholder="Notas adicionales..."
+                        className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                      />
                    </div>
                 </div>
               )}
 
-              {/* === PASO 2: AGREGAR PRODUCTOS === */}
               {step === 2 && (
-                <div className="space-y-4 animate-in slide-in-from-right-4 duration-300">
-                  
-                  {/* Buscador */}
-                  <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-                    <label className="text-xs font-bold text-slate-500 uppercase block mb-2">Buscar Producto</label>
-                    <div className="flex gap-2">
-                      <input 
-                        type="text" 
-                        value={busqueda}
-                        onChange={(e) => setBusqueda(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-                        placeholder="Escribe nombre o código..."
-                        className="flex-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                      />
-                      <button 
-                        onClick={handleBuscar}
-                        disabled={buscandoProd}
-                        className="bg-slate-100 hover:bg-slate-200 text-slate-700 p-2 rounded-lg transition border border-slate-300"
-                      >
-                        {buscandoProd ? <Loader2 className="animate-spin" size={20}/> : <Search size={20}/>}
-                      </button>
-                    </div>
+                <div className="space-y-4 animate-in slide-in-from-right-4">
+                  {!showAddForm && (
+                     <button onClick={() => setShowAddForm(true)} className="w-full border-2 border-dashed border-slate-300 rounded-xl p-4 text-slate-500 hover:border-emerald-500 hover:text-emerald-600 transition flex items-center justify-center gap-2 font-medium">
+                        <Plus size={20}/> Agregar Producto
+                     </button>
+                  )}
 
-                    {/* Resultados de Búsqueda */}
-                    {resultados.length > 0 && !prodSeleccionado && (
-                      <div className="mt-3 max-h-40 overflow-y-auto border border-slate-100 rounded-lg">
-                        {resultados.map(prod => (
-                          <button 
-                            key={prod.id}
-                            onClick={() => setProdSeleccionado(prod)}
-                            className="w-full text-left p-2 hover:bg-blue-50 text-sm border-b border-slate-50 last:border-0 flex justify-between"
-                          >
-                            <span>{prod.nombre}</span>
-                            <span className="text-slate-400 text-xs">{prod.codigo}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+                  {showAddForm && (
+                    <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm animate-in zoom-in-95 space-y-4 relative">
+                       <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={18}/></button>
+                       <h3 className="font-bold text-slate-700 text-sm">Nuevo Item</h3>
 
-                    {/* Formulario de Cantidad (Se muestra al seleccionar producto) */}
-                    {prodSeleccionado && (
-                      <div className="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-100 animate-in zoom-in-95">
-                        <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-bold text-blue-900">{prodSeleccionado.nombre}</h4>
-                          <button onClick={() => setProdSeleccionado(null)} className="text-blue-400 hover:text-blue-600"><X size={16}/></button>
-                        </div>
-                        <div className="flex gap-4 items-end">
-                          <div className="flex-1">
-                            <label className="text-xs text-blue-700 font-semibold">Cantidad ({prodSeleccionado.unidad.abreviatura})</label>
-                            <input type="number" min="0.01" value={tempCant} onChange={e => setTempCant(parseFloat(e.target.value))} className="w-full mt-1 border border-blue-200 rounded p-2 text-sm"/>
+                       {!prodSeleccionado ? (
+                          <div className="flex gap-2">
+                             <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} placeholder="Buscar producto..." className="flex-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"/>
+                             <button onClick={handleBuscar} className="bg-slate-100 p-2 rounded-lg border hover:bg-slate-200">
+                                {buscandoProd ? <Loader2 className="animate-spin"/> : <Search size={20}/>}
+                             </button>
                           </div>
-                          <div className="flex-1">
-                            <label className="text-xs text-blue-700 font-semibold">Costo Unitario (Q)</label>
-                            <input type="number" min="0" value={tempCosto} onChange={e => setTempCosto(parseFloat(e.target.value))} className="w-full mt-1 border border-blue-200 rounded p-2 text-sm"/>
+                       ) : (
+                          <div className="bg-emerald-50 p-3 rounded-lg flex justify-between items-center border border-emerald-100">
+                             <span className="font-bold text-emerald-800">{prodSeleccionado.nombre}</span>
+                             <button onClick={() => setProdSeleccionado(null)} className="text-xs text-emerald-600 font-bold hover:underline">Cambiar</button>
                           </div>
-                          <button 
-                            onClick={handleAgregarItem}
-                            className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg flex items-center gap-2 text-sm font-medium"
-                          >
-                            <Plus size={18} /> Agregar
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                       )}
 
-                  {/* Tabla de Items Agregados */}
-                  <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-                    <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                      <h3 className="font-bold text-sm text-slate-700">Productos en la lista ({items.length})</h3>
-                      <span className="text-xs font-mono bg-slate-200 px-2 py-1 rounded">Total: Q{totalDinero.toFixed(2)}</span>
+                       {!prodSeleccionado && resultados.length > 0 && (
+                          <div className="max-h-32 overflow-y-auto border rounded-lg">
+                             {resultados.map(p => (
+                                // 🪄 AQUÍ ESTÁ LA MAGIA DEL AUTOLLENADO
+                                <button key={p.id} onClick={() => {
+                                    setProdSeleccionado(p);
+                                    // Si trae precio, lo ponemos. Si no, 0.
+                                    if (p.precioref) {
+                                        setTempCosto(Number(p.precioref));
+                                    } else {
+                                        setTempCosto(0);
+                                    }
+                                }} className="w-full text-left p-2 hover:bg-slate-50 text-sm border-b last:border-0 block">
+                                   {p.nombre} ({p.codigo})
+                                </button>
+                             ))}
+                          </div>
+                       )}
+
+                       <div className="grid grid-cols-2 gap-4">
+                          <div>
+                             <label className="text-xs font-bold text-slate-500">Cantidad ({prodSeleccionado?.unidad.abreviatura})</label>
+                             <input 
+                                type="number" 
+                                min="0.1" 
+                                value={tempCant} 
+                                onChange={(e) => setTempCant(e.target.value)} 
+                                className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                             />
+                          </div>
+                          <div>
+                             <label className="text-xs font-bold text-slate-500">Costo Unitario (Q)</label>
+                             <input 
+                                type="number" 
+                                min="0.1" 
+                                value={tempCosto} 
+                                onChange={(e) => setTempCosto(e.target.value)} 
+                                className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                             />
+                          </div>
+                       </div>
+                       
+                       <button 
+                          onClick={handleAgregarItem} 
+                          disabled={!prodSeleccionado || Number(tempCant) < 0.1 || Number(tempCosto) < 0.1} 
+                          className="w-full bg-emerald-600 text-white py-2 rounded-lg font-bold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                       >
+                           Confirmar
+                       </button>
                     </div>
-                    
-                    {items.length === 0 ? (
-                      <div className="p-8 text-center text-slate-400 text-sm">
-                        No hay productos agregados aún.
-                      </div>
-                    ) : (
-                      <div className="max-h-60 overflow-y-auto">
-                        <table className="w-full text-sm text-left">
-                          <thead className="text-xs text-slate-500 uppercase bg-slate-50 sticky top-0">
-                            <tr>
-                              <th className="px-4 py-2">Producto</th>
-                              <th className="px-4 py-2">Cant.</th>
-                              <th className="px-4 py-2">Costo</th>
-                              <th className="px-4 py-2">Subtotal</th>
-                              <th className="px-4 py-2 text-center">Acción</th>
-                            </tr>
+                  )}
+
+                  {items.length > 0 && (
+                    <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                       <table className="w-full text-sm text-left">
+                          <thead className="bg-slate-50 text-slate-500 font-bold">
+                             <tr>
+                                <th className="p-3">Producto</th>
+                                <th className="p-3">Cant.</th>
+                                <th className="p-3">Costo</th>
+                                <th className="p-3">Total</th>
+                                <th className="p-3"></th>
+                             </tr>
                           </thead>
                           <tbody>
-                            {items.map((item, idx) => (
-                              <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                                <td className="px-4 py-2 font-medium">{item.nombre}</td>
-                                <td className="px-4 py-2">{item.cantidad} {item.unidad}</td>
-                                <td className="px-4 py-2">Q{item.costo}</td>
-                                <td className="px-4 py-2 font-bold">Q{(item.cantidad * item.costo).toFixed(2)}</td>
-                                <td className="px-4 py-2 text-center">
-                                  <button onClick={() => handleEliminarItem(idx)} className="text-red-400 hover:text-red-600">
-                                    <Trash2 size={16} />
-                                  </button>
-                                </td>
-                              </tr>
-                            ))}
+                             {items.map((item, idx) => (
+                                <tr key={idx} className="border-t border-slate-100">
+                                   <td className="p-3 font-medium text-slate-700">{item.nombre}</td>
+                                   <td className="p-3">{item.cantidad} {item.unidad}</td>
+                                   <td className="p-3">Q{item.costo}</td>
+                                   <td className="p-3 font-bold">Q{(item.cantidad * item.costo).toFixed(2)}</td>
+                                   <td className="p-3 text-right">
+                                      <button onClick={() => handleEliminarItem(idx)} className="text-red-400 hover:text-red-600"><Trash2 size={16}/></button>
+                                   </td>
+                                </tr>
+                             ))}
                           </tbody>
-                        </table>
-                      </div>
-                    )}
-                  </div>
+                       </table>
+                    </div>
+                  )}
                 </div>
               )}
-
-              {/* === PASO 3: RESUMEN FINAL === */}
-              {step === 3 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4 duration-300">
-                  <div className="bg-white p-6 rounded-xl border border-slate-200 text-center space-y-4">
-                    <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto">
-                      <Save size={32} />
-                    </div>
-                    <h3 className="text-xl font-bold text-slate-800">¿Listo para guardar?</h3>
-                    <p className="text-slate-500 text-sm max-w-md mx-auto">
-                      Se registrará un ingreso de <strong>{totalItems} productos</strong> en la bodega <strong>{bodegas.find(b => b.id === selectedBodega)?.nombre}</strong> por un valor total de <strong>Q{totalDinero.toFixed(2)}</strong>.
-                    </p>
-                    
-                    <div className="bg-slate-50 p-4 rounded-lg text-left text-sm space-y-2 border border-slate-100">
-                      <p><span className="font-bold text-slate-700">Factura:</span> {factura || "Sin factura"}</p>
-                      <p><span className="font-bold text-slate-700">Proveedor:</span> {proveedores.find(p => p.id === selectedProveedor)?.nombre || "N/A"}</p>
-                      <p><span className="font-bold text-slate-700">Fecha:</span> {fecha}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
             </>
           )}
         </div>
 
-        {/* FOOTER DE ACCIONES */}
+        {/* Footer */}
         <div className="p-4 border-t border-slate-200 bg-white flex justify-between shrink-0">
-          
-          {/* Botón Atrás */}
-          {step > 1 ? (
-            <button 
-              onClick={() => setStep(step - 1)}
-              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg flex items-center gap-2 transition font-medium text-sm"
-              disabled={guardando}
-            >
-              <ChevronLeft size={18} /> Atrás
-            </button>
-          ) : (
-            <div /> // Espaciador
-          )}
-
-          {/* Botón Siguiente / Guardar */}
-          {step < 3 ? (
-            <button 
-              onClick={() => setStep(step + 1)}
-              disabled={step === 1 ? !selectedBodega : items.length === 0} // Validaciones
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center gap-2 transition font-medium text-sm shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Siguiente <ChevronRight size={18} />
-            </button>
-          ) : (
-            <button 
-              onClick={handleFinalizar}
-              disabled={guardando}
-              className="px-8 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg flex items-center gap-2 transition font-bold text-sm shadow-md disabled:opacity-70"
-            >
-              {guardando ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} /> Guardando...
-                </>
-              ) : (
-                <>
-                  Confirmar Ingreso <Save size={18} />
-                </>
-              )}
-            </button>
-          )}
+           {step === 2 ? (
+             <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 text-sm font-medium flex items-center gap-1">
+                <ChevronLeft size={16}/> Atrás
+             </button>
+           ) : <span></span>}
+           
+           {step === 1 ? (
+              <button 
+                onClick={() => setStep(2)} 
+                disabled={!selectedBodega || !selectedProveedor || !factura} 
+                className="bg-slate-900 hover:bg-slate-800 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50 transition"
+              >
+                Siguiente
+              </button>
+           ) : (
+              <button 
+                onClick={handleFinalizar} 
+                disabled={items.length === 0 || guardando} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2 transition shadow-lg shadow-emerald-200"
+              >
+                 {guardando ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Finalizar Ingreso
+              </button>
+           )}
         </div>
 
       </div>

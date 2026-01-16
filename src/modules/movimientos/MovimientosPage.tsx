@@ -1,5 +1,5 @@
 // src/modules/movimientos/MovimientosPage.tsx
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
   Card,
@@ -21,7 +21,8 @@ import {
   Calendar,
   MapPin,
   User,
-  Truck
+  Truck,
+  Loader2
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -34,7 +35,8 @@ type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO";
 
 type MovimientoResumen = {
   id: string;
-  codigo: string;
+  codigo: string;       
+  consecutivo?: string; 
   tipo: MovimientoTipo;
   estado: MovimientoEstado;
   origen: string | null;
@@ -42,6 +44,7 @@ type MovimientoResumen = {
   proveedor: string | null;
   productos: string; 
   fecha: string | null; 
+  createdat?: string;   
 };
 
 type ProductoEnMovimiento = {
@@ -58,6 +61,7 @@ type ProductoEnMovimiento = {
 type MovimientoDetalle = {
   id: string;
   codigo: string;
+  consecutivo?: string; 
   tipo: MovimientoTipo;
   estado: MovimientoEstado;
   fecha: string | null;
@@ -77,33 +81,54 @@ export function MovimientosPage() {
   const [movimientos, setMovimientos] = useState<MovimientoResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
   const [errorLista, setErrorLista] = useState<string | null>(null);
-
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [detalleSeleccionado, setDetalleSeleccionado] = useState<MovimientoDetalle | null>(null);
   const [cargandoDetalle, setCargandoDetalle] = useState(false);
 
-  useEffect(() => {
-    const cargarMovimientos = async () => {
-      try {
-        setLoadingLista(true);
-        setErrorLista(null);
-        const res = await fetch(`${API_BASE}/api/movimientos`);
-        if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
-        const json = await res.json();
-        setMovimientos(json.movimientos ?? []);
-      } catch (err) {
-        console.error("Error al cargar movimientos:", err);
-        setErrorLista("No se pudieron cargar los movimientos.");
-      } finally {
-        setLoadingLista(false);
-      }
-    };
-    cargarMovimientos();
+  const cargarMovimientos = useCallback(async (silent = false) => {
+    try {
+      if (!silent) setLoadingLista(true);
+      else setIsRefreshing(true);
+      
+      setErrorLista(null);
+      const res = await fetch(`${API_BASE}/api/movimientos`);
+      
+      if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+      const json = await res.json();
+      
+      const lista = json.movimientos ?? [];
+
+      lista.sort((a: MovimientoResumen, b: MovimientoResumen) => {
+         const dateA = new Date(a.fecha || 0).getTime();
+         const dateB = new Date(b.fecha || 0).getTime();
+         return dateB - dateA; 
+      });
+
+      setMovimientos(lista);
+
+    } catch (err) {
+      console.error("Error al cargar movimientos:", err);
+      if (!silent) setErrorLista("No se pudieron cargar los movimientos.");
+    } finally {
+      setLoadingLista(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    cargarMovimientos();
+    const intervalo = setInterval(() => {
+        cargarMovimientos(true); 
+    }, 5000);
+    return () => clearInterval(intervalo);
+  }, [cargarMovimientos]);
+
 
   const handleClickMovimiento = async (mov: MovimientoResumen) => {
     const detalleBase: MovimientoDetalle = {
       id: mov.id,
       codigo: mov.codigo,
+      consecutivo: mov.consecutivo,
       tipo: mov.tipo,
       estado: mov.estado,
       fecha: mov.fecha,
@@ -139,7 +164,10 @@ export function MovimientosPage() {
     <div className="space-y-6">
       <header className="mb-2 flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Movimientos</h1>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight flex items-center gap-2">
+              Movimientos
+              {isRefreshing && <Loader2 size={14} className="animate-spin text-slate-400"/>}
+          </h1>
           <p className="text-sm text-slate-500">Historial de entradas y salidas.</p>
         </div>
         <button
@@ -197,10 +225,9 @@ export function MovimientosPage() {
 }
 
 // ------------------------------------
-// Tarjeta individual (Rediseñada)
+// Tarjeta individual
 // ------------------------------------
 function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen; onClick: () => void; }) {
-  // Configuración de estilos según tipo
   const tipoConfig = {
     INGRESO:       { border: "border-l-emerald-500", icon: <ArrowDownLeft size={20}/>,  bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     SALIDA:        { border: "border-l-rose-500",    icon: <ArrowUpRight size={20}/>,   bgIcon: "bg-rose-100 text-rose-600",       badge: "bg-rose-50 text-rose-700 border-rose-200" },
@@ -215,7 +242,12 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-slate-100 text-slate-500 border-slate-200";
 
-  const fechaCorta = movimiento.fecha ? new Date(movimiento.fecha).toLocaleDateString() : "-";
+  // 👇 CORRECCIÓN ZONA HORARIA: Forzamos UTC y formato GT
+  const fechaCorta = movimiento.fecha 
+    ? new Date(movimiento.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' }) 
+    : "-";
+
+  const codigoMostrar = movimiento.consecutivo || movimiento.codigo;
 
   return (
     <Card
@@ -226,16 +258,16 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
       onClick={onClick}
     >
       <CardContent className="p-4 flex gap-4">
-        {/* Icono Circular */}
         <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", tipoConfig.bgIcon)}>
             {tipoConfig.icon}
         </div>
 
         <div className="flex-1 min-w-0 space-y-2">
-            {/* Header */}
             <div className="flex justify-between items-start">
                 <div>
-                    <CardTitle className="text-sm font-bold text-slate-800">{movimiento.codigo}</CardTitle>
+                    <CardTitle className="text-sm font-bold text-slate-800 uppercase tracking-tight">
+                        {codigoMostrar}
+                    </CardTitle>
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{movimiento.tipo}</p>
                 </div>
                 <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider", estadoBadge)}>
@@ -243,7 +275,6 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
                 </Badge>
             </div>
 
-            {/* Info Central */}
             <div className="text-xs text-slate-600 space-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
                 {movimiento.origen && (
                     <div className="flex items-center gap-1.5">
@@ -265,7 +296,6 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
                 )}
             </div>
 
-            {/* Footer */}
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                 <span className="flex items-center gap-1"><Package size={12}/> {movimiento.productos}</span>
                 <span className="flex items-center gap-1"><Calendar size={12}/> {fechaCorta}</span>
@@ -277,25 +307,30 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
 }
 
 // ------------------------------------
-// Modal Detalle (Rediseñado)
+// Modal Detalle
 // ------------------------------------
 function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: MovimientoDetalle; loading: boolean; onClose: () => void; }) {
-  const fechaTexto = detalle.fecha ? new Date(detalle.fecha).toLocaleDateString() : "-";
+  
+  // 👇 CORRECCIÓN ZONA HORARIA AQUÍ TAMBIÉN
+  const fechaTexto = detalle.fecha 
+    ? new Date(detalle.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' }) 
+    : "-";
+    
   const handleExport = () => window.open(`${API_BASE}/api/movimientos/${detalle.id}/export`, "_blank");
+  const codigoTitulo = detalle.consecutivo || detalle.codigo;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         
-        {/* Header Modal */}
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
           <div>
              <div className="flex gap-2 mb-1">
                 <Badge variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-500">{detalle.tipo}</Badge>
                 <Badge variant="outline" className={cn("text-[10px]", detalle.estado === 'APROBADO' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200")}>{detalle.estado}</Badge>
              </div>
-             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                 {detalle.codigo}
+             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase">
+                 {codigoTitulo}
              </h2>
           </div>
           <div className="flex gap-2">
@@ -308,10 +343,7 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
           </div>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          
-          {/* Info Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
                   <div>
@@ -355,7 +387,6 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
               </div>
           )}
 
-          {/* Productos */}
           <div>
              <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
                 <span>Productos ({detalle.productos.length})</span>
