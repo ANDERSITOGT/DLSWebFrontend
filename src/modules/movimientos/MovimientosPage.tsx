@@ -22,7 +22,8 @@ import {
   MapPin,
   User,
   Truck,
-  Loader2
+  Loader2,
+  Clock // Icono de reloj para la hora
 } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -43,8 +44,8 @@ type MovimientoResumen = {
   destino: string | null;
   proveedor: string | null;
   productos: string; 
-  fecha: string | null; 
-  createdat?: string;   
+  fecha: string | null;     // Fecha Documento
+  createdat?: string;       // Fecha Registro (Bitácora)
 };
 
 type ProductoEnMovimiento = {
@@ -98,10 +99,12 @@ export function MovimientosPage() {
       
       const lista = json.movimientos ?? [];
 
+      // 👇 ORDENAMIENTO POR BITÁCORA (createdat)
       lista.sort((a: MovimientoResumen, b: MovimientoResumen) => {
-         const dateA = new Date(a.fecha || 0).getTime();
-         const dateB = new Date(b.fecha || 0).getTime();
-         return dateB - dateA; 
+         // Usamos createdat, si no existe (datos viejos) usamos fecha
+         const dateA = new Date(a.createdat || a.fecha || 0).getTime();
+         const dateB = new Date(b.createdat || b.fecha || 0).getTime();
+         return dateB - dateA; // Descendente (Lo más nuevo arriba)
       });
 
       setMovimientos(lista);
@@ -198,7 +201,7 @@ export function MovimientosPage() {
       <section className="space-y-3">
         {!loadingLista && !errorLista && (
              <div className="flex items-center gap-2 mb-4">
-                <SectionTitle title="Recientes" />
+                <SectionTitle title="Bitácora Reciente" />
                 <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{movimientos.length}</span>
             </div>
         )}
@@ -225,7 +228,7 @@ export function MovimientosPage() {
 }
 
 // ------------------------------------
-// Tarjeta individual
+// Tarjeta individual (Muestra FECHA Y HORA DE REGISTRO)
 // ------------------------------------
 function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen; onClick: () => void; }) {
   const tipoConfig = {
@@ -242,10 +245,20 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-slate-100 text-slate-500 border-slate-200";
 
-  // 👇 CORRECCIÓN ZONA HORARIA: Forzamos UTC y formato GT
-  const fechaCorta = movimiento.fecha 
-    ? new Date(movimiento.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' }) 
-    : "-";
+  // 👇 LÓGICA DE VISUALIZACIÓN DE FECHA Y HORA (BITÁCORA)
+  // Usamos 'createdat' para mostrar cuándo ocurrió realmente.
+  // Transformamos a hora de Guatemala.
+  let fechaVisual = "-";
+  if (movimiento.createdat) {
+      fechaVisual = new Date(movimiento.createdat).toLocaleString('es-GT', {
+          timeZone: 'America/Guatemala',
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', hour12: true
+      });
+  } else if (movimiento.fecha) {
+      // Fallback para datos antiguos sin createdat
+      fechaVisual = new Date(movimiento.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' });
+  }
 
   const codigoMostrar = movimiento.consecutivo || movimiento.codigo;
 
@@ -298,7 +311,8 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
 
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                 <span className="flex items-center gap-1"><Package size={12}/> {movimiento.productos}</span>
-                <span className="flex items-center gap-1"><Calendar size={12}/> {fechaCorta}</span>
+                {/* Mostramos fecha y hora */}
+                <span className="flex items-center gap-1 font-medium text-slate-500"><Clock size={12}/> {fechaVisual}</span>
             </div>
         </div>
       </CardContent>
@@ -307,11 +321,11 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
 }
 
 // ------------------------------------
-// Modal Detalle
+// Modal Detalle (Mantiene FECHA DOCUMENTO)
 // ------------------------------------
 function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: MovimientoDetalle; loading: boolean; onClose: () => void; }) {
   
-  // 👇 CORRECCIÓN ZONA HORARIA AQUÍ TAMBIÉN
+  // 👇 MANTENEMOS LA FECHA DOCUMENTO (CONTABLE)
   const fechaTexto = detalle.fecha 
     ? new Date(detalle.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' }) 
     : "-";
@@ -347,7 +361,7 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
                   <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold mb-0.5">Fecha Registro</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold mb-0.5">Fecha Documento</p>
                       <p className="text-sm font-semibold text-slate-700 flex items-center gap-2"><Calendar size={14} className="text-slate-400"/> {fechaTexto}</p>
                   </div>
                   {detalle.creador && (
