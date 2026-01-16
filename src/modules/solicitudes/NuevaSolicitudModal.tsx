@@ -26,21 +26,21 @@ type ItemSolicitud = {
   nombre: string;
   unidad: string;
   cantidad: number;
-  fincaId: string;   
+  fincaId: string;    
   fincaNombre: string;
-  loteId: string;    
+  loteId: string;     
   loteCodigo: string;
   notas: string;
 };
 
 export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalProps) {
   const { token, user } = useAuth();
-  
+   
   // --- ESTADOS ---
   const [step, setStep] = useState(1); 
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
-  
+   
   // Estado para el ÉXITO
   const [successData, setSuccessData] = useState<{ id: string } | null>(null);
 
@@ -58,7 +58,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<ProductoResult[]>([]);
   const [buscandoProd, setBuscandoProd] = useState(false);
-  
+   
   // Formulario temporal
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
   const [tempCant, setTempCant] = useState<number>(1);
@@ -87,7 +87,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
   // --- LÓGICA PRODUCTOS ---
   const handleBuscar = async () => {
-    // CAMBIO: Permitimos búsqueda vacía
     setBuscandoProd(true);
     try {
       const res = await catalogosService.buscarProductos(busqueda);
@@ -116,14 +115,11 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
     setItems([...items, nuevoItem]);
     
-    // --- RESETEAR FORMULARIO (LOGICA "STICKY") ---
-    // Solo reseteamos producto, cantidad y notas.
-    // MANTENEMOS Finca y Lote para agilizar la carga masiva.
+    // --- RESETEAR FORMULARIO ---
     setProdSeleccionado(null);
     setTempCant(1);
     setTempNotas("");
     
-    // Limpiar búsqueda y cerrar
     setBusqueda("");
     setResultados([]);
     setShowAddForm(false); 
@@ -157,7 +153,8 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
         }))
       };
 
-      const res = await fetch(import.meta.env.VITE_API_URL + "/api/movimientos/ingreso", {
+      // ✅ CORREGIDO: AHORA APUNTA A /api/solicitudes
+      const res = await fetch(import.meta.env.VITE_API_URL + "/api/solicitudes", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify(payload)
@@ -167,6 +164,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
       if (!res.ok) throw new Error(data.message || "Error al guardar");
       
+      // Ahora data.solicitud SÍ existe porque llamamos al endpoint correcto
       setSuccessData({ id: data.solicitud.id }); 
 
     } catch (error) {
@@ -241,25 +239,25 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                       Completa la información básica.
                    </div>
                    <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
-                      <div>
-                        <label className="text-xs font-bold text-slate-500 uppercase">Bodega *</label>
-                        <select 
-                          value={selectedBodega}
-                          onChange={(e) => setSelectedBodega(e.target.value)}
-                          className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                        >
-                          <option value="">Seleccione una bodega...</option>
-                          {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-                        </select>
-                      </div>
-                      <div>
+                     <div>
+                       <label className="text-xs font-bold text-slate-500 uppercase">Bodega *</label>
+                       <select 
+                         value={selectedBodega}
+                         onChange={(e) => setSelectedBodega(e.target.value)}
+                         className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
+                       >
+                         <option value="">Seleccione una bodega...</option>
+                         {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                       </select>
+                     </div>
+                     <div>
                          <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
                          <textarea 
-                            value={obsGeneral}
-                            onChange={(e) => setObsGeneral(e.target.value)}
-                            placeholder="Notas opcionales..."
-                            rows={3}
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
+                           value={obsGeneral}
+                           onChange={(e) => setObsGeneral(e.target.value)}
+                           placeholder="Notas opcionales..."
+                           rows={3}
+                           className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                          />
                       </div>
                    </div>
@@ -296,7 +294,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                                 type="text" value={busqueda}
                                 onChange={(e) => setBusqueda(e.target.value)}
                                 onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-                                // CAMBIO: Placeholder descriptivo
                                 placeholder="Buscar nombre o código (vacío para ver todo)..."
                                 className="flex-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
                               />
@@ -305,7 +302,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                               </button>
                             </div>
                             
-                            {/* CAMBIO: Texto de ayuda */}
                             <p className="text-[10px] text-slate-400 mt-1 ml-1">
                               💡 Tip: Dale a la lupa sin escribir nada para ver el catálogo rápido.
                             </p>
