@@ -1,7 +1,7 @@
 // src/modules/solicitudes/NuevaSolicitudModal.tsx
 import { useState, useEffect } from "react";
 import { 
-  X, ChevronLeft, Loader2, Plus, Trash2, Search, Save, MapPin, CheckCircle2 
+  X, ChevronLeft, Loader2, Trash2, Search, Save, MapPin, CheckCircle2, AlertCircle 
 } from "lucide-react";
 import { catalogosService } from "../../services/catalogosService";
 import { useAuth } from "../../context/AuthContext";
@@ -18,7 +18,15 @@ type Finca = {
   nombre: string; 
   lote: { id: string; codigo: string; cultivo: { nombre: string } }[] 
 };
-type ProductoResult = { id: string; nombre: string; codigo: string; unidad: { abreviatura: string } };
+
+// 👇 ACTUALIZADO: Agregamos stockActual
+type ProductoResult = { 
+    id: string; 
+    nombre: string; 
+    codigo: string; 
+    stockActual: number; // Nuevo campo del backend
+    unidad: { abreviatura: string } 
+};
 
 // Item de la lista
 type ItemSolicitud = {
@@ -26,21 +34,22 @@ type ItemSolicitud = {
   nombre: string;
   unidad: string;
   cantidad: number;
-  fincaId: string;    
+  stockMaximo: number; // 👇 Guardamos el límite aquí para validar
+  fincaId: string;     
   fincaNombre: string;
-  loteId: string;     
+  loteId: string;      
   loteCodigo: string;
   notas: string;
 };
 
 export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalProps) {
   const { token, user } = useAuth();
-   
+    
   // --- ESTADOS ---
   const [step, setStep] = useState(1); 
   const [loading, setLoading] = useState(false);
   const [guardando, setGuardando] = useState(false);
-   
+    
   // Estado para el ÉXITO
   const [successData, setSuccessData] = useState<{ id: string } | null>(null);
 
@@ -58,7 +67,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   const [busqueda, setBusqueda] = useState("");
   const [resultados, setResultados] = useState<ProductoResult[]>([]);
   const [buscandoProd, setBuscandoProd] = useState(false);
-   
+    
   // Formulario temporal
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
   const [tempCant, setTempCant] = useState<number>(1);
@@ -89,6 +98,8 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   const handleBuscar = async () => {
     setBuscandoProd(true);
     try {
+      // Nota: Asegúrate de que tu servicio use el endpoint '/api/catalogos/productos-busqueda'
+      // o el '/api/catalogos/productos/buscar' que modificamos para traer el stock
       const res = await catalogosService.buscarProductos(busqueda);
       setResultados(res);
     } catch (error) { console.error(error); } 
@@ -106,6 +117,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
       nombre: prodSeleccionado.nombre,
       unidad: prodSeleccionado.unidad.abreviatura,
       cantidad: tempCant,
+      stockMaximo: prodSeleccionado.stockActual, // 👇 Guardamos el stock real
       fincaId: tempFinca,
       fincaNombre: fincaObj?.nombre || "Desc",
       loteId: tempLote,
@@ -114,7 +126,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
     };
 
     setItems([...items, nuevoItem]);
-    
+     
     // --- RESETEAR FORMULARIO ---
     setProdSeleccionado(null);
     setTempCant(1);
@@ -141,6 +153,14 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
         return;
       }
 
+      // Validación final antes de enviar
+      const hayErrores = items.some(i => i.cantidad > i.stockMaximo);
+      if (hayErrores) {
+          alert("Corrige las cantidades que exceden el stock disponible.");
+          setGuardando(false);
+          return;
+      }
+
       const payload = {
         solicitanteId: user.id,
         bodegaId: selectedBodega,
@@ -153,7 +173,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
         }))
       };
 
-      // ✅ CORREGIDO: AHORA APUNTA A /api/solicitudes
       const res = await fetch(import.meta.env.VITE_API_URL + "/api/solicitudes", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
@@ -164,7 +183,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
       if (!res.ok) throw new Error(data.message || "Error al guardar");
       
-      // Ahora data.solicitud SÍ existe porque llamamos al endpoint correcto
       setSuccessData({ id: data.solicitud.id }); 
 
     } catch (error) {
@@ -176,6 +194,9 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
   // Filtro cascada
   const lotesDisponibles = tempFinca ? fincas.find(f => f.id === tempFinca)?.lote || [] : [];
+  
+  // Validar si hay errores en la lista actual
+  const existeErrorStock = items.some(i => i.cantidad > i.stockMaximo);
 
   // --- VISTA DE ÉXITO (ANIMACIÓN) ---
   if (successData) {
@@ -303,14 +324,18 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                             </div>
                             
                             <p className="text-[10px] text-slate-400 mt-1 ml-1">
-                              💡 Tip: Dale a la lupa sin escribir nada para ver el catálogo rápido.
+                              💡 Dale a la lupa para ver stock disponible.
                             </p>
 
                             {resultados.length > 0 && (
                               <div className="mt-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg">
                                 {resultados.map(p => (
-                                  <button key={p.id} onClick={() => setProdSeleccionado(p)} className="w-full text-left p-2 hover:bg-emerald-50 text-sm border-b border-slate-100">
-                                    {p.nombre}
+                                  <button key={p.id} onClick={() => setProdSeleccionado(p)} className="w-full flex justify-between items-center p-2 hover:bg-emerald-50 text-sm border-b border-slate-100">
+                                    <span>{p.nombre}</span>
+                                    {/* 👇 MOSTRAR STOCK EN RESULTADOS */}
+                                    <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.stockActual > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                        Stock: {p.stockActual} {p.unidad?.abreviatura}
+                                    </span>
                                   </button>
                                 ))}
                               </div>
@@ -318,7 +343,10 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                           </div>
                        ) : (
                           <div className="flex justify-between items-center bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                             <span className="font-medium text-emerald-800 text-sm">{prodSeleccionado.nombre}</span>
+                             <div>
+                                 <span className="font-medium text-emerald-800 text-sm block">{prodSeleccionado.nombre}</span>
+                                 <span className="text-xs text-emerald-600">Stock disponible: {prodSeleccionado.stockActual} {prodSeleccionado.unidad.abreviatura}</span>
+                             </div>
                              <button onClick={() => setProdSeleccionado(null)} className="text-emerald-600 text-xs font-bold hover:underline">Cambiar</button>
                           </div>
                        )}
@@ -326,7 +354,21 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                        {/* Cantidad */}
                        <div>
                           <label className="text-xs font-bold text-slate-500">Cantidad ({prodSeleccionado?.unidad.abreviatura}) *</label>
-                          <input type="number" min="0.1" value={tempCant} onChange={(e) => setTempCant(parseFloat(e.target.value))} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"/>
+                          <input 
+                            type="number" min="0.1" value={tempCant} 
+                            onChange={(e) => setTempCant(parseFloat(e.target.value))} 
+                            className={`w-full mt-1 border rounded-lg p-2 text-sm outline-none focus:ring-2 ${
+                                prodSeleccionado && tempCant > prodSeleccionado.stockActual 
+                                ? 'border-rose-500 focus:ring-rose-500 text-rose-600 bg-rose-50' 
+                                : 'border-slate-300 focus:ring-emerald-500'
+                            }`}
+                          />
+                          {/* 👇 AVISO ROJO DE STOCK */}
+                          {prodSeleccionado && tempCant > prodSeleccionado.stockActual && (
+                              <p className="text-rose-600 text-xs mt-1 font-bold flex items-center gap-1">
+                                  <AlertCircle size={12}/> La cantidad supera el stock disponible ({prodSeleccionado.stockActual}).
+                              </p>
+                          )}
                        </div>
 
                        {/* Finca y Lote */}
@@ -359,7 +401,13 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                           />
                        </div>
 
-                       <button onClick={handleAgregarItem} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-medium text-sm transition">+ Agregar</button>
+                       <button 
+                         onClick={handleAgregarItem} 
+                         disabled={prodSeleccionado ? tempCant > prodSeleccionado.stockActual : false}
+                         className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium text-sm transition"
+                        >
+                           + Agregar
+                       </button>
                     </div>
                   )}
 
@@ -370,17 +418,21 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                           <button onClick={() => setShowAddForm(true)} className="text-emerald-600 text-xs font-bold hover:underline">+ Agregar otro</button>
                        </div>
                        <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
-                          {items.map((item, idx) => (
-                             <div key={idx} className="p-3 border-b border-slate-100 last:border-0 flex justify-between items-center">
-                                <div>
-                                   <p className="font-bold text-slate-800 text-sm">{item.nombre}</p>
-                                   <p className="text-xs text-slate-500">
-                                      {item.cantidad} {item.unidad} · <span className="text-emerald-600 font-medium">{item.fincaNombre} - {item.loteCodigo}</span>
-                                   </p>
+                          {items.map((item, idx) => {
+                             const excedeStock = item.cantidad > item.stockMaximo;
+                             return (
+                                <div key={idx} className={`p-3 border-b border-slate-100 last:border-0 flex justify-between items-center ${excedeStock ? 'bg-rose-50' : ''}`}>
+                                   <div>
+                                      <p className={`font-bold text-sm ${excedeStock ? 'text-rose-700' : 'text-slate-800'}`}>{item.nombre}</p>
+                                      <p className="text-xs text-slate-500">
+                                         {item.cantidad} {item.unidad} · <span className="text-emerald-600 font-medium">{item.fincaNombre} - {item.loteCodigo}</span>
+                                      </p>
+                                      {excedeStock && <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1"><AlertCircle size={10}/> Excede stock ({item.stockMaximo})</p>}
+                                   </div>
+                                   <button onClick={() => handleEliminarItem(idx)} className="text-rose-400 hover:text-rose-600 p-2"><Trash2 size={16}/></button>
                                 </div>
-                                <button onClick={() => handleEliminarItem(idx)} className="text-rose-400 hover:text-rose-600 p-2"><Trash2 size={16}/></button>
-                             </div>
-                          ))}
+                             );
+                          })}
                        </div>
                     </div>
                   )}
@@ -397,7 +449,11 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
            {step === 1 ? (
               <button onClick={() => setStep(2)} disabled={!selectedBodega} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50">Siguiente</button>
            ) : (
-              <button onClick={handleFinalizar} disabled={items.length === 0 || guardando} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50 flex items-center gap-2">
+              <button 
+                onClick={handleFinalizar} 
+                disabled={items.length === 0 || guardando || existeErrorStock} 
+                className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center gap-2"
+              >
                  {guardando ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Enviar
               </button>
            )}
