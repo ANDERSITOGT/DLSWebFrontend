@@ -9,7 +9,9 @@ import {
   Users, 
   Home, 
   Sprout, 
-  MapPin 
+  MapPin,
+  ClipboardList, // Icono para Ajuste
+  RotateCcw      // Icono para Devolución
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -38,15 +40,19 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
   );
 }
 
-// 👇 1. Agregamos onIngresoClick a los props aceptados
+// Props aceptados por el Modal
 export function QuickActionsModal({ 
   onClose, 
   onIngresoClick,
-  onSolicitudClick
+  onSolicitudClick,
+  onAjusteClick,    // <--- NUEVO
+  onDevolucionClick // <--- NUEVO
 }: { 
   onClose: () => void;
   onIngresoClick: () => void;
   onSolicitudClick: () => void; 
+  onAjusteClick: () => void;
+  onDevolucionClick: () => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -58,7 +64,7 @@ export function QuickActionsModal({
   };
 
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
-  const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE"; 
+  const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO"; 
   const showCatalogos = rol === "ADMIN";
 
   return (
@@ -83,17 +89,28 @@ export function QuickActionsModal({
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
               
-              {/* 👇 2. Botón conectado al nuevo Modal */}
               <ActionItem 
                 icon={<ArrowDownToLine size={20} />} 
                 title="Registrar Ingreso" 
                 desc="Registrar entrada de productos"
                 onClick={() => {
-                  onClose();        // Cierra este menú
-                  onIngresoClick(); // Abre el formulario
+                  onClose(); 
+                  onIngresoClick(); 
                 }} 
               />
               
+              {/* Nuevo Botón de Ajustes */}
+              <ActionItem 
+                icon={<ClipboardList size={20} />} 
+                title="Registrar Ajuste" 
+                desc="Corrección de inventario (+/-)"
+                color="text-amber-600 bg-amber-50"
+                onClick={() => {
+                   onClose();
+                   onAjusteClick();
+                }} 
+              />
+
               <ActionItem 
                 icon={<ArrowRightLeft size={20} />} 
                 title="Registrar Transferencia" 
@@ -113,10 +130,21 @@ export function QuickActionsModal({
                 desc="Solicitar productos de bodega"
                 color="text-emerald-600 bg-emerald-50"
                 onClick={() => {
-                  onClose();          // Cierra menú
-                  onSolicitudClick(); // Abre formulario
+                  onClose(); 
+                  onSolicitudClick(); 
                 }}
-                
+              />
+
+              {/* Nuevo Botón de Devolución */}
+              <ActionItem 
+                icon={<RotateCcw size={20} />} 
+                title="Solicitar Devolución" 
+                desc="Regresar material a bodega"
+                color="text-rose-600 bg-rose-50"
+                onClick={() => {
+                  onClose(); 
+                  onDevolucionClick(); 
+                }}
               />
             </div>
           )}

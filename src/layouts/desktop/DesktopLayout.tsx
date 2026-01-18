@@ -1,4 +1,3 @@
-// src/layouts/desktop/DesktopLayout.tsx
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
@@ -16,16 +15,19 @@ import {
 import { useAuth } from "../../context/AuthContext";
 import { useRefresh } from "../../context/RefreshContext";
 
-// Modales (Tus componentes originales)
+// Modales
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
 import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
+import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
+// 👇 AHORA SÍ, HABILITADO
+import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
 
 type DesktopLayoutProps = {
   children: ReactNode;
 };
 
-// Configuración del Menú con los nuevos colores
+// Configuración del Menú
 const menuItems = [
   { 
     label: "Inicio", 
@@ -65,17 +67,20 @@ const menuItems = [
 ];
 
 export function DesktopLayout({ children }: DesktopLayoutProps) {
-  const { user, logout } = useAuth(); // Para nombre de usuario y logout
+  const { user, logout } = useAuth(); 
   const location = useLocation();
   const { triggerRefreshSolicitudes } = useRefresh(); 
 
   // --- ESTADOS ---
-  const [showActions, setShowActions] = useState(false);       // Modal Acciones Rápidas
-  const [showIngresoModal, setShowIngresoModal] = useState(false); // Modal Ingreso
-  const [showSolicitudModal, setShowSolicitudModal] = useState(false); // Modal Solicitud
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);   // Modal Confirmar Salida
+  const [showActions, setShowActions] = useState(false);       
+  const [showIngresoModal, setShowIngresoModal] = useState(false); 
+  const [showSolicitudModal, setShowSolicitudModal] = useState(false); 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);   
 
-  // Imagen de fondo para el sidebar
+  // --- NUEVOS ESTADOS FASE 2 ---
+  const [showAjusteModal, setShowAjusteModal] = useState(false);
+  const [showDevolucionModal, setShowDevolucionModal] = useState(false);
+
   const bgImage = "https://images.unsplash.com/photo-1625246333195-58197bd000aa?q=80&w=1000&auto=format&fit=crop";
 
   return (
@@ -84,11 +89,11 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
       {/* SIDEBAR */}
       <aside className="w-64 relative flex flex-col shadow-2xl z-20">
         
-        {/* Fondos del Sidebar */}
+        {/* Fondos */}
         <div className="absolute inset-0 z-0 bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }} />
         <div className="absolute inset-0 z-0 bg-slate-900/90 backdrop-blur-[2px]" />
 
-        {/* Contenido Sidebar (Z-10 para estar sobre el fondo) */}
+        {/* Contenido Sidebar */}
         <div className="relative z-10 flex flex-col h-full text-white">
           
           {/* Header Logo */}
@@ -128,7 +133,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
                     {item.icon}
                   </span>
                   {item.label}
-                  {/* Barra lateral iluminada si está activo */}
                   {active && <div className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-white/5 to-transparent pointer-events-none" />}
                 </Link>
               );
@@ -138,7 +142,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           {/* Footer Sidebar */}
           <div className="p-4 border-t border-white/10 shrink-0 space-y-2">
             
-            {/* Botón Acciones Rápidas (Abre TU modal existente) */}
             <button
               onClick={() => setShowActions(true)}
               className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -146,7 +149,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
                <Plus size={20}/> Acciones Rápidas
             </button>
 
-            {/* Logout con Confirmación */}
             <button
               onClick={() => setShowLogoutConfirm(true)}
               className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
@@ -161,7 +163,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
       {/* CONTENIDO PRINCIPAL */}
       <main className="flex-1 overflow-y-auto bg-slate-50 relative z-0">
          {/* Header móvil opcional */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center sm:hidden">
+        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center lg:hidden">
             <span className="font-bold text-slate-700">DLS Web</span>
         </header>
 
@@ -172,38 +174,40 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
 
       {/* --- MODALES --- */}
 
-      {/* 1. Modal de Acciones Rápidas (Reutilizando el tuyo) */}
+      {/* 1. Acciones Rápidas */}
       {showActions && (
         <QuickActionsModal 
           onClose={() => setShowActions(false)} 
-          onIngresoClick={() => setShowIngresoModal(true)} // Conexión a Ingreso
-          onSolicitudClick={() => setShowSolicitudModal(true)} // Conexión a Solicitud
+          onIngresoClick={() => setShowIngresoModal(true)} 
+          onSolicitudClick={() => setShowSolicitudModal(true)}
+          onAjusteClick={() => setShowAjusteModal(true)}
+          onDevolucionClick={() => setShowDevolucionModal(true)}
         />
       )}
 
-      {/* 2. Modal de Ingreso */}
+      {/* 2. Ingreso */}
       {showIngresoModal && (
         <IngresoModal 
           onClose={() => setShowIngresoModal(false)}
           onSuccess={() => {
             setShowIngresoModal(false);
-            triggerRefreshSolicitudes(); // Refrescamos por si acaso
+            triggerRefreshSolicitudes(); 
           }}
         />
       )}
 
-      {/* 3. Modal de Solicitud */}
+      {/* 3. Solicitud */}
       {showSolicitudModal && (
         <NuevaSolicitudModal
           onClose={() => setShowSolicitudModal(false)}
           onSuccess={() => {
             setShowSolicitudModal(false);
-            triggerRefreshSolicitudes(); // Refrescamos solicitudes
+            triggerRefreshSolicitudes(); 
           }}
         />
       )}
 
-      {/* 4. Modal de Confirmación Logout (Nuevo) */}
+      {/* 4. Logout Confirm */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
              <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
@@ -213,21 +217,27 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
                 <h3 className="text-lg font-bold text-slate-800 mb-2">¿Cerrar Sesión?</h3>
                 <p className="text-sm text-slate-500 mb-6">¿Estás seguro de que quieres salir del sistema?</p>
                 <div className="flex gap-3">
-                    <button 
-                        onClick={() => setShowLogoutConfirm(false)}
-                        className="flex-1 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition"
-                    >
-                        Cancelar
-                    </button>
-                    <button 
-                        onClick={logout}
-                        className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 transition shadow-lg shadow-rose-200"
-                    >
-                        Sí, Salir
-                    </button>
+                    <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Cancelar</button>
+                    <button onClick={logout} className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 transition shadow-lg shadow-rose-200">Sí, Salir</button>
                 </div>
              </div>
         </div>
+      )}
+
+      {/* 5. Ajuste */}
+      {showAjusteModal && (
+        <AjusteInventarioModal 
+          onClose={() => setShowAjusteModal(false)} 
+          onSuccess={() => {}}
+        />
+      )}
+
+      {/* 6. Devolución (YA HABILITADO) */}
+      {showDevolucionModal && (
+         <SolicitudDevolucionModal 
+            onClose={() => setShowDevolucionModal(false)} 
+            onSuccess={() => triggerRefreshSolicitudes()} // Importante refrescar solicitudes si se crea una interna
+         />
       )}
 
     </div>
