@@ -1,4 +1,3 @@
-// src/modules/movimientos/MovimientosLotesPage.tsx
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import {
@@ -20,6 +19,8 @@ import {
   Package, 
   Leaf 
 } from "lucide-react";
+// 👇 1. IMPORTAR AUTH
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -90,6 +91,9 @@ type DocumentoDetalle = {
 // Página de Lotes
 // -----------------------------
 export function MovimientosLotesPage() {
+  // 👇 2. OBTENER TOKEN
+  const { token } = useAuth();
+
   const [lotes, setLotes] = useState<LoteResumen[]>([]);
   const [loadingLotes, setLoadingLotes] = useState(true);
   const [errorLotes, setErrorLotes] = useState<string | null>(null);
@@ -105,7 +109,10 @@ export function MovimientosLotesPage() {
       try {
         setLoadingLotes(true);
         setErrorLotes(null);
-        const res = await fetch(`${API_BASE}/api/movimientos/lotes`);
+        // 👇 3. AGREGAR HEADER AUTH
+        const res = await fetch(`${API_BASE}/api/movimientos/lotes`, {
+            headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
         const json = await res.json();
         setLotes(json.lotes ?? []);
@@ -117,13 +124,16 @@ export function MovimientosLotesPage() {
       }
     };
     cargarLotes();
-  }, []);
+  }, [token]); // Agregar token como dependencia
 
   const handleClickLote = async (lote: LoteResumen) => {
     setDetalleSeleccionado({ lote, aplicaciones: [] });
     setCargandoDetalle(true);
     try {
-      const res = await fetch(`${API_BASE}/api/movimientos/lotes/${lote.id}`);
+      // 👇 4. AGREGAR HEADER AUTH
+      const res = await fetch(`${API_BASE}/api/movimientos/lotes/${lote.id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
       const json = await res.json();
       setDetalleSeleccionado({ lote: json.lote, aplicaciones: json.aplicaciones ?? [] });
@@ -135,10 +145,6 @@ export function MovimientosLotesPage() {
   };
 
   const handleVerDocumento = async (aplicacion: LoteAplicacion) => {
-    // Nota: Aquí cerramos el modal de lote para abrir el de documento.
-    // Si prefieres "apilar" modales, comenta la línea de setDetalleSeleccionado(null).
-    // setDetalleSeleccionado(null); 
-    
     // Base rápida
     setDocumentoSeleccionado({
       id: aplicacion.documentoId,
@@ -157,7 +163,10 @@ export function MovimientosLotesPage() {
     setCargandoDocumento(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/movimientos/${aplicacion.documentoId}`);
+      // 👇 5. AGREGAR HEADER AUTH
+      const res = await fetch(`${API_BASE}/api/movimientos/${aplicacion.documentoId}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
       const data = (await res.json()) as DocumentoDetalle;
       setDocumentoSeleccionado(data);
@@ -299,9 +308,9 @@ function LoteDetalleModal({ detalle, loading, onClose, onVerDocumento }: { detal
         {/* Header Modal */}
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
           <div>
-             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><MapPin size={10}/> Lote Agrícola</span>
-             <h2 className="text-lg font-bold text-slate-900">{lote.codigo}</h2>
-             <p className="text-xs text-slate-500">{lote.finca}</p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"><MapPin size={10}/> Lote Agrícola</span>
+              <h2 className="text-lg font-bold text-slate-900">{lote.codigo}</h2>
+              <p className="text-xs text-slate-500">{lote.finca}</p>
           </div>
           <div className="flex gap-2">
              <button onClick={handleExport} className="flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 transition shadow-sm">
@@ -331,16 +340,16 @@ function LoteDetalleModal({ detalle, loading, onClose, onVerDocumento }: { detal
 
           {/* Timeline de aplicaciones */}
           <div>
-             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
+              <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center gap-2">
                 Historial de Aplicaciones
                 {loading && <span className="text-[10px] font-normal text-slate-400">Cargando...</span>}
-             </h3>
+              </h3>
 
-             {!loading && aplicaciones.length === 0 && (
-                 <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Sin aplicaciones registradas.</p>
-             )}
+              {!loading && aplicaciones.length === 0 && (
+                  <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Sin aplicaciones registradas.</p>
+              )}
 
-             <div className="space-y-3 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
+              <div className="space-y-3 relative before:absolute before:inset-0 before:ml-4 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-slate-200 before:to-transparent">
                 {aplicaciones.map((ap) => (
                     <div key={ap.id} className="relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group is-active">
                         {/* Dot del timeline */}
@@ -388,11 +397,11 @@ function DocumentoDetalleModal({ detalle, loading, onClose }: { detalle: Documen
         
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
           <div>
-             <div className="flex gap-2 mb-1">
+              <div className="flex gap-2 mb-1">
                 <Badge variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-500">{detalle.tipo}</Badge>
                 <Badge variant="outline" className={cn("text-[10px]", detalle.estado === 'APROBADO' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200")}>{detalle.estado}</Badge>
-             </div>
-             <h2 className="text-lg font-bold text-slate-900">{detalle.codigo}</h2>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900">{detalle.codigo}</h2>
           </div>
           <div className="flex gap-2">
             <button onClick={handleExport} className="flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 transition shadow-sm">
@@ -412,9 +421,9 @@ function DocumentoDetalleModal({ detalle, loading, onClose }: { detalle: Documen
           </div>
 
           <div>
-             <h3 className="font-bold text-slate-800 text-sm mb-3">Productos ({detalle.productos.length})</h3>
-             {loading && <p className="text-xs text-slate-400">Cargando...</p>}
-             <div className="space-y-2">
+              <h3 className="font-bold text-slate-800 text-sm mb-3">Productos ({detalle.productos.length})</h3>
+              {loading && <p className="text-xs text-slate-400">Cargando...</p>}
+              <div className="space-y-2">
                 {detalle.productos.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white">
                         <div className="flex items-center gap-3">

@@ -1,4 +1,3 @@
-// src/modules/movimientos/MovimientosPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -23,8 +22,9 @@ import {
   User,
   Truck,
   Loader2,
-  Clock // Icono de reloj para la hora
+  Clock 
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -44,8 +44,8 @@ type MovimientoResumen = {
   destino: string | null;
   proveedor: string | null;
   productos: string; 
-  fecha: string | null;     // Fecha Documento
-  createdat?: string;       // Fecha Registro (Bitácora)
+  fecha: string | null;     
+  createdat?: string;       
 };
 
 type ProductoEnMovimiento = {
@@ -79,6 +79,12 @@ type MovimientoDetalle = {
 // Página principal
 // ------------------------------------
 export function MovimientosPage() {
+  const { token, user } = useAuth(); // Traemos 'user' para verificar el rol
+
+  // 🛡️ LÓGICA DE PERMISOS PARA VER LA PESTAÑA DE LOTES
+  // El Solicitante NO puede ver lotes. Admin, Bodeguero y Visor SÍ.
+  const puedeVerLotes = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
+
   const [movimientos, setMovimientos] = useState<MovimientoResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
   const [errorLista, setErrorLista] = useState<string | null>(null);
@@ -92,19 +98,22 @@ export function MovimientosPage() {
       else setIsRefreshing(true);
       
       setErrorLista(null);
-      const res = await fetch(`${API_BASE}/api/movimientos`);
+
+      const res = await fetch(`${API_BASE}/api/movimientos`, {
+          headers: {
+              "Authorization": `Bearer ${token}`
+          }
+      });
       
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
       const json = await res.json();
       
       const lista = json.movimientos ?? [];
 
-      // 👇 ORDENAMIENTO POR BITÁCORA (createdat)
       lista.sort((a: MovimientoResumen, b: MovimientoResumen) => {
-         // Usamos createdat, si no existe (datos viejos) usamos fecha
          const dateA = new Date(a.createdat || a.fecha || 0).getTime();
          const dateB = new Date(b.createdat || b.fecha || 0).getTime();
-         return dateB - dateA; // Descendente (Lo más nuevo arriba)
+         return dateB - dateA; 
       });
 
       setMovimientos(lista);
@@ -116,7 +125,7 @@ export function MovimientosPage() {
       setLoadingLista(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     cargarMovimientos();
@@ -148,7 +157,11 @@ export function MovimientosPage() {
     setCargandoDetalle(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/movimientos/${mov.id}`);
+      const res = await fetch(`${API_BASE}/api/movimientos/${mov.id}`, {
+          headers: {
+              "Authorization": `Bearer ${token}`
+          }
+      });
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
       const data = (await res.json()) as MovimientoDetalle;
       setDetalleSeleccionado(data);
@@ -186,12 +199,16 @@ export function MovimientosPage() {
           <button className="flex-1 rounded-lg py-2 text-xs font-bold bg-white text-slate-800 shadow-sm transition-all">
             Movimientos
           </button>
-          <Link
-            to="/movimientos/lotes"
-            className="flex-1 text-center rounded-lg py-2 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all"
-          >
-            Lotes Agrícolas
-          </Link>
+          
+          {/* 👇 AQUÍ ESTÁ EL CAMBIO VISUAL: Solo mostramos si tiene permiso */}
+          {puedeVerLotes && (
+            <Link
+              to="/movimientos/lotes"
+              className="flex-1 text-center rounded-lg py-2 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all"
+            >
+              Lotes Agrícolas
+            </Link>
+          )}
         </div>
       </section>
 
@@ -227,14 +244,17 @@ export function MovimientosPage() {
   );
 }
 
+// ... (El resto de componentes MovimientoCard y MovimientoDetalleModal se mantienen IGUAL que antes, no hace falta repetirlos aquí si ya los tienes, pero si los necesitas me dices)
+// Para completar el archivo, mantén las funciones MovimientoCard y MovimientoDetalleModal del código anterior.
+
 // ------------------------------------
-// Tarjeta individual (Muestra FECHA Y HORA DE REGISTRO)
+// Tarjeta individual
 // ------------------------------------
 function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen; onClick: () => void; }) {
   const tipoConfig = {
     INGRESO:       { border: "border-l-emerald-500", icon: <ArrowDownLeft size={20}/>,  bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     SALIDA:        { border: "border-l-rose-500",    icon: <ArrowUpRight size={20}/>,   bgIcon: "bg-rose-100 text-rose-600",       badge: "bg-rose-50 text-rose-700 border-rose-200" },
-    TRANSFERENCIA: { border: "border-l-sky-500",     icon: <ArrowRightLeft size={20}/>, bgIcon: "bg-sky-100 text-sky-600",         badge: "bg-sky-50 text-sky-700 border-sky-200" },
+    TRANSFERENCIA: { border: "border-l-sky-500",     icon: <ArrowRightLeft size={20}/>, bgIcon: "bg-sky-100 text-sky-600",        badge: "bg-sky-50 text-sky-700 border-sky-200" },
     AJUSTE:        { border: "border-l-amber-500",   icon: <RefreshCw size={20}/>,      bgIcon: "bg-amber-100 text-amber-600",     badge: "bg-amber-50 text-amber-700 border-amber-200" },
     DEVOLUCION:    { border: "border-l-violet-500",  icon: <CornerDownLeft size={20}/>, bgIcon: "bg-violet-100 text-violet-600",   badge: "bg-violet-50 text-violet-700 border-violet-200" },
   }[movimiento.tipo];
@@ -245,9 +265,6 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
       ? "bg-amber-50 text-amber-700 border-amber-200"
       : "bg-slate-100 text-slate-500 border-slate-200";
 
-  // 👇 LÓGICA DE VISUALIZACIÓN DE FECHA Y HORA (BITÁCORA)
-  // Usamos 'createdat' para mostrar cuándo ocurrió realmente.
-  // Transformamos a hora de Guatemala.
   let fechaVisual = "-";
   if (movimiento.createdat) {
       fechaVisual = new Date(movimiento.createdat).toLocaleString('es-GT', {
@@ -256,7 +273,6 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
           hour: '2-digit', minute: '2-digit', hour12: true
       });
   } else if (movimiento.fecha) {
-      // Fallback para datos antiguos sin createdat
       fechaVisual = new Date(movimiento.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' });
   }
 
@@ -311,7 +327,6 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
 
             <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
                 <span className="flex items-center gap-1"><Package size={12}/> {movimiento.productos}</span>
-                {/* Mostramos fecha y hora */}
                 <span className="flex items-center gap-1 font-medium text-slate-500"><Clock size={12}/> {fechaVisual}</span>
             </div>
         </div>
@@ -320,32 +335,25 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
   );
 }
 
-// ------------------------------------
-// Modal Detalle (Mantiene FECHA DOCUMENTO)
-// ------------------------------------
 function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: MovimientoDetalle; loading: boolean; onClose: () => void; }) {
-  
-  // 👇 MANTENEMOS LA FECHA DOCUMENTO (CONTABLE)
   const fechaTexto = detalle.fecha 
     ? new Date(detalle.fecha).toLocaleDateString('es-GT', { timeZone: 'UTC' }) 
     : "-";
-    
   const handleExport = () => window.open(`${API_BASE}/api/movimientos/${detalle.id}/export`, "_blank");
   const codigoTitulo = detalle.consecutivo || detalle.codigo;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
       <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-        
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
           <div>
-             <div className="flex gap-2 mb-1">
+              <div className="flex gap-2 mb-1">
                 <Badge variant="outline" className="text-[10px] bg-white border-slate-200 text-slate-500">{detalle.tipo}</Badge>
                 <Badge variant="outline" className={cn("text-[10px]", detalle.estado === 'APROBADO' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-slate-100 text-slate-600 border-slate-200")}>{detalle.estado}</Badge>
-             </div>
-             <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase">
-                 {codigoTitulo}
-             </h2>
+              </div>
+              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 uppercase">
+                  {codigoTitulo}
+              </h2>
           </div>
           <div className="flex gap-2">
             <button onClick={handleExport} className="flex items-center gap-2 rounded-full bg-emerald-600 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-emerald-700 transition shadow-sm">
@@ -356,7 +364,6 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
             </button>
           </div>
         </div>
-
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
@@ -371,58 +378,28 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
                       </div>
                   )}
               </div>
-
               <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                  {detalle.origen && (
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                          <span className="text-xs text-slate-500">Origen</span>
-                          <span className="text-xs font-bold text-slate-800 text-right">{detalle.origen}</span>
-                      </div>
-                  )}
-                  {detalle.destino && (
-                      <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                          <span className="text-xs text-slate-500">Destino</span>
-                          <span className="text-xs font-bold text-slate-800 text-right">{detalle.destino}</span>
-                      </div>
-                  )}
-                  {detalle.proveedor && (
-                      <div className="flex justify-between items-center">
-                          <span className="text-xs text-slate-500">Proveedor</span>
-                          <span className="text-xs font-bold text-slate-800 text-right">{detalle.proveedor}</span>
-                      </div>
-                  )}
+                  {detalle.origen && <div className="flex justify-between items-center border-b border-slate-200 pb-2"><span className="text-xs text-slate-500">Origen</span><span className="text-xs font-bold text-slate-800 text-right">{detalle.origen}</span></div>}
+                  {detalle.destino && <div className="flex justify-between items-center border-b border-slate-200 pb-2"><span className="text-xs text-slate-500">Destino</span><span className="text-xs font-bold text-slate-800 text-right">{detalle.destino}</span></div>}
+                  {detalle.proveedor && <div className="flex justify-between items-center"><span className="text-xs text-slate-500">Proveedor</span><span className="text-xs font-bold text-slate-800 text-right">{detalle.proveedor}</span></div>}
               </div>
           </div>
-
-          {detalle.observacion && (
-              <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl text-xs text-amber-800">
-                  <span className="font-bold block mb-1 text-amber-600">Observación:</span>
-                  {detalle.observacion}
-              </div>
-          )}
-
+          {detalle.observacion && <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl text-xs text-amber-800"><span className="font-bold block mb-1 text-amber-600">Observación:</span>{detalle.observacion}</div>}
           <div>
-             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
                 <span>Productos ({detalle.productos.length})</span>
                 {loading && <span className="text-[10px] font-normal text-slate-400">Cargando...</span>}
-             </h3>
-             
-             {!loading && detalle.productos.length === 0 && (
-                 <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Sin productos.</p>
-             )}
-
-             <div className="space-y-2">
+              </h3>
+              {!loading && detalle.productos.length === 0 && <p className="text-xs text-slate-400 text-center py-6 bg-slate-50 rounded-xl border border-dashed border-slate-200">Sin productos.</p>}
+              <div className="space-y-2">
                 {detalle.productos.map((p) => (
                     <div key={p.id} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-emerald-100 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                                <Package size={18}/>
-                            </div>
+                            <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 shrink-0"><Package size={18}/></div>
                             <div>
                                 <p className="text-xs font-bold text-slate-700">{p.productoNombre}</p>
                                 <p className="text-[10px] text-slate-400 flex items-center gap-2">
-                                    {p.productoCodigo} 
-                                    {p.loteCodigo && <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-medium">Lote: {p.loteCodigo}</span>}
+                                    {p.productoCodigo} {p.loteCodigo && <span className="bg-slate-100 px-1.5 rounded text-slate-500 font-medium">Lote: {p.loteCodigo}</span>}
                                 </p>
                             </div>
                         </div>
@@ -431,7 +408,6 @@ function MovimientoDetalleModal({ detalle, loading, onClose }: { detalle: Movimi
                 ))}
              </div>
           </div>
-
         </div>
       </div>
     </div>

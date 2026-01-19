@@ -1,4 +1,3 @@
-// src/modules/solicitudes/SolicitudesPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import {
   Card,
@@ -26,6 +25,8 @@ import {
   RotateCcw, // Icono para Devoluciones
   AlertTriangle
 } from "lucide-react";
+
+
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -71,6 +72,9 @@ type SolicitudDetalle = {
 // Página principal
 // ------------------------------------
 export default function SolicitudesPage() {
+  // 👇 1. OBTENEMOS EL TOKEN
+  const { token } = useAuth(); 
+
   const [solicitudes, setSolicitudes] = useState<SolicitudResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
   const [errorLista, setErrorLista] = useState<string | null>(null);
@@ -95,18 +99,23 @@ export default function SolicitudesPage() {
         url += `?estado=${filtroActivo}`;
       }
 
-      const res = await fetch(url);
+      // 👇 2. AGREGAMOS EL HEADER DE AUTORIZACIÓN
+      const res = await fetch(url, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
+
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
 
       const data = await res.json();
-      setSolicitudes(data);
+      // El backend devuelve { solicitudes: [...] }
+      setSolicitudes(data.solicitudes || []); 
     } catch (err) {
       console.error("Error al cargar solicitudes:", err);
       if (!silencioso) setErrorLista("No se pudieron cargar las solicitudes.");
     } finally {
       if (!silencioso) setLoadingLista(false);
     }
-  }, [filtroActivo]);
+  }, [filtroActivo, token]); // Agregamos token como dependencia
 
   useEffect(() => {
     cargarSolicitudes();
@@ -139,7 +148,11 @@ export default function SolicitudesPage() {
     });
 
     try {
-      const res = await fetch(`${API_BASE}/api/solicitudes/${sol.id}`);
+      // 👇 3. AGREGAMOS EL HEADER DE AUTORIZACIÓN AL DETALLE TAMBIÉN
+      const res = await fetch(`${API_BASE}/api/solicitudes/${sol.id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
+
       if (!res.ok) throw new Error("Error al cargar detalle");
       const data = (await res.json()) as SolicitudDetalle;
       setDetalleSeleccionado(data);
@@ -157,7 +170,8 @@ export default function SolicitudesPage() {
 
   const handleExportPDF = () => {
      if(detalleSeleccionado) {
-         window.open(`${API_BASE}/api/solicitudes/${detalleSeleccionado.id}/export`, "_blank");
+        // Asumiendo que la ruta de exportación es pública o usa cookies
+        window.open(`${API_BASE}/api/solicitudes/${detalleSeleccionado.id}/export`, "_blank");
      }
   };
 
@@ -237,13 +251,11 @@ export default function SolicitudesPage() {
 }
 
 // ------------------------------------
-// 1. TARJETA INTELIGENTE (VISUALIZACIÓN CORREGIDA)
+// 1. TARJETA INTELIGENTE
 // ------------------------------------
 function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; onClick: () => void; }) {
-  // Verificamos si es devolución
   const isDevolucion = solicitud.tipo === "DEVOLUCION";
 
-  // Configuración base
   let config = {
       border: "border-l-slate-200", 
       icon: <Clock size={20}/>, 
@@ -251,10 +263,7 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
       badge: "bg-slate-100 text-slate-600"
   };
 
-  // Lógica de colores según Estado + Tipo
   if (isDevolucion) {
-      // --- ESTILO DEVOLUCIÓN (VIOLETA) ---
-      // RECHAZADA = GRIS (Cambio solicitado)
       switch (solicitud.estado) {
           case "PENDIENTE":
               config = { border: "border-l-violet-400", icon: <RotateCcw size={20}/>, bgIcon: "bg-violet-100 text-violet-600", badge: "bg-violet-50 text-violet-700 border-violet-200" };
@@ -265,13 +274,11 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
           case "ENTREGADA": 
               config = { border: "border-l-purple-600", icon: <PackageCheck size={20}/>, bgIcon: "bg-purple-100 text-purple-700", badge: "bg-purple-50 text-purple-800 border-purple-200" };
               break;
-          case "RECHAZADA": // 👈 AHORA ES GRIS (Devolución rechazada)
+          case "RECHAZADA": 
               config = { border: "border-l-slate-500", icon: <Ban size={20}/>, bgIcon: "bg-slate-100 text-slate-600", badge: "bg-slate-50 text-slate-700 border-slate-200" };
               break;
       }
   } else {
-      // --- ESTILO DESPACHO (AZUL/AMBAR) ---
-      // RECHAZADA = ROJO (Cambio solicitado)
       switch (solicitud.estado) {
           case "PENDIENTE":
               config = { border: "border-l-amber-500", icon: <Clock size={20}/>, bgIcon: "bg-amber-100 text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" };
@@ -282,7 +289,7 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
           case "ENTREGADA":
               config = { border: "border-l-blue-500", icon: <Truck size={20}/>, bgIcon: "bg-blue-100 text-blue-600", badge: "bg-blue-50 text-blue-700 border-blue-200" };
               break;
-          case "RECHAZADA": // 👈 AHORA ES ROJO (Despacho rechazado)
+          case "RECHAZADA": 
               config = { border: "border-l-rose-500", icon: <Ban size={20}/>, bgIcon: "bg-rose-100 text-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200" };
               break;
       }
@@ -299,7 +306,6 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
         onClick={onClick}
     >
       <CardContent className="flex flex-col gap-3 p-4">
-        {/* Header Tarjeta */}
         <div className="flex items-start gap-3">
              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", config.bgIcon)}>
                 {config.icon}
@@ -318,7 +324,6 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
              </div>
         </div>
 
-        {/* Footer Tarjeta */}
         <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-50 mt-1">
           <span className="flex items-center gap-1 font-medium text-slate-500"><Package size={12}/> {solicitud.totalProductos} items</span>
           <span className="flex items-center gap-1"><Calendar size={12}/> {fechaCorta}</span>
@@ -351,7 +356,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
 
   const fechaCorta = new Date(detalle.fecha).toLocaleDateString();
 
-  // --- ACCIÓN: CAMBIAR ESTADO ---
   const handleCambiarEstado = async () => {
      if (!confirmarAccion) return;
      const nuevoEstado = confirmarAccion === "APROBAR" ? "APROBADA" : "RECHAZADA";
@@ -381,7 +385,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
      }
   };
 
-  // --- ACCIÓN: COMPLETAR (ENTREGAR / REINGRESAR) ---
   const handleEntregar = async () => {
     setProcesando(true);
     try {
@@ -436,7 +439,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
      let config: any = {};
 
      if (isDevolucion) {
-         // --- CONFIGURACIÓN PARA DEVOLUCIONES ---
          switch (confirmarAccion) {
              case "APROBAR":
                  config = { titulo: "¿Autorizar Devolución?", desc: "El solicitante podrá proceder a entregar el producto.", btnColor: "bg-violet-600 hover:bg-violet-700", btnText: "Autorizar", icon: <CheckCircle2 className="text-violet-600 w-10 h-10"/>, bgIcon: "bg-violet-100", action: handleCambiarEstado };
@@ -444,7 +446,7 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
              case "RECHAZAR":
                  config = { titulo: "¿Rechazar Devolución?", desc: "La solicitud será cancelada.", btnColor: "bg-rose-600 hover:bg-rose-700", btnText: "Rechazar", icon: <XCircle className="text-rose-600 w-10 h-10"/>, bgIcon: "bg-rose-100", action: handleCambiarEstado };
                  break;
-             case "CONFIRMAR_REINGRESO": // Acción Específica
+             case "CONFIRMAR_REINGRESO":
                  config = { 
                      titulo: "¿Confirmar Reingreso?", 
                      desc: "Al confirmar, los productos volverán a sumar al stock de la bodega.", 
@@ -457,7 +459,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
                  break;
          }
      } else {
-         // --- CONFIGURACIÓN PARA DESPACHOS (La normal) ---
          switch (confirmarAccion) {
              case "APROBAR":
                  config = { titulo: "¿Aprobar solicitud?", desc: "Se habilitará para entrega.", btnColor: "bg-emerald-600 hover:bg-emerald-700", btnText: "Aprobar", icon: <CheckCircle2 className="text-emerald-600 w-10 h-10"/>, bgIcon: "bg-emerald-100", action: handleCambiarEstado };
@@ -491,18 +492,12 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
      );
   }
 
-  // --- C. DETALLE PRINCIPAL ---
-  const themeColor = isDevolucion ? "violet" : "blue"; // Color base
   const IconoHeader = isDevolucion ? RotateCcw : FileText;
-
-  // Ajuste de colores tailwind dinámicos (Clases completas para que PurgeCSS no las borre si usas safelist, sino usar style o mapas)
-  // Para seguridad, usaremos clases condicionales directas en el JSX abajo en lugar de concatenación dinámica compleja.
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-2 md:px-4 animate-in fade-in duration-200">
       <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         
-        {/* Header Dinámico */}
         <div className={cn("flex items-center justify-between border-b px-6 py-4", isDevolucion ? "bg-violet-50 border-violet-100" : "bg-blue-50 border-blue-100")}>
           <div className="flex items-center gap-3">
              <div className={cn("p-2 rounded-lg shadow-sm border", isDevolucion ? "bg-white text-violet-600 border-violet-100" : "bg-white text-blue-600 border-blue-100")}>
@@ -525,10 +520,7 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
           </div>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-slate-50/30">
-          
-          {/* Info Grid */}
           <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
                   <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs uppercase font-bold tracking-wider">
@@ -557,7 +549,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
                </div>
           )}
           
-          {/* Productos */}
           <div>
             <div className="flex justify-between items-center mb-3 px-1">
                 <p className="font-bold text-slate-800 text-sm flex items-center gap-2">
@@ -594,7 +585,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
           </div>
         </div>
 
-        {/* Footer de Acciones */}
         {puedeAprobar && (
             <div className="p-4 border-t border-slate-100 bg-white flex gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
                 <button onClick={() => setConfirmarAccion("RECHAZAR")} className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 rounded-xl text-xs transition active:scale-95">

@@ -13,7 +13,7 @@ import {
   Trash2,
   Sprout // Icono para Lote/Cultivo
 } from "lucide-react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/AuthContext"; // 👈 Importamos Auth
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -47,6 +47,7 @@ interface Props {
 }
 
 export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
+  // 👇 Obtenemos token y usuario
   const { token, user } = useAuth();
   const esBodeguero = user?.rol === "ADMIN" || user?.rol === "BODEGUERO";
 
@@ -85,6 +86,7 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
       const timer = setTimeout(async () => {
           if (activeTab === "PROVEEDOR" && busquedaProd.length > 2) {
               try {
+                  // 👇 Token agregado
                   const res = await fetch(`${API_BASE}/api/catalogos/productos-busqueda?q=${busquedaProd}`, {
                       headers: { Authorization: `Bearer ${token}` }
                   });
@@ -102,10 +104,22 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
     setLoadingHistorial(true);
     try {
       const mis = user?.rol === "SOLICITANTE" ? "true" : "false"; 
-      const res = await fetch(`${API_BASE}/api/solicitudes?estado=ENTREGADA&mis=${mis}`, {
+      
+      // 👇 Token agregado
+      // Además filtramos tipo=DESPACHO para evitar devolver devoluciones (tu corrección anterior)
+      const res = await fetch(`${API_BASE}/api/solicitudes?estado=ENTREGADA&mis=${mis}&tipo=DESPACHO`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      if (res.ok) setHistorial(await res.json());
+      
+      if (res.ok) {
+          const data = await res.json();
+          // El backend devuelve { solicitudes: [...] } o array directo
+          const lista = data.solicitudes || (Array.isArray(data) ? data : []);
+          
+          // Filtramos las que ya han sido devueltas
+          const filtradas = lista.filter((s: any) => !s.yaDevuelta); 
+          setHistorial(filtradas);
+      }
     } catch (err) { console.error(err); } 
     finally { setLoadingHistorial(false); }
   };
@@ -114,6 +128,7 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
     setEnviando(true); 
     setError(null);
     try {
+        // 👇 Token agregado
         const res = await fetch(`${API_BASE}/api/solicitudes/${sol.id}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -143,9 +158,9 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
     }
   };
 
-  // 👇 AQUÍ LA LÓGICA DE ENVÍO CON ID ORIGEN 👇
+  // 👇 LÓGICA DE ENVÍO CON ID ORIGEN 👇
   const enviarDevolucionInterna = async () => {
-     const itemsAEnviar = itemsInternos
+      const itemsAEnviar = itemsInternos
         .filter(i => i.cantidadDevolver > 0)
         .map(i => ({
             productoId: i.productoId,
@@ -154,58 +169,61 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
             loteId: i.loteId
         }));
 
-     if (itemsAEnviar.length === 0) {
-         setError("Debes devolver al menos una cantidad mayor a 0.");
-         return;
-     }
+      if (itemsAEnviar.length === 0) {
+          setError("Debes devolver al menos una cantidad mayor a 0.");
+          return;
+      }
 
-     setEnviando(true);
-     setError(null);
+      setEnviando(true);
+      setError(null);
 
-     try {
-         let finalBodegaId = "";
-         if (bodegas.length > 0) finalBodegaId = bodegas[0].id;
-         else {
-             const resB = await fetch(`${API_BASE}/api/catalogos/bodegas`, { headers: { Authorization: `Bearer ${token}` } });
-             if (resB.ok) {
-                 const bData = await resB.json();
-                 if (bData.length > 0) finalBodegaId = bData[0].id;
-             }
-         }
-         if (!finalBodegaId) throw new Error("No se encontró una bodega destino válida.");
+      try {
+          let finalBodegaId = "";
+          if (bodegas.length > 0) finalBodegaId = bodegas[0].id;
+          else {
+              // 👇 Token agregado
+              const resB = await fetch(`${API_BASE}/api/catalogos/bodegas`, { headers: { Authorization: `Bearer ${token}` } });
+              if (resB.ok) {
+                  const bData = await resB.json();
+                  if (bData.length > 0) finalBodegaId = bData[0].id;
+              }
+          }
+          if (!finalBodegaId) throw new Error("No se encontró una bodega destino válida.");
 
-         const payload = {
-             bodegaId: finalBodegaId,
-             items: itemsAEnviar,
-             tipo: "DEVOLUCION",
-             solicitudOrigenId: solicitudSel?.id // 👈 CLAVE: ENVIAMOS EL ID DE LA SOLICITUD PADRE
-         };
+          const payload = {
+              bodegaId: finalBodegaId,
+              items: itemsAEnviar,
+              tipo: "DEVOLUCION",
+              solicitudOrigenId: solicitudSel?.id // 👈 CLAVE: ID PADRE
+          };
 
-         const res = await fetch(`${API_BASE}/api/solicitudes`, {
-             method: "POST",
-             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-             body: JSON.stringify(payload)
-         });
+          // 👇 Token agregado
+          const res = await fetch(`${API_BASE}/api/solicitudes`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+              body: JSON.stringify(payload)
+          });
 
-         const data = await res.json();
+          const data = await res.json();
 
-         if (!res.ok) {
-             throw new Error(data.message || "Error al enviar devolución");
-         }
-         
-         setMensajeExito("Tu solicitud de devolución ha sido enviada.");
-         setShowExito(true);
-         if(onSuccess) onSuccess();
+          if (!res.ok) {
+              throw new Error(data.message || "Error al enviar devolución");
+          }
+          
+          setMensajeExito("Tu solicitud de devolución ha sido enviada.");
+          setShowExito(true);
+          if(onSuccess) onSuccess();
 
-     } catch (err: any) { 
-         setError(err.message); 
-     } 
-     finally { setEnviando(false); }
+      } catch (err: any) { 
+          setError(err.message); 
+      } 
+      finally { setEnviando(false); }
   };
 
   // --- LÓGICA PROVEEDOR ---
   const cargarCatalogos = async () => {
       try {
+          // 👇 Token agregado
           const [pRes, bRes] = await Promise.all([
               fetch(`${API_BASE}/api/catalogos/proveedores`, { headers: { Authorization: `Bearer ${token}` } }),
               fetch(`${API_BASE}/api/catalogos/bodegas`, { headers: { Authorization: `Bearer ${token}` } })
@@ -249,6 +267,7 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
               })),
               notas: "Devolución directa a proveedor"
           };
+          // 👇 Token agregado
           const res = await fetch(`${API_BASE}/api/movimientos/devolucion-proveedor`, {
               method: "POST",
               headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
@@ -362,33 +381,33 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Productos disponibles para devolver</p>
                                {itemsInternos.map((item, idx) => (
                                    <div key={idx} className="flex flex-col gap-2 p-3 border border-gray-100 rounded-xl hover:bg-slate-50 transition-colors">
-                                       <div className="flex justify-between items-start">
-                                           <div>
-                                               <p className="text-sm font-bold text-slate-700">{item.nombre}</p>
-                                               <div className="flex items-center gap-2 mt-1">
-                                                   <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                       <Package size={10}/> {item.cantidadOriginal} {item.unidad} pedidos
-                                                   </span>
-                                                   <span className="text-xs bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                                       <Sprout size={10}/> {item.loteInfo}
-                                                   </span>
+                                           <div className="flex justify-between items-start">
+                                               <div>
+                                                   <p className="text-sm font-bold text-slate-700">{item.nombre}</p>
+                                                   <div className="flex items-center gap-2 mt-1">
+                                                       <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                           <Package size={10}/> {item.cantidadOriginal} {item.unidad} pedidos
+                                                       </span>
+                                                       <span className="text-xs bg-amber-50 text-amber-600 border border-amber-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                           <Sprout size={10}/> {item.loteInfo}
+                                                       </span>
+                                                   </div>
+                                               </div>
+                                               <div className="w-24 text-right">
+                                                    <label className="text-[10px] font-bold text-slate-500 block mb-1">A Devolver</label>
+                                                    <input 
+                                                        type="number" min="0" max={item.cantidadOriginal}
+                                                        className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold text-center focus:ring-2 focus:ring-emerald-500 outline-none"
+                                                        value={item.cantidadDevolver}
+                                                        onChange={(e) => {
+                                                            const val = Number(e.target.value);
+                                                            const itemsCopy = [...itemsInternos];
+                                                            itemsCopy[idx].cantidadDevolver = val > item.cantidadOriginal ? item.cantidadOriginal : val;
+                                                            setItemsInternos(itemsCopy);
+                                                        }}
+                                                    />
                                                </div>
                                            </div>
-                                           <div className="w-24 text-right">
-                                                <label className="text-[10px] font-bold text-slate-500 block mb-1">A Devolver</label>
-                                                <input 
-                                                    type="number" min="0" max={item.cantidadOriginal}
-                                                    className="w-full border border-gray-200 rounded-lg px-2 py-1 text-sm font-bold text-center focus:ring-2 focus:ring-emerald-500 outline-none"
-                                                    value={item.cantidadDevolver}
-                                                    onChange={(e) => {
-                                                        const val = Number(e.target.value);
-                                                        const itemsCopy = [...itemsInternos];
-                                                        itemsCopy[idx].cantidadDevolver = val > item.cantidadOriginal ? item.cantidadOriginal : val;
-                                                        setItemsInternos(itemsCopy);
-                                                    }}
-                                                />
-                                           </div>
-                                       </div>
                                    </div>
                                ))}
                            </div>
@@ -418,7 +437,8 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
             {/* --- TAB: PROVEEDOR --- */}
             {activeTab === "PROVEEDOR" && (
                 <div className="space-y-5">
-                    {/* ... (El contenido de proveedor sigue igual) ... */}
+                    {/* ... (El contenido de proveedor es idéntico, solo con fetch seguro arriba) ... */}
+                    {/* Copio el JSX de proveedor para que lo tengas completo */}
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className="text-xs font-bold text-slate-700">Proveedor Destino</label>

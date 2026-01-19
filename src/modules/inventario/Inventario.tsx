@@ -1,4 +1,3 @@
-// src/modules/inventario/Inventario.tsx
 import { useEffect, useState, useCallback } from "react";
 import {
   Card,
@@ -19,8 +18,10 @@ import {
   ArrowRightLeft, 
   RefreshCw,      
   CornerDownLeft,
-  Loader2 // Icono de carga
+  Loader2
 } from "lucide-react";
+// 👇 1. IMPORTAMOS EL CONTEXTO
+import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -42,11 +43,10 @@ type ProductoInventario = {
   estadoStock: EstadoStock;
 };
 
-// Resumen de movimiento (dentro del detalle de producto)
 type MovimientoResumenItem = {
   id: string;
-  documentoId: string; // "SAL-2026-0001"
-  documentoUuid?: string; // ID interno para el fetch (si el backend lo manda)
+  documentoId: string; 
+  documentoUuid?: string;
   tipo: string;
   cantidadConSigno: string;
   unidad: string;
@@ -79,9 +79,8 @@ type CategoriaFiltro = {
   nombre: string;
 };
 
-// Tipos para el Modal de Documento Completo
 type MovimientoTipo = "INGRESO" | "SALIDA" | "TRANSFERENCIA" | "AJUSTE" | "DEVOLUCION";
-type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO" | "CARGANDO..."; // Agregamos estado temporal
+type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO" | "CARGANDO..."; 
 
 type ProductoEnMovimiento = {
   id: string;
@@ -107,13 +106,20 @@ type MovimientoFullDetalle = {
   creador: string | null;
   productos: ProductoEnMovimiento[];
   observacion: string | null;
-  cargandoCompleto?: boolean; // Bandera para saber si es data parcial
+  cargandoCompleto?: boolean; 
 };
 
 // -----------------------------
 // Componente Inventario
 // -----------------------------
 export function Inventario() {
+  // 👇 2. OBTENEMOS EL USUARIO
+  const { user } = useAuth();
+  
+  // 👇 3. LÓGICA CORREGIDA: Agregamos "VISOR" aquí
+  // Ahora ADMIN, BODEGUERO y VISOR pueden ver detalles. SOLICITANTE no.
+  const puedeVerDetalle = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
+
   const [busqueda, setBusqueda] = useState("");
   const [productos, setProductos] = useState<ProductoInventario[]>([]);
   const [cargando, setCargando] = useState(true);
@@ -129,11 +135,9 @@ export function Inventario() {
   const [categoriaFiltro, setCategoriaFiltro] = useState<string>(""); 
   const [mostrandoFiltros, setMostrandoFiltros] = useState(false);
 
-  // 1. Función de Carga (useCallback para poder usarla en el intervalo)
   const cargarInventario = useCallback(async (silencioso = false) => {
       try {
         if (!silencioso) setCargando(true);
-        // No limpiamos error en silencioso para no parpadear alertas
         if (!silencioso) setError(null);
 
         const res = await fetch(`${API_BASE}/api/inventario`);
@@ -151,18 +155,14 @@ export function Inventario() {
       }
   }, []);
 
-  // 2. Efecto Inicial y Polling (Auto-refresco)
   useEffect(() => {
-    cargarInventario(); // Carga inicial
-
+    cargarInventario(); 
     const intervalo = setInterval(() => {
-        cargarInventario(true); // Refresco silencioso cada 15s
+        cargarInventario(true); 
     }, 15000);
-
     return () => clearInterval(intervalo);
   }, [cargarInventario]);
 
-  // Cargar categorías una sola vez
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
@@ -175,7 +175,6 @@ export function Inventario() {
     fetchCategorias();
   }, []);
 
-  // Filtrado
   const productosFiltrados = productos.filter((p) => {
     const term = busqueda.toLowerCase();
     const coincideTexto =
@@ -186,9 +185,10 @@ export function Inventario() {
     return coincideTexto && coincideCategoria;
   });
 
-  // Abrir modal de PRODUCTO
   const handleClickProducto = async (producto: ProductoInventario) => {
-    // Detalle provisional (Optimistic)
+    // 🔒 DOBLE SEGURIDAD:
+    if (!puedeVerDetalle) return;
+
     const [cantidadTexto, unidadTexto] = producto.stockTotal.split(" ");
     const cantidadNum = Number(cantidadTexto.replace(",", ".")) || 0;
     const unidad = unidadTexto ?? producto.unidad;
@@ -209,7 +209,7 @@ export function Inventario() {
         texto: producto.stockTotal,
         estadoStock: producto.estadoStock,
       },
-      movimientos: [], // Array vacío mientras carga
+      movimientos: [], 
     });
     setCargandoDetalleProd(true);
 
@@ -222,15 +222,12 @@ export function Inventario() {
     finally { setCargandoDetalleProd(false); }
   };
 
-  // Abrir modal de MOVIMIENTO (Optimistic UI) ⚡
   const handleOpenMovimiento = async (itemResumen: MovimientoResumenItem) => {
-      // 1. Construir objeto "esqueleto" inmediato con lo que tenemos a la mano
-      // Usamos el ID del documento para mostrar el código y tipo inmediatamente
       const esqueleto: MovimientoFullDetalle = {
-          id: itemResumen.documentoUuid || itemResumen.documentoId, // Usamos lo que tengamos como ID temporal
+          id: itemResumen.documentoUuid || itemResumen.documentoId, 
           codigo: itemResumen.documentoId,
           tipo: itemResumen.tipo,
-          estado: "CARGANDO...", // Estado temporal visual
+          estado: "CARGANDO...", 
           fecha: itemResumen.fecha,
           origen: null,
           destino: null,
@@ -238,29 +235,22 @@ export function Inventario() {
           solicitante: null,
           creador: null,
           observacion: null,
-          productos: [], // Lista vacía por ahora
-          cargandoCompleto: true // Bandera para mostrar spinner dentro del modal
+          productos: [], 
+          cargandoCompleto: true 
       };
 
-      // ¡Boom! Abrimos el modal instantáneamente
       setMovimientoSeleccionado(esqueleto);
 
-      // 2. Cargar datos reales en segundo plano
       try {
-          // Nota: Asumimos que la API busca por ID o Código. 
-          // Si tu backend requiere UUID estricto, asegúrate de que itemResumen lo tenga.
-          // Por ahora usamos documentoId (ej: SAL-2026-001) esperando que el backend lo resuelva o tengamos el UUID.
           const idParaFetch = itemResumen.documentoUuid || itemResumen.documentoId;
           const res = await fetch(`${API_BASE}/api/movimientos/${idParaFetch}`);
           
           if (!res.ok) throw new Error("Error al cargar movimiento");
           
           const data = (await res.json()) as MovimientoFullDetalle;
-          // Actualizamos con la data real
           setMovimientoSeleccionado({ ...data, cargandoCompleto: false });
       } catch (error) {
           console.error(error);
-          // Si falla, al menos quitamos el spinner o mostramos error en el modal
           setMovimientoSeleccionado(prev => prev ? { ...prev, estado: "ANULADO", cargandoCompleto: false } : null);
           alert("No se pudo cargar el detalle completo del movimiento.");
       }
@@ -270,17 +260,13 @@ export function Inventario() {
     window.open(`${API_BASE}/api/inventario/pdf`, "_blank");
   };
 
-  const nombreCategoriaActual = categoriaFiltro || "Todas las categorías";
-
   return (
     <div className="space-y-6">
-      {/* Encabezado */}
       <header className="mb-2">
         <h1 className="text-xl font-bold text-slate-800 tracking-tight">Inventario</h1>
         <p className="text-sm text-slate-500">Gestión de productos y existencias.</p>
       </header>
 
-      {/* Barra de búsqueda + botones */}
       <section className="space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="w-full md:max-w-xl relative">
@@ -310,7 +296,6 @@ export function Inventario() {
           </div>
         </div>
 
-        {/* Panel Filtros */}
         {mostrandoFiltros && (
           <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
             <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
@@ -344,7 +329,6 @@ export function Inventario() {
         )}
       </section>
 
-      {/* Grid de Productos */}
       <section className="space-y-3">
         {!cargando && !error && (
             <div className="flex items-center gap-2">
@@ -361,7 +345,8 @@ export function Inventario() {
             <ProductoCard
               key={producto.id}
               producto={producto}
-              onClick={() => handleClickProducto(producto)}
+              // 👇 PASA LA FUNCIÓN SOLO SI TIENE PERMISO
+              onClick={puedeVerDetalle ? () => handleClickProducto(producto) : undefined}
             />
           ))}
 
@@ -374,7 +359,6 @@ export function Inventario() {
         </div>
       </section>
 
-      {/* Modal Detalle Producto */}
       {detalleProducto && (
         <DetalleProductoModal
           detalle={detalleProducto}
@@ -384,7 +368,6 @@ export function Inventario() {
         />
       )}
 
-      {/* Modal Detalle Movimiento */}
       {movimientoSeleccionado && (
           <MovimientoDetalleModal
              detalle={movimientoSeleccionado}
@@ -399,17 +382,21 @@ export function Inventario() {
 // Componentes UI Auxiliares
 // -----------------------------
 
-function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onClick: () => void; }) {
+function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onClick?: () => void; }) {
   const stockConfig = {
     Normal: { border: "border-l-emerald-500", iconBg: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
     Bajo:   { border: "border-l-amber-500",   iconBg: "bg-amber-100 text-amber-600",   badge: "bg-amber-50 text-amber-700 border-amber-200" },
     Crítico:{ border: "border-l-rose-500",    iconBg: "bg-rose-100 text-rose-600",     badge: "bg-rose-50 text-rose-700 border-rose-200" },
   }[producto.estadoStock];
 
+  // Verificamos si es interactiva
+  const isInteractive = !!onClick;
+
   return (
     <Card
       className={cn(
-          "rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border-l-[4px] border-y border-r border-slate-100", 
+          "rounded-xl border-l-[4px] border-y border-r border-slate-100", 
+          isInteractive ? "shadow-sm hover:shadow-md cursor-pointer transition-all" : "cursor-default opacity-95",
           stockConfig.border
       )}
       onClick={onClick}
@@ -428,8 +415,8 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
             <p className="text-[11px] text-slate-500 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
             <div className="flex items-end justify-between mt-3 pt-3 border-t border-slate-50">
                 <div>
-                     <p className="text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
-                     <p className="text-base font-bold text-slate-800">{producto.stockTotal}</p>
+                      <p className="text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
+                      <p className="text-base font-bold text-slate-800">{producto.stockTotal}</p>
                 </div>
                 <Badge variant="outline" className={cn("text-[10px] border", stockConfig.badge)}>
                     {producto.estadoStock}
@@ -441,9 +428,9 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
   );
 }
 
-// -----------------------------
-// Modal Detalle Producto
-// -----------------------------
+// ... (El resto de modales DetalleProductoModal y MovimientoDetalleModal quedan IGUAL que antes)
+// Aquí te los incluyo para que no tengas que buscar nada:
+
 interface DetalleProductoModalProps {
   detalle: DetalleProducto;
   loading: boolean;
@@ -455,7 +442,6 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
   const { producto, existenciaTotal, movimientos } = detalle;
   const isNegative = existenciaTotal.cantidad < 0;
 
-  // Límite de movimientos (FRONTEND SLICE)
   const movimientosVisibles = movimientos.slice(0, 50);
   const totalOcultos = Math.max(0, movimientos.length - 50);
 
@@ -486,12 +472,12 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
       <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
           <div>
-             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{producto.categoria}</span>
-             <h2 className="text-lg font-bold text-slate-900">{producto.nombre}</h2>
-             <p className="text-xs text-slate-500 flex items-center gap-2">
-                 {producto.codigo}
-                 {producto.detalle && <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded">{producto.detalle}</span>}
-             </p>
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{producto.categoria}</span>
+              <h2 className="text-lg font-bold text-slate-900">{producto.nombre}</h2>
+              <p className="text-xs text-slate-500 flex items-center gap-2">
+                  {producto.codigo}
+                  {producto.detalle && <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded">{producto.detalle}</span>}
+              </p>
           </div>
           <button onClick={onClose} className="rounded-full p-1.5 hover:bg-slate-200 text-slate-500 transition"><X size={20} /></button>
         </div>
@@ -507,11 +493,11 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
           </div>
 
           <div>
-             <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
+              <h3 className="font-bold text-slate-800 text-sm mb-3 flex items-center justify-between">
                 <span>Últimos Movimientos</span>
                 {loading && <span className="text-[10px] font-normal text-slate-400 flex items-center gap-1"><Loader2 size={10} className="animate-spin"/> Cargando...</span>}
-             </h3>
-             <div className="space-y-2">
+              </h3>
+              <div className="space-y-2">
                 {!loading && movimientos.length === 0 && <p className="text-xs text-slate-400 text-center py-4 bg-slate-50 rounded-xl border border-dashed border-slate-200">Sin movimientos registrados.</p>}
                 
                 {movimientosVisibles.map((m) => {
@@ -519,7 +505,7 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
                     return (
                         <div 
                             key={m.id} 
-                            onClick={() => onOpenMovimiento(m)} // Pasamos el objeto entero para carga inmediata
+                            onClick={() => onOpenMovimiento(m)} 
                             className="group flex items-center justify-between p-3 rounded-xl border border-slate-100 bg-white hover:border-blue-300 hover:shadow-md cursor-pointer transition-all"
                         >
                             <div className="flex items-center gap-3">
@@ -551,15 +537,12 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
   );
 }
 
-// -----------------------------
-// Modal Detalle Movimiento (COMPLETO)
-// -----------------------------
 function MovimientoDetalleModal({ detalle, onClose }: { detalle: MovimientoFullDetalle; onClose: () => void; }) {
     const handleExportDocumento = () => {
         window.open(`${API_BASE}/api/movimientos/${detalle.id}/export`, "_blank");
     };
 
-    const isLoading = detalle.cargandoCompleto; // Bandera de carga
+    const isLoading = detalle.cargandoCompleto;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in zoom-in-95">
@@ -582,9 +565,6 @@ function MovimientoDetalleModal({ detalle, onClose }: { detalle: MovimientoFullD
                 </div>
                 
                 <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-xs">
-                    {/* Si está cargando, mostramos skeleton o info básica */}
-                    
-                    {/* Info General */}
                     <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <div><p className="text-slate-500">Fecha</p><p className="font-bold text-slate-700">{detalle.fecha ? new Date(detalle.fecha).toLocaleDateString() : "-"}</p></div>
                         {detalle.origen ? (
@@ -597,7 +577,6 @@ function MovimientoDetalleModal({ detalle, onClose }: { detalle: MovimientoFullD
                         {detalle.creador && <div><p className="text-slate-500">Registrado por</p><p className="font-bold text-slate-700">{detalle.creador}</p></div>}
                     </div>
 
-                    {/* Productos */}
                     <div>
                         <h3 className="font-bold text-slate-800 mb-2">Productos ({isLoading ? '...' : detalle.productos.length})</h3>
                         
@@ -620,7 +599,7 @@ function MovimientoDetalleModal({ detalle, onClose }: { detalle: MovimientoFullD
                                         <span className="font-bold text-slate-800">{p.cantidad} {p.unidad}</span>
                                     </div>
                                 ))}
-                            </div>
+                             </div>
                         )}
                     </div>
                 </div>
