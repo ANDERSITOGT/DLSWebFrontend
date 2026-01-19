@@ -1,4 +1,3 @@
-// src/modules/solicitudes/SolicitudesPage.tsx
 import { useEffect, useState, useCallback } from "react";
 import {
   Card,
@@ -22,8 +21,12 @@ import {
   User, 
   MapPin, 
   Package,
-  Calendar
+  Calendar,
+  RotateCcw, // Icono para Devoluciones
+  AlertTriangle
 } from "lucide-react";
+
+
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -37,6 +40,7 @@ type SolicitudResumen = {
   codigo: string;
   fecha: string; 
   estado: SolicitudEstado;
+  tipo: "DESPACHO" | "DEVOLUCION"; 
   bodegaNombre: string;
   solicitanteNombre: string;
   totalProductos: number;
@@ -57,6 +61,7 @@ type SolicitudDetalle = {
   codigo: string;
   fecha: string;
   estado: SolicitudEstado;
+  tipo: "DESPACHO" | "DEVOLUCION"; 
   solicitante: { id: string; nombre: string; };
   bodega: { id: string; nombre: string; } | null;
   productos: ProductoEnSolicitud[];
@@ -67,6 +72,9 @@ type SolicitudDetalle = {
 // Página principal
 // ------------------------------------
 export default function SolicitudesPage() {
+  // 👇 1. OBTENEMOS EL TOKEN
+  const { token } = useAuth(); 
+
   const [solicitudes, setSolicitudes] = useState<SolicitudResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
   const [errorLista, setErrorLista] = useState<string | null>(null);
@@ -91,18 +99,23 @@ export default function SolicitudesPage() {
         url += `?estado=${filtroActivo}`;
       }
 
-      const res = await fetch(url);
+      // 👇 2. AGREGAMOS EL HEADER DE AUTORIZACIÓN
+      const res = await fetch(url, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
+
       if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
 
       const data = await res.json();
-      setSolicitudes(data);
+      // El backend devuelve { solicitudes: [...] }
+      setSolicitudes(data.solicitudes || []); 
     } catch (err) {
       console.error("Error al cargar solicitudes:", err);
       if (!silencioso) setErrorLista("No se pudieron cargar las solicitudes.");
     } finally {
       if (!silencioso) setLoadingLista(false);
     }
-  }, [filtroActivo]);
+  }, [filtroActivo, token]); // Agregamos token como dependencia
 
   useEffect(() => {
     cargarSolicitudes();
@@ -121,11 +134,13 @@ export default function SolicitudesPage() {
     setModalAbierto(true);
     setCargandoDetalle(true);
     
+    // Estado inicial optimista con el TIPO correcto
     setDetalleSeleccionado({
         id: sol.id,
         codigo: sol.codigo,
         fecha: sol.fecha,
         estado: sol.estado,
+        tipo: sol.tipo, 
         solicitante: { id: "", nombre: sol.solicitanteNombre },
         bodega: { id: "", nombre: sol.bodegaNombre },
         productos: [],
@@ -133,7 +148,11 @@ export default function SolicitudesPage() {
     });
 
     try {
-      const res = await fetch(`${API_BASE}/api/solicitudes/${sol.id}`);
+      // 👇 3. AGREGAMOS EL HEADER DE AUTORIZACIÓN AL DETALLE TAMBIÉN
+      const res = await fetch(`${API_BASE}/api/solicitudes/${sol.id}`, {
+          headers: { "Authorization": `Bearer ${token}` }
+      });
+
       if (!res.ok) throw new Error("Error al cargar detalle");
       const data = (await res.json()) as SolicitudDetalle;
       setDetalleSeleccionado(data);
@@ -151,7 +170,8 @@ export default function SolicitudesPage() {
 
   const handleExportPDF = () => {
      if(detalleSeleccionado) {
-         window.open(`${API_BASE}/api/solicitudes/${detalleSeleccionado.id}/export`, "_blank");
+        // Asumiendo que la ruta de exportación es pública o usa cookies
+        window.open(`${API_BASE}/api/solicitudes/${detalleSeleccionado.id}/export`, "_blank");
      }
   };
 
@@ -164,7 +184,7 @@ export default function SolicitudesPage() {
       <header className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Solicitudes</h1>
-          <p className="text-sm text-slate-500">Gestión de pedidos a bodega.</p>
+          <p className="text-sm text-slate-500">Gestión de pedidos y devoluciones.</p>
         </div>
       </header>
 
@@ -231,17 +251,49 @@ export default function SolicitudesPage() {
 }
 
 // ------------------------------------
-// Componentes Auxiliares
+// 1. TARJETA INTELIGENTE
 // ------------------------------------
-
 function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; onClick: () => void; }) {
-  // Configuración visual según estado
-  const config = {
-      PENDIENTE: { border: "border-l-amber-500", icon: <Clock size={20}/>, bgIcon: "bg-amber-100 text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" },
-      APROBADA:  { border: "border-l-emerald-500", icon: <CheckCircle2 size={20}/>, bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-      RECHAZADA: { border: "border-l-rose-500", icon: <Ban size={20}/>, bgIcon: "bg-rose-100 text-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200" },
-      ENTREGADA: { border: "border-l-blue-500", icon: <Truck size={20}/>, bgIcon: "bg-blue-100 text-blue-600", badge: "bg-blue-50 text-blue-700 border-blue-200" }
-  }[solicitud.estado];
+  const isDevolucion = solicitud.tipo === "DEVOLUCION";
+
+  let config = {
+      border: "border-l-slate-200", 
+      icon: <Clock size={20}/>, 
+      bgIcon: "bg-slate-100 text-slate-500", 
+      badge: "bg-slate-100 text-slate-600"
+  };
+
+  if (isDevolucion) {
+      switch (solicitud.estado) {
+          case "PENDIENTE":
+              config = { border: "border-l-violet-400", icon: <RotateCcw size={20}/>, bgIcon: "bg-violet-100 text-violet-600", badge: "bg-violet-50 text-violet-700 border-violet-200" };
+              break;
+          case "APROBADA":
+              config = { border: "border-l-fuchsia-500", icon: <CheckCircle2 size={20}/>, bgIcon: "bg-fuchsia-100 text-fuchsia-600", badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" };
+              break;
+          case "ENTREGADA": 
+              config = { border: "border-l-purple-600", icon: <PackageCheck size={20}/>, bgIcon: "bg-purple-100 text-purple-700", badge: "bg-purple-50 text-purple-800 border-purple-200" };
+              break;
+          case "RECHAZADA": 
+              config = { border: "border-l-slate-500", icon: <Ban size={20}/>, bgIcon: "bg-slate-100 text-slate-600", badge: "bg-slate-50 text-slate-700 border-slate-200" };
+              break;
+      }
+  } else {
+      switch (solicitud.estado) {
+          case "PENDIENTE":
+              config = { border: "border-l-amber-500", icon: <Clock size={20}/>, bgIcon: "bg-amber-100 text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" };
+              break;
+          case "APROBADA":
+              config = { border: "border-l-emerald-500", icon: <CheckCircle2 size={20}/>, bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+              break;
+          case "ENTREGADA":
+              config = { border: "border-l-blue-500", icon: <Truck size={20}/>, bgIcon: "bg-blue-100 text-blue-600", badge: "bg-blue-50 text-blue-700 border-blue-200" };
+              break;
+          case "RECHAZADA": 
+              config = { border: "border-l-rose-500", icon: <Ban size={20}/>, bgIcon: "bg-rose-100 text-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200" };
+              break;
+      }
+  }
 
   const fechaCorta = new Date(solicitud.fecha).toLocaleDateString();
 
@@ -254,7 +306,6 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
         onClick={onClick}
     >
       <CardContent className="flex flex-col gap-3 p-4">
-        {/* Header Tarjeta */}
         <div className="flex items-start gap-3">
              <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:scale-110", config.bgIcon)}>
                 {config.icon}
@@ -263,7 +314,7 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
                 <div className="flex justify-between items-start">
                     <CardTitle className="text-sm font-bold text-slate-800">{solicitud.codigo}</CardTitle>
                     <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider", config.badge)}>
-                        {solicitud.estado}
+                        {isDevolucion && solicitud.estado === "PENDIENTE" ? "SOL. DEVOLUCIÓN" : solicitud.estado}
                     </Badge>
                 </div>
                 <div className="mt-1 space-y-0.5 text-xs text-slate-500">
@@ -273,7 +324,6 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
              </div>
         </div>
 
-        {/* Footer Tarjeta */}
         <div className="flex items-center justify-between text-[10px] text-slate-400 pt-2 border-t border-slate-50 mt-1">
           <span className="flex items-center gap-1 font-medium text-slate-500"><Package size={12}/> {solicitud.totalProductos} items</span>
           <span className="flex items-center gap-1"><Calendar size={12}/> {fechaCorta}</span>
@@ -283,7 +333,9 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
   );
 }
 
-// Props del Modal
+// ------------------------------------
+// 2. MODAL DE DETALLE Y APROBACIÓN
+// ------------------------------------
 interface DetalleModalProps {
     detalle: SolicitudDetalle;
     loading: boolean;
@@ -292,11 +344,11 @@ interface DetalleModalProps {
     onAccionExitosa: () => void;
 }
 
-// Tipos de acciones posibles
-type TipoAccion = "APROBAR" | "RECHAZAR" | "ENTREGAR" | null;
+type TipoAccion = "APROBAR" | "RECHAZAR" | "ENTREGAR" | "CONFIRMAR_REINGRESO" | null;
 
 function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionExitosa }: DetalleModalProps) {
   const { token, user } = useAuth();
+  const isDevolucion = detalle.tipo === "DEVOLUCION";
   
   const [confirmarAccion, setConfirmarAccion] = useState<TipoAccion>(null);
   const [procesando, setProcesando] = useState(false);
@@ -304,15 +356,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
 
   const fechaCorta = new Date(detalle.fecha).toLocaleDateString();
 
-  // Configuración de estilo del badge en el modal
-  const badgeStyle = {
-      PENDIENTE: "bg-amber-100 text-amber-700 border-amber-200",
-      APROBADA: "bg-emerald-100 text-emerald-700 border-emerald-200",
-      RECHAZADA: "bg-rose-100 text-rose-700 border-rose-200",
-      ENTREGADA: "bg-blue-100 text-blue-700 border-blue-200"
-  }[detalle.estado];
-
-  // 1. Lógica para APROBAR o RECHAZAR
   const handleCambiarEstado = async () => {
      if (!confirmarAccion) return;
      const nuevoEstado = confirmarAccion === "APROBAR" ? "APROBADA" : "RECHAZADA";
@@ -330,7 +373,7 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
         setExitoMsg({
             titulo: nuevoEstado === "APROBADA" ? "¡Solicitud Aprobada!" : "Solicitud Rechazada",
             msg: nuevoEstado === "APROBADA" 
-                ? "La solicitud ha sido aprobada. Ahora está lista para entrega."
+                ? (isDevolucion ? "Reingreso autorizado. Confirma la recepción física." : "Lista para entrega.")
                 : "La solicitud ha sido rechazada."
         });
         onAccionExitosa(); 
@@ -342,7 +385,6 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
      }
   };
 
-  // 2. Lógica para ENTREGAR
   const handleEntregar = async () => {
     setProcesando(true);
     try {
@@ -356,8 +398,8 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
 
         setConfirmarAccion(null);
         setExitoMsg({
-            titulo: "¡Entrega Exitosa!",
-            msg: `Se ha generado la salida: ${data.codigoDoc}. Inventario actualizado.`
+            titulo: isDevolucion ? "¡Reingreso Exitoso!" : "¡Entrega Exitosa!",
+            msg: `Documento generado: ${data.codigoDoc}. Inventario actualizado.`
         });
         onAccionExitosa();
     } catch (error) {
@@ -369,12 +411,12 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
   };
 
   const esAdminBodega = user?.rol === "ADMIN" || user?.rol === "BODEGUERO";
+  
+  // Permisos
   const puedeAprobar = esAdminBodega && detalle.estado === "PENDIENTE";
-  const puedeEntregar = esAdminBodega && detalle.estado === "APROBADA";
+  const puedeEntregar = esAdminBodega && detalle.estado === "APROBADA"; 
 
-  // --- SUB-PANTALLAS ---
-
-  // A. ÉXITO
+  // --- A. PANTALLA ÉXITO ---
   if (exitoMsg) {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
@@ -392,17 +434,47 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
     );
   }
 
-  // B. CONFIRMACIÓN
+  // --- B. MODAL DE CONFIRMACIÓN (PERSONALIZADO POR TIPO) ---
   if (confirmarAccion) {
-     const config = {
-         APROBAR: { titulo: "¿Aprobar solicitud?", desc: `Se habilitará para entrega.`, btnColor: "bg-emerald-600 hover:bg-emerald-700", btnText: "Aprobar", icon: <CheckCircle2 className="text-emerald-600 w-10 h-10"/>, bgIcon: "bg-emerald-100", action: handleCambiarEstado },
-         RECHAZAR: { titulo: "¿Rechazar solicitud?", desc: `Esta acción es irreversible.`, btnColor: "bg-rose-600 hover:bg-rose-700", btnText: "Rechazar", icon: <XCircle className="text-rose-600 w-10 h-10"/>, bgIcon: "bg-rose-100", action: handleCambiarEstado },
-         ENTREGAR: { titulo: "¿Confirmar Entrega?", desc: `Se descontará del inventario.`, btnColor: "bg-blue-600 hover:bg-blue-700", btnText: "Entregar", icon: <PackageCheck className="text-blue-600 w-10 h-10"/>, bgIcon: "bg-blue-100", action: handleEntregar }
-     }[confirmarAccion];
+     let config: any = {};
+
+     if (isDevolucion) {
+         switch (confirmarAccion) {
+             case "APROBAR":
+                 config = { titulo: "¿Autorizar Devolución?", desc: "El solicitante podrá proceder a entregar el producto.", btnColor: "bg-violet-600 hover:bg-violet-700", btnText: "Autorizar", icon: <CheckCircle2 className="text-violet-600 w-10 h-10"/>, bgIcon: "bg-violet-100", action: handleCambiarEstado };
+                 break;
+             case "RECHAZAR":
+                 config = { titulo: "¿Rechazar Devolución?", desc: "La solicitud será cancelada.", btnColor: "bg-rose-600 hover:bg-rose-700", btnText: "Rechazar", icon: <XCircle className="text-rose-600 w-10 h-10"/>, bgIcon: "bg-rose-100", action: handleCambiarEstado };
+                 break;
+             case "CONFIRMAR_REINGRESO":
+                 config = { 
+                     titulo: "¿Confirmar Reingreso?", 
+                     desc: "Al confirmar, los productos volverán a sumar al stock de la bodega.", 
+                     btnColor: "bg-purple-600 hover:bg-purple-700", 
+                     btnText: "Confirmar Reingreso", 
+                     icon: <RotateCcw className="text-purple-600 w-10 h-10"/>, 
+                     bgIcon: "bg-purple-100", 
+                     action: handleEntregar 
+                 };
+                 break;
+         }
+     } else {
+         switch (confirmarAccion) {
+             case "APROBAR":
+                 config = { titulo: "¿Aprobar solicitud?", desc: "Se habilitará para entrega.", btnColor: "bg-emerald-600 hover:bg-emerald-700", btnText: "Aprobar", icon: <CheckCircle2 className="text-emerald-600 w-10 h-10"/>, bgIcon: "bg-emerald-100", action: handleCambiarEstado };
+                 break;
+             case "RECHAZAR":
+                 config = { titulo: "¿Rechazar solicitud?", desc: "Esta acción es irreversible.", btnColor: "bg-rose-600 hover:bg-rose-700", btnText: "Rechazar", icon: <XCircle className="text-rose-600 w-10 h-10"/>, bgIcon: "bg-rose-100", action: handleCambiarEstado };
+                 break;
+             case "ENTREGAR":
+                 config = { titulo: "¿Confirmar Entrega?", desc: "Se descontará del inventario.", btnColor: "bg-blue-600 hover:bg-blue-700", btnText: "Entregar", icon: <PackageCheck className="text-blue-600 w-10 h-10"/>, bgIcon: "bg-blue-100", action: handleEntregar };
+                 break;
+         }
+     }
 
      return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+            <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95 border border-slate-100">
                 <div className={`w-16 h-16 ${config.bgIcon} rounded-full flex items-center justify-center mx-auto mb-4`}>
                     {config.icon}
                 </div>
@@ -420,75 +492,91 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
      );
   }
 
-  // C. DETALLE
+  const IconoHeader = isDevolucion ? RotateCcw : FileText;
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-2 md:px-4 animate-in fade-in duration-200">
       <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
         
-        {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-          <div>
-            <div className="mb-1"><Badge variant="outline" className={cn("text-[10px] uppercase font-bold tracking-wider", badgeStyle)}>{detalle.estado}</Badge></div>
-            <h2 className="text-lg font-bold text-slate-900">{detalle.codigo}</h2>
+        <div className={cn("flex items-center justify-between border-b px-6 py-4", isDevolucion ? "bg-violet-50 border-violet-100" : "bg-blue-50 border-blue-100")}>
+          <div className="flex items-center gap-3">
+             <div className={cn("p-2 rounded-lg shadow-sm border", isDevolucion ? "bg-white text-violet-600 border-violet-100" : "bg-white text-blue-600 border-blue-100")}>
+                <IconoHeader size={20} />
+             </div>
+             <div>
+                <div className="flex items-center gap-2">
+                    <h2 className={cn("text-lg font-bold", isDevolucion ? "text-violet-900" : "text-blue-900")}>{detalle.codigo}</h2>
+                    <Badge className={cn("text-[10px] uppercase font-bold", isDevolucion ? "bg-white text-violet-700 border-violet-200" : "bg-white text-blue-700 border-blue-200")}>
+                        {isDevolucion ? "Devolución" : "Despacho"}
+                    </Badge>
+                </div>
+             </div>
           </div>
           <div className="flex gap-2">
-            <button onClick={onExport} className="flex items-center gap-2 rounded-full bg-slate-800 px-3 py-1.5 text-[11px] font-bold text-white hover:bg-slate-700 transition shadow-sm">
+            <button onClick={onExport} className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-100 transition border border-slate-200 shadow-sm">
                 <FileText size={14}/> PDF
             </button>
-            <button onClick={onClose} className="rounded-full p-1.5 hover:bg-slate-200 text-slate-500 transition border border-slate-200 bg-white">✕</button>
+            <button onClick={onClose} className="rounded-full p-1.5 hover:bg-white/50 text-slate-500 transition">✕</button>
           </div>
         </div>
 
-        {/* Body */}
-        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">
-          
-          {/* Info Card */}
-          <div className="p-4 bg-slate-50 rounded-xl border border-slate-100 space-y-3">
-              <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><Calendar size={14}/> Fecha</span>
-                  <span className="text-xs font-bold text-slate-800">{fechaCorta}</span>
-              </div>
-              <div className="flex justify-between items-center border-b border-slate-200 pb-2">
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><User size={14}/> Solicitante</span>
-                  <span className="text-xs font-bold text-slate-800">{detalle.solicitante.nombre}</span>
-              </div>
-              <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-500 flex items-center gap-2"><MapPin size={14}/> Bodega Destino</span>
-                  <span className="text-xs font-bold text-slate-800">{detalle.bodega?.nombre ?? "---"}</span>
-              </div>
-              {detalle.documentoSalidaConsecutivo && (
-                   <div className="mt-2 pt-2 border-t border-slate-200 flex justify-between items-center bg-blue-50/50 -mx-4 px-4 py-2 -mb-4 rounded-b-xl">
-                    <span className="text-xs font-bold text-blue-600">Documento de Salida</span>
-                    <span className="text-xs font-mono font-bold text-blue-700">{detalle.documentoSalidaConsecutivo}</span>
+        <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6 bg-slate-50/30">
+          <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs uppercase font-bold tracking-wider">
+                      <Calendar size={12}/> Fecha
                   </div>
-              )}
+                  <div className="font-semibold text-slate-700">{fechaCorta}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm">
+                  <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs uppercase font-bold tracking-wider">
+                      <User size={12}/> Solicitante
+                  </div>
+                  <div className="font-semibold text-slate-700">{detalle.solicitante.nombre}</div>
+              </div>
+              <div className="p-3 rounded-xl bg-white border border-slate-100 shadow-sm col-span-2">
+                  <div className="flex items-center gap-2 text-slate-400 mb-1 text-xs uppercase font-bold tracking-wider">
+                      <MapPin size={12}/> {isDevolucion ? "Bodega Destino (Reingreso)" : "Bodega Origen"}
+                  </div>
+                  <div className="font-semibold text-slate-700">{detalle.bodega?.nombre ?? "---"}</div>
+              </div>
           </div>
           
-          {/* Productos */}
+          {detalle.documentoSalidaConsecutivo && (
+               <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl flex items-center justify-between">
+                   <span className="text-xs font-bold text-emerald-600 uppercase tracking-wide">Documento Generado</span>
+                   <span className="text-sm font-mono font-bold text-emerald-800">{detalle.documentoSalidaConsecutivo}</span>
+               </div>
+          )}
+          
           <div>
-            <div className="flex justify-between items-center mb-3">
-                <p className="font-bold text-slate-800 text-sm">Productos ({detalle.productos.length})</p>
-                {loading && <span className="text-[10px] text-slate-400 flex items-center gap-1"><Loader2 size={10} className="animate-spin"/> Cargando...</span>}
+            <div className="flex justify-between items-center mb-3 px-1">
+                <p className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                    <Package size={16} className="text-slate-400"/>
+                    Productos ({detalle.productos.length})
+                </p>
+                {loading && <Loader2 size={14} className="animate-spin text-slate-400"/>}
             </div>
             
             <div className="space-y-2">
               {loading && detalle.productos.length === 0 ? (
-                  <p className="text-center py-6 text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-xs">Cargando productos...</p>
+                  <p className="text-center py-8 text-slate-400 text-xs italic">Cargando detalle...</p>
               ) : (
                   detalle.productos.map((prod) => (
-                    <div key={prod.id} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-white p-3 hover:border-emerald-100 transition-colors">
-                      <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-400 shrink-0">
-                          <Package size={16}/>
+                    <div key={prod.id} className="flex items-start gap-3 rounded-xl border border-slate-100 bg-white p-3 shadow-sm">
+                      <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center shrink-0", isDevolucion ? "bg-violet-50 text-violet-500" : "bg-blue-50 text-blue-500")}>
+                          <Package size={18}/>
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-0.5">
-                          <span className="text-xs font-bold text-slate-700 truncate pr-2">{prod.nombre}</span>
-                          <span className="text-xs font-bold text-slate-900 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">{Number(prod.cantidad)} {prod.unidad}</span>
+                        <div className="flex justify-between items-start">
+                            <span className="text-sm font-bold text-slate-700 truncate">{prod.nombre}</span>
+                            <span className="text-xs font-bold bg-slate-100 px-2 py-0.5 rounded text-slate-600 border border-slate-200">{Number(prod.cantidad)} {prod.unidad}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400">
-                          Código: {prod.codigo} {prod.loteCodigo && ` • Lote: ${prod.loteCodigo}`}
-                        </p>
-                        {prod.notas && <p className="text-[10px] text-amber-700 bg-amber-50 inline-block px-2 py-0.5 rounded mt-1.5 font-medium">📝 {prod.notas}</p>}
+                        <div className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap gap-2">
+                            <span>COD: {prod.codigo}</span>
+                            {prod.loteCodigo && <span className="text-slate-500 font-medium">• Lote: {prod.loteCodigo}</span>}
+                        </div>
+                        {prod.notas && <p className="text-[10px] text-amber-600 bg-amber-50 inline-block px-2 py-0.5 rounded mt-1.5 border border-amber-100">📝 {prod.notas}</p>}
                       </div>
                     </div>
                   ))
@@ -497,22 +585,28 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
           </div>
         </div>
 
-        {/* Footer de Acciones */}
         {puedeAprobar && (
-            <div className="p-4 border-t border-slate-100 bg-slate-50 flex gap-3">
-                <button onClick={() => setConfirmarAccion("RECHAZAR")} className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 rounded-xl text-xs transition active:scale-95 shadow-sm">
+            <div className="p-4 border-t border-slate-100 bg-white flex gap-3 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button onClick={() => setConfirmarAccion("RECHAZAR")} className="flex-1 bg-white border border-rose-200 text-rose-600 hover:bg-rose-50 font-bold py-3 rounded-xl text-xs transition active:scale-95">
                     Rechazar
                 </button>
-                <button onClick={() => setConfirmarAccion("APROBAR")} className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md shadow-emerald-200 active:scale-95">
-                    Aprobar Solicitud
+                <button onClick={() => setConfirmarAccion("APROBAR")} className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-3 rounded-xl text-xs transition shadow-lg active:scale-95 flex items-center justify-center gap-2">
+                    <CheckCircle2 size={16}/> {isDevolucion ? "Autorizar" : "Aprobar"}
                 </button>
             </div>
         )}
 
         {puedeEntregar && (
-             <div className="p-4 border-t border-slate-100 bg-slate-50">
-                <button onClick={() => setConfirmarAccion("ENTREGAR")} className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-xs transition shadow-md shadow-blue-200 flex items-center justify-center gap-2 active:scale-95">
-                    <PackageCheck size={16}/> Generar Documento de Salida
+             <div className="p-4 border-t border-slate-100 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
+                <button 
+                    onClick={() => setConfirmarAccion(isDevolucion ? "CONFIRMAR_REINGRESO" : "ENTREGAR")} 
+                    className={cn(
+                        "w-full text-white font-bold py-3 rounded-xl text-xs transition shadow-lg flex items-center justify-center gap-2 active:scale-95",
+                        isDevolucion ? "bg-purple-600 hover:bg-purple-700 shadow-purple-200" : "bg-blue-600 hover:bg-blue-700 shadow-blue-200"
+                    )}
+                >
+                    {isDevolucion ? <RotateCcw size={16}/> : <PackageCheck size={16}/>} 
+                    {isDevolucion ? "Confirmar Reingreso a Bodega" : "Generar Documento de Salida"}
                 </button>
              </div>
         )}
