@@ -113,11 +113,10 @@ type MovimientoFullDetalle = {
 // Componente Inventario
 // -----------------------------
 export function Inventario() {
-  // 👇 2. OBTENEMOS EL USUARIO
-  const { user } = useAuth();
+  // 👇 2. OBTENEMOS EL TOKEN Y USUARIO
+  const { user, token } = useAuth();
   
   // 👇 3. LÓGICA CORREGIDA: Agregamos "VISOR" aquí
-  // Ahora ADMIN, BODEGUERO y VISOR pueden ver detalles. SOLICITANTE no.
   const puedeVerDetalle = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
 
   const [busqueda, setBusqueda] = useState("");
@@ -140,7 +139,10 @@ export function Inventario() {
         if (!silencioso) setCargando(true);
         if (!silencioso) setError(null);
 
-        const res = await fetch(`${API_BASE}/api/inventario`);
+        // 👇 AGREGAMOS HEADERS
+        const res = await fetch(`${API_BASE}/api/inventario`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) throw new Error("Error al cargar inventario");
         const json = await res.json();
         setProductos(json.productos ?? []);
@@ -153,7 +155,7 @@ export function Inventario() {
       } finally {
         if (!silencioso) setCargando(false);
       }
-  }, []);
+  }, [token]);
 
   useEffect(() => {
     cargarInventario(); 
@@ -166,14 +168,17 @@ export function Inventario() {
   useEffect(() => {
     const fetchCategorias = async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/categorias`);
+        // 👇 AGREGAMOS HEADERS
+        const res = await fetch(`${API_BASE}/api/categorias`, {
+          headers: { "Authorization": `Bearer ${token}` }
+        });
         if (!res.ok) return;
         const json = (await res.json()) as { categorias: CategoriaFiltro[] };
         setCategorias(json.categorias ?? []);
       } catch (err) { console.error(err); }
     };
     fetchCategorias();
-  }, []);
+  }, [token]);
 
   const productosFiltrados = productos.filter((p) => {
     const term = busqueda.toLowerCase();
@@ -186,7 +191,6 @@ export function Inventario() {
   });
 
   const handleClickProducto = async (producto: ProductoInventario) => {
-    // 🔒 DOBLE SEGURIDAD:
     if (!puedeVerDetalle) return;
 
     const [cantidadTexto, unidadTexto] = producto.stockTotal.split(" ");
@@ -214,7 +218,10 @@ export function Inventario() {
     setCargandoDetalleProd(true);
 
     try {
-      const res = await fetch(`${API_BASE}/api/inventario/${producto.id}`);
+      // 👇 AGREGAMOS HEADERS
+      const res = await fetch(`${API_BASE}/api/inventario/${producto.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       if (!res.ok) throw new Error("Error al cargar detalle");
       const json = (await res.json()) as DetalleProducto;
       setDetalleProducto(json);
@@ -234,8 +241,8 @@ export function Inventario() {
           proveedor: null,
           solicitante: null,
           creador: null,
-          observacion: null,
-          productos: [], 
+          productos: [],
+          observacion: null, // 👇 PROPIEDAD FALTANTE AGREGADA
           cargandoCompleto: true 
       };
 
@@ -243,7 +250,10 @@ export function Inventario() {
 
       try {
           const idParaFetch = itemResumen.documentoUuid || itemResumen.documentoId;
-          const res = await fetch(`${API_BASE}/api/movimientos/${idParaFetch}`);
+          // 👇 AGREGAMOS HEADERS
+          const res = await fetch(`${API_BASE}/api/movimientos/${idParaFetch}`, {
+            headers: { "Authorization": `Bearer ${token}` }
+          });
           
           if (!res.ok) throw new Error("Error al cargar movimiento");
           
@@ -345,7 +355,6 @@ export function Inventario() {
             <ProductoCard
               key={producto.id}
               producto={producto}
-              // 👇 PASA LA FUNCIÓN SOLO SI TIENE PERMISO
               onClick={puedeVerDetalle ? () => handleClickProducto(producto) : undefined}
             />
           ))}
@@ -389,7 +398,6 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
     Crítico:{ border: "border-l-rose-500",    iconBg: "bg-rose-100 text-rose-600",     badge: "bg-rose-50 text-rose-700 border-rose-200" },
   }[producto.estadoStock];
 
-  // Verificamos si es interactiva
   const isInteractive = !!onClick;
 
   return (
@@ -427,9 +435,6 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
     </Card>
   );
 }
-
-// ... (El resto de modales DetalleProductoModal y MovimientoDetalleModal quedan IGUAL que antes)
-// Aquí te los incluyo para que no tengas que buscar nada:
 
 interface DetalleProductoModalProps {
   detalle: DetalleProducto;
