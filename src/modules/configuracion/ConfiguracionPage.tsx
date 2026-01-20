@@ -1,10 +1,10 @@
-import { useNavigate } from "react-router-dom"; // 👈 Importante
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { User, Mail, Shield, LogOut, Users, ChevronRight } from "lucide-react";
+import { User, Mail, Shield, LogOut, Users, ChevronRight, Sprout } from "lucide-react"; // 👈 Agregamos el icono Sprout
 
 export function ConfiguracionPage() {
   const { user, logout } = useAuth();
-  const navigate = useNavigate(); // 👈 Hook de navegación
+  const navigate = useNavigate();
 
   const getInitials = (name: string) => {
     return name
@@ -65,28 +65,53 @@ export function ConfiguracionPage() {
         </div>
       </div>
 
-      {/* 2. ADMINISTRACIÓN (SOLO ADMIN) - ACCESO DIRECTO */}
+      {/* 2. ADMINISTRACIÓN (SOLO ADMIN) */}
       {user?.rol === "ADMIN" && (
           <div>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">Administración</h3>
               
-              <button 
-                onClick={() => navigate("/usuarios")} // 👈 REDIRECCIÓN A LA NUEVA PÁGINA
-                className="w-full flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group text-left"
-              >
-                  <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-                          <Users size={24} />
-                      </div>
-                      <div>
-                          <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">Gestión de Usuarios</h3>
-                          <p className="text-xs text-slate-500 mt-0.5">Crear nuevos usuarios, editar roles y restablecer contraseñas.</p>
-                      </div>
-                  </div>
-                  <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
-                      <ChevronRight size={24} />
-                  </div>
-              </button>
+              <div className="space-y-3"> {/* 👈 Contenedor para separar los botones */}
+                
+                {/* Botón Gestión de Usuarios */}
+                <button 
+                  onClick={() => navigate("/usuarios")}
+                  className="w-full flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group text-left"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Users size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-700 transition-colors">Gestión de Usuarios</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Crear nuevos usuarios, editar roles y restablecer contraseñas.</p>
+                        </div>
+                    </div>
+                    <div className="text-slate-300 group-hover:text-indigo-400 transition-colors">
+                        <ChevronRight size={24} />
+                    </div>
+                </button>
+
+                {/* 👇 NUEVO BOTÓN: Asignación de Lotes */}
+                <button 
+                  onClick={() => navigate("/asignacion-lotes")} 
+                  className="w-full flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-emerald-200 transition-all group text-left"
+                >
+                    <div className="flex items-center gap-4">
+                        {/* Usamos color Esmeralda/Verde para diferenciarlo visualmente (tema agrícola) */}
+                        <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+                            <Sprout size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">Asignación de Lotes</h3>
+                            <p className="text-xs text-slate-500 mt-0.5">Asignar lotes de cultivo a los usuarios solicitantes.</p>
+                        </div>
+                    </div>
+                    <div className="text-slate-300 group-hover:text-emerald-400 transition-colors">
+                        <ChevronRight size={24} />
+                    </div>
+                </button>
+
+              </div>
           </div>
       )}
 

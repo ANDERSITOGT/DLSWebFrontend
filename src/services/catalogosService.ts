@@ -1,41 +1,59 @@
-// src/services/catalogosService.ts
 const API_URL = import.meta.env.VITE_API_URL + "/api";
 
-// Helper para obtener el token (si lo necesitas para bodegas, aunque usualmente catalogos son publicos o protegidos igual)
-// En tu backend catalogos.ts NO pusimos authenticateToken, así que no es necesario header por ahora.
-// Pero si decides protegerlo, descomenta la parte de headers.
+// 1. Función para obtener el token del usuario logueado
+const getHeaders = () => {
+  const token = localStorage.getItem("token");
+  return {
+    "Content-Type": "application/json",
+    // 👇 Si hay token, lo pegamos aquí. Si no, va vacío.
+    "Authorization": token ? `Bearer ${token}` : "", 
+  };
+};
 
 export const catalogosService = {
   
-  // Obtener lista de Bodegas
+  // Obtener Bodegas (Pública)
   async getBodegas() {
     const res = await fetch(`${API_URL}/catalogos/bodegas`);
     if (!res.ok) throw new Error("Error al cargar bodegas");
     return res.json();
   },
 
-  // Obtener lista de Proveedores
+  // Obtener Proveedores (Pública)
   async getProveedores() {
     const res = await fetch(`${API_URL}/catalogos/proveedores`);
     if (!res.ok) throw new Error("Error al cargar proveedores");
     return res.json();
   },
 
-  // Buscar Productos (Autocompletado)
+  // Buscar Productos (Pública)
   async buscarProductos(termino: string) {
-    // Si el término es vacío, trae los primeros 20
     const query = termino ? `?q=${encodeURIComponent(termino)}` : "";
     const res = await fetch(`${API_URL}/catalogos/productos-busqueda${query}`);
     if (!res.ok) throw new Error("Error al buscar productos");
     return res.json();
   },
 
-
-  // Obtener Fincas con sus Lotes (Cascada)
+  // 👇 ESTA ES LA QUE ARREGLA TU PROBLEMA
+  // Al agregar 'headers: getHeaders()', el backend te dejará pasar.
   async getFincasLotes() {
-    const res = await fetch(`${API_URL}/catalogos/fincas-lotes`);
+    const res = await fetch(`${API_URL}/catalogos/fincas-lotes`, {
+        headers: getHeaders() 
+    });
+    
+    // Si el token expiró o es inválido, lanzamos error
+    if (res.status === 401) throw new Error("Sesión expirada o no autorizada");
     if (!res.ok) throw new Error("Error al cargar fincas");
+    
     return res.json();
-  }
+  },
 
+  // Para el módulo de configuración
+  async getLotes() {
+      const res = await fetch(`${API_URL}/catalogos/lotes`, {
+          headers: getHeaders()
+      });
+      if (!res.ok) throw new Error("Error al cargar lotes");
+      return res.json();
+  }
 };
