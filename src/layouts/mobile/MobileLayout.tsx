@@ -18,8 +18,9 @@ import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
 import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
-// 👇 AHORA SÍ, HABILITADO
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
+// 👇 NUEVO IMPORT
+import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
 
 type MobileLayoutProps = {
   children: ReactNode;
@@ -38,6 +39,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   // --- NUEVOS ESTADOS FASE 2 ---
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
+  // 👇 NUEVO ESTADO FASE 3 (Crear Producto)
+  const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
 
   // Configuración del Menú Inferior (5 Items)
   const navItems = [
@@ -137,6 +140,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
           onSolicitudClick={() => setShowSolicitudModal(true)} 
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
+          onCreateProductClick={() => setShowCrearProductoModal(true)} // 👈 CONECTADO
         />
       )}
 
@@ -168,12 +172,21 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         />
       )}
 
-      {/* 6. Devolución (YA HABILITADO) */}
+      {/* 6. Devolución */}
       {showDevolucionModal && (
          <SolicitudDevolucionModal 
             onClose={() => setShowDevolucionModal(false)} 
             onSuccess={() => triggerRefreshSolicitudes()}
          />
+      )}
+
+      {/* 7. Crear Producto (NUEVO) */}
+      {showCrearProductoModal && (
+        <CrearProductoModal
+          isOpen={showCrearProductoModal}
+          onClose={() => setShowCrearProductoModal(false)}
+          onSuccess={() => setShowCrearProductoModal(false)}
+        />
       )}
 
     </div>

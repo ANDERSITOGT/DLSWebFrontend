@@ -1,4 +1,3 @@
-// src/components/ui/QuickActionsModal.tsx
 import { useNavigate } from "react-router-dom";
 import { 
   X, 
@@ -10,8 +9,8 @@ import {
   Home, 
   Sprout, 
   MapPin,
-  ClipboardList, // Icono para Ajuste
-  RotateCcw      // Icono para Devolución
+  ClipboardList,
+  RotateCcw
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -45,14 +44,16 @@ export function QuickActionsModal({
   onClose, 
   onIngresoClick,
   onSolicitudClick,
-  onAjusteClick,    // <--- NUEVO
-  onDevolucionClick // <--- NUEVO
+  onAjusteClick,
+  onDevolucionClick,
+  onCreateProductClick // <--- 1. NUEVA PROP
 }: { 
   onClose: () => void;
   onIngresoClick: () => void;
   onSolicitudClick: () => void; 
   onAjusteClick: () => void;
   onDevolucionClick: () => void;
+  onCreateProductClick: () => void; // Definición del tipo
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -63,9 +64,16 @@ export function QuickActionsModal({
     onClose();
   };
 
+  // DEFINICIÓN DE PERMISOS
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
-  const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO"; 
-  const showCatalogos = rol === "ADMIN";
+  const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO";
+  
+  // 2. PERMISOS ESPECÍFICOS PARA CATÁLOGOS
+  const isAdmin = rol === "ADMIN";
+  const canCreateProduct = rol === "ADMIN" || rol === "BODEGUERO";
+  
+  // La sección de catálogos se muestra si eres Admin O si puedes crear productos
+  const showSectionCatalogos = isAdmin || canCreateProduct;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -85,6 +93,7 @@ export function QuickActionsModal({
 
         <div className="p-4 overflow-y-auto max-h-[70vh] space-y-6">
           
+          {/* === SECCIÓN MOVIMIENTOS === */}
           {showMovimientos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
@@ -93,22 +102,15 @@ export function QuickActionsModal({
                 icon={<ArrowDownToLine size={20} />} 
                 title="Registrar Ingreso" 
                 desc="Registrar entrada de productos"
-                onClick={() => {
-                  onClose(); 
-                  onIngresoClick(); 
-                }} 
+                onClick={() => { onClose(); onIngresoClick(); }} 
               />
               
-              {/* Nuevo Botón de Ajustes */}
               <ActionItem 
                 icon={<ClipboardList size={20} />} 
                 title="Registrar Ajuste" 
                 desc="Corrección de inventario (+/-)"
                 color="text-amber-600 bg-amber-50"
-                onClick={() => {
-                   onClose();
-                   onAjusteClick();
-                }} 
+                onClick={() => { onClose(); onAjusteClick(); }} 
               />
 
               <ActionItem 
@@ -121,6 +123,7 @@ export function QuickActionsModal({
             </div>
           )}
 
+          {/* === SECCIÓN SOLICITUDES === */}
           {showSolicitudes && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
@@ -129,38 +132,49 @@ export function QuickActionsModal({
                 title="Nueva Solicitud" 
                 desc="Solicitar productos de bodega"
                 color="text-emerald-600 bg-emerald-50"
-                onClick={() => {
-                  onClose(); 
-                  onSolicitudClick(); 
-                }}
+                onClick={() => { onClose(); onSolicitudClick(); }}
               />
 
-              {/* Nuevo Botón de Devolución */}
               <ActionItem 
                 icon={<RotateCcw size={20} />} 
                 title="Solicitar Devolución" 
                 desc="Regresar material a bodega"
                 color="text-rose-600 bg-rose-50"
-                onClick={() => {
-                  onClose(); 
-                  onDevolucionClick(); 
-                }}
+                onClick={() => { onClose(); onDevolucionClick(); }}
               />
             </div>
           )}
 
-          {showCatalogos && (
+          {/* === SECCIÓN CATÁLOGOS === */}
+          {showSectionCatalogos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Catálogos</p>
-              <ActionItem icon={<Box size={20} />} title="Crear Producto" desc="Agregar nuevo producto" color="text-indigo-600 bg-indigo-50" onClick={() => handleNav("/inventario/nuevo")} />
-              <ActionItem icon={<Users size={20} />} title="Crear Proveedor" desc="Agregar nuevo proveedor" color="text-pink-600 bg-pink-50" onClick={() => handleNav("/proveedores/nuevo")} />
-              <ActionItem icon={<Home size={20} />} title="Crear Bodega" desc="Agregar nueva bodega" color="text-violet-600 bg-violet-50" onClick={() => handleNav("/bodegas/nuevo")} />
-              <ActionItem icon={<Sprout size={20} />} title="Crear Finca" desc="Agregar nueva finca" color="text-green-600 bg-green-50" onClick={() => handleNav("/fincas/nuevo")} />
-              <ActionItem icon={<MapPin size={20} />} title="Crear Lote" desc="Agregar lote de cultivo" color="text-amber-600 bg-amber-50" onClick={() => handleNav("/lotes/nuevo")} />
+              
+              {/* Este botón lo ve Admin y Bodeguero */}
+              {canCreateProduct && (
+                <ActionItem 
+                    icon={<Box size={20} />} 
+                    title="Crear Producto" 
+                    desc="Agregar nuevo producto" 
+                    color="text-indigo-600 bg-indigo-50" 
+                    // 3. CAMBIO: Ahora llama a la prop, no navega
+                    onClick={() => { onClose(); onCreateProductClick(); }} 
+                />
+              )}
+
+              {/* Estos botones SOLO los ve el Admin */}
+              {isAdmin && (
+                <>
+                    <ActionItem icon={<Users size={20} />} title="Crear Proveedor" desc="Agregar nuevo proveedor" color="text-pink-600 bg-pink-50" onClick={() => handleNav("/proveedores/nuevo")} />
+                    <ActionItem icon={<Home size={20} />} title="Crear Bodega" desc="Agregar nueva bodega" color="text-violet-600 bg-violet-50" onClick={() => handleNav("/bodegas/nuevo")} />
+                    <ActionItem icon={<Sprout size={20} />} title="Crear Finca" desc="Agregar nueva finca" color="text-green-600 bg-green-50" onClick={() => handleNav("/fincas/nuevo")} />
+                    <ActionItem icon={<MapPin size={20} />} title="Crear Lote" desc="Agregar lote de cultivo" color="text-amber-600 bg-amber-50" onClick={() => handleNav("/lotes/nuevo")} />
+                </>
+              )}
             </div>
           )}
 
-          {!showMovimientos && !showSolicitudes && !showCatalogos && (
+          {!showMovimientos && !showSolicitudes && !showSectionCatalogos && (
             <div className="text-center py-8 text-gray-400 text-sm">
               No tienes acciones rápidas disponibles para tu rol ({rol}).
             </div>

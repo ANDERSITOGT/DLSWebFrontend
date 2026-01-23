@@ -20,8 +20,9 @@ import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
 import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
-// 👇 AHORA SÍ, HABILITADO
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
+// 👇 NUEVO IMPORT
+import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
 
 type DesktopLayoutProps = {
   children: ReactNode;
@@ -80,6 +81,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
   // --- NUEVOS ESTADOS FASE 2 ---
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
+  // 👇 NUEVO ESTADO FASE 3 (Crear Producto)
+  const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
 
   const bgImage = "https://images.unsplash.com/photo-1625246333195-58197bd000aa?q=80&w=1000&auto=format&fit=crop";
 
@@ -182,6 +185,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           onSolicitudClick={() => setShowSolicitudModal(true)}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
+          onCreateProductClick={() => setShowCrearProductoModal(true)} // 👈 CONECTADO
         />
       )}
 
@@ -232,12 +236,21 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         />
       )}
 
-      {/* 6. Devolución (YA HABILITADO) */}
+      {/* 6. Devolución */}
       {showDevolucionModal && (
          <SolicitudDevolucionModal 
             onClose={() => setShowDevolucionModal(false)} 
-            onSuccess={() => triggerRefreshSolicitudes()} // Importante refrescar solicitudes si se crea una interna
+            onSuccess={() => triggerRefreshSolicitudes()} 
          />
+      )}
+
+      {/* 7. Crear Producto (NUEVO) */}
+      {showCrearProductoModal && (
+        <CrearProductoModal
+          isOpen={showCrearProductoModal}
+          onClose={() => setShowCrearProductoModal(false)}
+          onSuccess={() => setShowCrearProductoModal(false)} // Aquí podrías disparar un refresh de inventario si lo tuvieras
+        />
       )}
 
     </div>
