@@ -16,7 +16,7 @@ import {
   ArrowDownLeft, 
   ArrowUpRight,  
   ArrowRightLeft, 
-  RefreshCw,      
+  RefreshCw,       
   CornerDownLeft,
   Loader2
 } from "lucide-react";
@@ -391,6 +391,7 @@ export function Inventario() {
 // Componentes UI Auxiliares
 // -----------------------------
 
+// 👇 TARJETA OPTIMIZADA PARA MÓVIL
 function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onClick?: () => void; }) {
   const stockConfig = {
     Normal: { border: "border-l-emerald-500", iconBg: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -403,30 +404,30 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
   return (
     <Card
       className={cn(
-          "rounded-xl border-l-[4px] border-y border-r border-slate-100", 
+          "rounded-xl border-l-[4px] border-y border-r border-slate-100 overflow-hidden", 
           isInteractive ? "shadow-sm hover:shadow-md cursor-pointer transition-all" : "cursor-default opacity-95",
           stockConfig.border
       )}
       onClick={onClick}
     >
-      <CardContent className="p-4 flex gap-4">
-        <div className={cn("w-10 h-10 rounded-full flex items-center justify-center shrink-0", stockConfig.iconBg)}>
-            <Package size={20} />
+      <CardContent className="p-3 sm:p-4 flex gap-3 sm:gap-4 items-start">
+        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 transition-colors", stockConfig.iconBg)}>
+            <Package className="w-4 h-4 sm:w-5 sm:h-5" />
         </div>
         <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start mb-1">
-                <h3 className="text-sm font-bold text-slate-800 truncate pr-2" title={producto.nombre}>{producto.nombre}</h3>
-                <Badge variant="outline" className={cn("text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider", producto.estadoProducto === 'ACTIVO' ? "border-emerald-200 text-emerald-600" : "border-slate-200 text-slate-400")}>
+            <div className="flex justify-between items-start mb-1 gap-2">
+                <h3 className="text-xs sm:text-sm font-bold text-slate-800 truncate" title={producto.nombre}>{producto.nombre}</h3>
+                <Badge variant="outline" className={cn("shrink-0 text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider h-fit", producto.estadoProducto === 'ACTIVO' ? "border-emerald-200 text-emerald-600" : "border-slate-200 text-slate-400")}>
                     {producto.estadoProducto === 'ACTIVO' ? 'ACT' : 'INA'}
                 </Badge>
             </div>
-            <p className="text-[11px] text-slate-500 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
-            <div className="flex items-end justify-between mt-3 pt-3 border-t border-slate-50">
+            <p className="text-[10px] sm:text-[11px] text-slate-500 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
+            <div className="flex items-end justify-between mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-slate-50">
                 <div>
-                      <p className="text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
-                      <p className="text-base font-bold text-slate-800">{producto.stockTotal}</p>
+                      <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
+                      <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">{producto.stockTotal}</p>
                 </div>
-                <Badge variant="outline" className={cn("text-[10px] border", stockConfig.badge)}>
+                <Badge variant="outline" className={cn("text-[9px] sm:text-[10px] border shrink-0", stockConfig.badge)}>
                     {producto.estadoStock}
                 </Badge>
             </div>

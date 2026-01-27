@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
-  X, ChevronLeft, Loader2, Trash2, Search, Save, MapPin, CheckCircle2, AlertCircle 
+  X, ChevronLeft, Loader2, Trash2, Search, Save, MapPin, CheckCircle2, AlertCircle, Plus 
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -26,15 +26,14 @@ type ProductoResult = {
     nombre: string; 
     codigo: string; 
     stockActual: number; 
-    // 👇 NECESITAMOS EL ID DE LA UNIDAD
     unidad: { id: string; abreviatura: string } 
 };
 
 type ItemSolicitud = {
   productoId: string;
   nombre: string;
-  unidadId: string; // 👇 ID real para la base de datos
-  unidad: string;   // Nombre para mostrar (ej: "Lb")
+  unidadId: string;
+  unidad: string;
   cantidad: number;
   stockMaximo: number;
   fincaId: string;     
@@ -76,39 +75,24 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   const [tempNotas, setTempNotas] = useState("");
 
   // ============================================================
-  // 1. CARGA DE DATOS (Bodegas y Fincas)
+  // 1. CARGA DE DATOS
   // ============================================================
   useEffect(() => {
     async function loadData() {
-      console.log("🟢 [MODAL] Iniciando carga de catálogos...");
       setLoading(true);
-      
       const myHeaders = {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}` 
       };
 
       try {
-        // 1. Bodegas (Pública)
-        const resBodegas = await fetch(`${API_URL}/api/catalogos/bodegas`);
-        if (resBodegas.ok) {
-            const dataBodegas = await resBodegas.json();
-            setBodegas(dataBodegas);
-        } else {
-            console.error("❌ Error Bodegas:", resBodegas.status);
-        }
+        const [resBodegas, resFincas] = await Promise.all([
+             fetch(`${API_URL}/api/catalogos/bodegas`),
+             fetch(`${API_URL}/api/catalogos/fincas-lotes`, { headers: myHeaders })
+        ]);
 
-        // 2. Fincas (Privada - Requiere Token)
-        const resFincas = await fetch(`${API_URL}/api/catalogos/fincas-lotes`, {
-            headers: myHeaders
-        });
-        
-        if (resFincas.ok) {
-            const dataFincas = await resFincas.json();
-            setFincas(dataFincas);
-        } else {
-            console.error("❌ Error Fincas:", resFincas.status);
-        }
+        if (resBodegas.ok) setBodegas(await resBodegas.json());
+        if (resFincas.ok) setFincas(await resFincas.json());
 
       } catch (error) {
         console.error("💥 Error de red:", error);
@@ -146,7 +130,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
     const nuevoItem: ItemSolicitud = {
       productoId: prodSeleccionado.id,
       nombre: prodSeleccionado.nombre,
-      // 👇 AQUÍ GUARDAMOS EL ID Y EL NOMBRE DE LA UNIDAD
       unidadId: prodSeleccionado.unidad.id, 
       unidad: prodSeleccionado.unidad.abreviatura,
       cantidad: tempCant,
@@ -160,7 +143,7 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
 
     setItems([...items, nuevoItem]);
       
-    // Limpiar formulario
+    // Limpiar formulario y CERRARLO para desbloquear el botón enviar
     setProdSeleccionado(null);
     setTempCant(1);
     setTempNotas("");
@@ -176,41 +159,32 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   };
 
   // ============================================================
-  // 4. GUARDAR SOLICITUD (CORREGIDO)
+  // 4. GUARDAR SOLICITUD
   // ============================================================
   const handleFinalizar = async () => {
+    // 🔒 DOBLE CHECK DE SEGURIDAD
+    // Si el formulario de agregar está abierto, NO permitimos enviar.
+    if (showAddForm) return;
+
     setGuardando(true);
     try {
-      if (!user?.id) {
-        alert("Error: No se ha identificado el usuario.");
-        setGuardando(false);
-        return;
-      }
+      if (!user?.id) throw new Error("No se ha identificado el usuario.");
 
-      // Validar Stock
       const hayErrores = items.some(i => i.cantidad > i.stockMaximo);
-      if (hayErrores) {
-          alert("Error: Hay cantidades que exceden el stock disponible.");
-          setGuardando(false);
-          return;
-      }
+      if (hayErrores) throw new Error("Hay cantidades que exceden el stock disponible.");
 
-      // 👇 CONSTRUCCIÓN DEL PAYLOAD CORRECTO
       const payload = {
-        solicitanteid: user.id, // Minúsculas para asegurar compatibilidad
-        bodegaid: selectedBodega, // Minúsculas
-        // ⚠️ CAMBIO CRÍTICO: Renombramos 'items' a 'productos'
+        solicitanteid: user.id,
+        bodegaid: selectedBodega,
         productos: items.map(i => ({
           productoid: i.productoId,
-          unidadid: i.unidadId,   // Enviamos el ID real de la unidad
+          unidadid: i.unidadId,
           cantidad: i.cantidad,
           loteid: i.loteId, 
           notas: i.notas
         })),
         observaciones: obsGeneral 
       };
-
-      console.log("📤 Enviando Payload:", payload); // Para depuración
 
       const res = await fetch(`${API_URL}/api/solicitudes`, {
         method: "POST",
@@ -222,155 +196,171 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
       });
 
       const data = await res.json();
-
-      if (!res.ok) throw new Error(data.message || "Error al guardar la solicitud");
+      if (!res.ok) throw new Error(data.message || "Error al guardar");
       
       setSuccessData({ id: data.solicitud.id }); 
 
     } catch (error: any) {
-      console.error("Error Guardar:", error);
       alert("Error: " + error.message);
     } finally {
       setGuardando(false);
     }
   };
 
-  // Lógica de UI
   const lotesDisponibles = tempFinca ? fincas.find(f => f.id === tempFinca)?.lote || [] : [];
   const existeErrorStock = items.some(i => i.cantidad > i.stockMaximo);
 
   // --- RENDER: VISTA DE ÉXITO ---
   if (successData) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-        <div className="bg-white w-full max-w-md rounded-2xl shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
-          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-            <CheckCircle2 className="text-green-600 w-10 h-10 animate-bounce" strokeWidth={3} />
+      <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+        <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-8 text-center animate-in zoom-in-95 duration-300">
+          <div className="w-20 h-20 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <CheckCircle2 className="text-emerald-600 w-10 h-10" strokeWidth={3} />
           </div>
           <h2 className="text-2xl font-bold text-slate-800 mb-2">¡Solicitud Enviada!</h2>
-          <p className="text-slate-500 mb-6">
-            Tu solicitud ha sido registrada correctamente con el código:
+          <p className="text-slate-500 mb-6 text-sm">
+            Tu solicitud ha sido registrada correctamente.
             <br/>
-            <span className="font-mono font-bold text-slate-800 bg-slate-100 px-2 py-1 rounded mt-2 inline-block">
-              {successData.id}
+            Código de seguimiento:
+            <br/>
+            <span className="font-mono font-bold text-lg text-slate-800 bg-slate-100 px-3 py-1 rounded-lg mt-3 inline-block border border-slate-200">
+              {successData.id.slice(0, 8).toUpperCase()}...
             </span>
           </p>
           <button 
             onClick={() => { onSuccess(); onClose(); }}
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition transform active:scale-95"
+            className="w-full bg-emerald-600 text-white py-3 rounded-xl font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200"
           >
-            Entendido, cerrar
+            Entendido
           </button>
         </div>
       </div>
     );
   }
 
-  // --- RENDER: FORMULARIO ---
+  // --- RENDER: FORMULARIO PRINCIPAL ---
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in">
-      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[85vh]">
+    // 🎨 CAMBIO: p-0 en móvil para full screen, p-4 en desktop para modal flotante
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm p-0 sm:p-4 animate-in fade-in duration-200">
+      
+      {/* 🎨 CAMBIO: h-full y rounded-none en móvil, h-auto y rounded-2xl en desktop */}
+      <div className="bg-white w-full h-full sm:h-[85vh] sm:max-w-3xl sm:rounded-2xl shadow-2xl overflow-hidden flex flex-col transition-all">
         
         {/* Header */}
-        <div className="bg-emerald-600 p-4 flex justify-between items-center text-white shrink-0">
+        <div className="bg-emerald-600 p-4 sm:px-6 flex justify-between items-center text-white shrink-0 shadow-md z-10">
           <div>
-            <h2 className="text-lg font-bold">Nueva Solicitud</h2>
-            <p className="text-emerald-100 text-xs">Paso {step} de 2</p>
+            <h2 className="text-lg font-bold tracking-tight">Nueva Solicitud</h2>
+            <div className="flex items-center gap-2 text-emerald-100 text-xs font-medium">
+               <span className={`px-2 py-0.5 rounded-full ${step === 1 ? 'bg-white/20 text-white' : ''}`}>Paso 1</span>
+               <ChevronLeft size={12}/>
+               <span className={`px-2 py-0.5 rounded-full ${step === 2 ? 'bg-white/20 text-white' : ''}`}>Paso 2</span>
+            </div>
           </div>
-          <button onClick={onClose} className="hover:bg-emerald-700 p-1 rounded-full transition">
+          <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-2 rounded-full transition backdrop-blur-sm">
             <X size={20} />
           </button>
         </div>
 
         {/* Contenido Scrollable */}
-        <div className="p-6 overflow-y-auto flex-1 bg-slate-50">
+        <div className="flex-1 overflow-y-auto bg-slate-50 p-4 sm:p-6 scroll-smooth">
           {loading ? (
-             <div className="flex flex-col items-center justify-center py-20 gap-3">
-                <Loader2 className="animate-spin text-emerald-600" size={40}/>
-                <p className="text-sm text-slate-500">Cargando catálogos...</p>
+             <div className="flex flex-col items-center justify-center h-full gap-4 opacity-50">
+                <Loader2 className="animate-spin text-emerald-600" size={48}/>
+                <p className="text-sm font-medium text-slate-500">Cargando catálogos...</p>
              </div>
           ) : (
             <>
-              {/* PASO 1: CABECERA */}
+              {/* === PASO 1: CABECERA === */}
               {step === 1 && (
-                <div className="space-y-6 animate-in slide-in-from-right-4">
-                   <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-3 text-sm text-emerald-800">
-                      Completa la información básica de la solicitud.
+                <div className="space-y-6 animate-in slide-in-from-right-8 fade-in duration-300">
+                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 flex gap-3">
+                      <AlertCircle className="text-blue-500 shrink-0" size={20}/>
+                      <p className="text-sm text-blue-800">Selecciona la bodega de destino y añade notas generales si es necesario.</p>
                    </div>
-                   <div className="bg-white p-5 rounded-xl border border-slate-200 space-y-4">
-                     <div>
-                       <label className="text-xs font-bold text-slate-500 uppercase">Bodega *</label>
-                       <select 
-                         value={selectedBodega}
-                         onChange={(e) => setSelectedBodega(e.target.value)}
-                         className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                       >
-                         <option value="">Seleccione una bodega...</option>
-                         {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-                       </select>
-                     </div>
-                     <div>
-                         <label className="text-xs font-bold text-slate-500 uppercase">Observaciones</label>
-                         <textarea 
-                           value={obsGeneral}
-                           onChange={(e) => setObsGeneral(e.target.value)}
-                           placeholder="Notas opcionales..."
-                           rows={3}
-                           className="w-full mt-1 border border-slate-300 rounded-lg p-2.5 text-sm outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
-                         />
+                   
+                   <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
+                      <div>
+                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Bodega de Destino *</label>
+                        <select 
+                          value={selectedBodega}
+                          onChange={(e) => setSelectedBodega(e.target.value)}
+                          className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50 focus:bg-white"
+                        >
+                          <option value="">-- Selecciona una bodega --</option>
+                          {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
+                        </select>
                       </div>
+                      <div>
+                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Observaciones Generales</label>
+                          <textarea 
+                            value={obsGeneral}
+                            onChange={(e) => setObsGeneral(e.target.value)}
+                            placeholder="Ej: Urgente para aplicación de mañana..."
+                            rows={4}
+                            className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all resize-none bg-slate-50 focus:bg-white"
+                          />
+                       </div>
                    </div>
                 </div>
               )}
 
-              {/* PASO 2: PRODUCTOS */}
+              {/* === PASO 2: PRODUCTOS === */}
               {step === 2 && (
-                <div className="space-y-4 animate-in slide-in-from-right-4">
+                <div className="space-y-4 animate-in slide-in-from-right-8 fade-in duration-300 h-full flex flex-col">
                   
                   {/* Lista Vacía */}
                   {!showAddForm && items.length === 0 && (
-                     <div className="text-center py-10">
-                        <div className="bg-emerald-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3 text-emerald-600">
-                           <MapPin size={32} />
+                     <div className="flex-1 flex flex-col items-center justify-center text-center py-12 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                        <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+                           <MapPin className="text-emerald-500" size={32} />
                         </div>
-                        <h3 className="text-slate-800 font-medium">Lista vacía</h3>
-                        <p className="text-slate-500 text-sm mb-4">Agrega los productos necesarios.</p>
-                        <button onClick={() => setShowAddForm(true)} className="bg-emerald-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-700 transition">
-                           + Agregar producto
+                        <h3 className="text-slate-800 font-bold text-lg">Tu lista está vacía</h3>
+                        <p className="text-slate-400 text-sm mb-6 max-w-xs mx-auto">Agrega los productos químicos o fertilizantes que necesitas solicitar.</p>
+                        <button onClick={() => setShowAddForm(true)} className="bg-emerald-600 text-white px-6 py-3 rounded-xl text-sm font-bold hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 flex items-center gap-2">
+                           <Plus size={18}/> Agregar Producto
                         </button>
                      </div>
                   )}
 
-                  {/* Formulario de Agregar */}
+                  {/* Formulario de Agregar (Overlay o Inline) */}
                   {showAddForm && (
-                    <div className="bg-white p-5 rounded-xl border border-emerald-200 shadow-sm animate-in zoom-in-95 space-y-4 relative">
-                       <button onClick={() => setShowAddForm(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-600"><X size={18}/></button>
-                       <h3 className="font-bold text-slate-700 text-sm">Nuevo Producto</h3>
+                    <div className="bg-white p-4 sm:p-6 rounded-2xl border border-emerald-100 shadow-xl animate-in zoom-in-95 space-y-4 relative ring-4 ring-emerald-50/50">
+                       <button onClick={() => setShowAddForm(false)} className="absolute top-3 right-3 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><X size={20}/></button>
+                       <h3 className="font-bold text-slate-800 text-base border-b border-slate-100 pb-2 mb-4">Agregar Nuevo Item</h3>
                        
                        {/* Buscador */}
                        {!prodSeleccionado ? (
                          <div>
-                           <label className="text-xs font-bold text-slate-500">Producto *</label>
-                           <div className="flex gap-2 mt-1">
-                             <input 
-                               type="text" value={busqueda}
-                               onChange={(e) => setBusqueda(e.target.value)}
-                               onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-                               placeholder="Buscar nombre o código..."
-                               className="flex-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500"
-                             />
-                             <button onClick={handleBuscar} className="bg-slate-100 p-2 rounded-lg border border-slate-300 hover:bg-slate-200 transition">
-                               {buscandoProd ? <Loader2 className="animate-spin"/> : <Search size={20}/>}
+                           <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar Producto</label>
+                           <div className="flex gap-2">
+                             <div className="relative flex-1">
+                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
+                                <input 
+                                  type="text" value={busqueda}
+                                  onChange={(e) => setBusqueda(e.target.value)}
+                                  onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
+                                  placeholder="Nombre o código..."
+                                  // 🎨 CAMBIO: text-base en móvil evita zoom automático en iOS
+                                  className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                  autoFocus
+                                />
+                             </div>
+                             <button onClick={handleBuscar} className="bg-slate-800 text-white px-4 rounded-xl hover:bg-slate-700 transition">
+                               {buscandoProd ? <Loader2 className="animate-spin" size={20}/> : "Buscar"}
                              </button>
                            </div>
                            
                            {resultados.length > 0 && (
-                             <div className="mt-2 max-h-32 overflow-y-auto border border-slate-200 rounded-lg">
+                             <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl shadow-lg bg-white divide-y divide-slate-100 absolute w-full z-20 left-0">
                                {resultados.map(p => (
-                                 <button key={p.id} onClick={() => setProdSeleccionado(p)} className="w-full flex justify-between items-center p-2 hover:bg-emerald-50 text-sm border-b border-slate-100">
-                                   <span>{p.nombre}</span>
-                                   <span className={`text-xs px-2 py-0.5 rounded-full font-bold ${p.stockActual > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
-                                       Stock: {p.stockActual} {p.unidad?.abreviatura}
+                                 <button key={p.id} onClick={() => setProdSeleccionado(p)} className="w-full text-left p-3 hover:bg-emerald-50 transition flex justify-between items-center group">
+                                   <div>
+                                      <span className="font-medium text-slate-700 text-sm block group-hover:text-emerald-700">{p.nombre}</span>
+                                      <span className="text-xs text-slate-400">{p.codigo}</span>
+                                   </div>
+                                   <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${p.stockActual > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                      Stock: {p.stockActual} {p.unidad?.abreviatura}
                                    </span>
                                  </button>
                                ))}
@@ -378,94 +368,101 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
                            )}
                          </div>
                        ) : (
-                          <div className="flex justify-between items-center bg-emerald-50 p-2 rounded-lg border border-emerald-100">
-                             <div>
-                                 <span className="font-medium text-emerald-800 text-sm block">{prodSeleccionado.nombre}</span>
-                                 <span className="text-xs text-emerald-600">Stock disponible: {prodSeleccionado.stockActual} {prodSeleccionado.unidad.abreviatura}</span>
+                          <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                             <div className="flex items-center gap-3">
+                                 <div className="bg-white p-2 rounded-full text-emerald-600 shadow-sm"><CheckCircle2 size={20}/></div>
+                                 <div>
+                                     <span className="font-bold text-emerald-900 text-sm block">{prodSeleccionado.nombre}</span>
+                                     <span className="text-xs text-emerald-600 font-medium">Disponible: {prodSeleccionado.stockActual} {prodSeleccionado.unidad.abreviatura}</span>
+                                 </div>
                              </div>
-                             <button onClick={() => setProdSeleccionado(null)} className="text-emerald-600 text-xs font-bold hover:underline">Cambiar</button>
+                             <button onClick={() => setProdSeleccionado(null)} className="text-slate-400 hover:text-rose-500 text-xs font-bold px-3 py-1 hover:bg-white rounded-lg transition">Cambiar</button>
                           </div>
                        )}
 
-                       {/* Cantidad */}
-                       <div>
-                          <label className="text-xs font-bold text-slate-500">Cantidad ({prodSeleccionado?.unidad.abreviatura}) *</label>
-                          <input 
-                            type="number" min="0.1" value={tempCant} 
-                            onChange={(e) => setTempCant(parseFloat(e.target.value))} 
-                            className={`w-full mt-1 border rounded-lg p-2 text-sm outline-none focus:ring-2 ${
-                                prodSeleccionado && tempCant > prodSeleccionado.stockActual 
-                                ? 'border-rose-500 focus:ring-rose-500 text-rose-600 bg-rose-50' 
-                                : 'border-slate-300 focus:ring-emerald-500'
-                            }`}
-                          />
-                          {prodSeleccionado && tempCant > prodSeleccionado.stockActual && (
-                              <p className="text-rose-600 text-xs mt-1 font-bold flex items-center gap-1">
-                                  <AlertCircle size={12}/> La cantidad supera el stock disponible.
-                              </p>
-                          )}
+                       {/* Grid de Inputs */}
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Cantidad</label>
+                              <div className="relative">
+                                  <input 
+                                    type="number" min="0.1" value={tempCant} 
+                                    onChange={(e) => setTempCant(parseFloat(e.target.value))} 
+                                    className={`w-full border rounded-xl p-2.5 text-base sm:text-sm outline-none focus:ring-2 ${
+                                        prodSeleccionado && tempCant > prodSeleccionado.stockActual 
+                                        ? 'border-rose-300 focus:ring-rose-200 bg-rose-50 text-rose-900' 
+                                        : 'border-slate-300 focus:border-emerald-500 focus:ring-emerald-200'
+                                    }`}
+                                  />
+                                  <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">{prodSeleccionado?.unidad.abreviatura}</span>
+                              </div>
+                           </div>
+
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Finca</label>
+                              <select value={tempFinca} onChange={(e) => { setTempFinca(e.target.value); setTempLote(""); }} className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white">
+                                 <option value="">Selecciona...</option>
+                                 {fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
+                              </select>
+                           </div>
+
+                           <div>
+                              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Lote</label>
+                              <select value={tempLote} onChange={(e) => setTempLote(e.target.value)} disabled={!tempFinca} className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white disabled:bg-slate-100 disabled:text-slate-400">
+                                 <option value="">{tempFinca ? "Selecciona..." : "-"}</option>
+                                 {lotesDisponibles.map(l => <option key={l.id} value={l.id}>{l.codigo} - {l.cultivo.nombre}</option>)}
+                              </select>
+                           </div>
+                           
+                           <div className="sm:col-span-2">
+                             <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Notas (Opcional)</label>
+                             <input 
+                               type="text" value={tempNotas} onChange={(e) => setTempNotas(e.target.value)}
+                               placeholder="Detalles adicionales..."
+                               className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                             />
+                           </div>
                        </div>
 
-                       {/* Finca y Lote */}
-                       <div className="grid grid-cols-2 gap-4">
-                          <div>
-                             <label className="text-xs font-bold text-slate-500">Finca *</label>
-                             <select value={tempFinca} onChange={(e) => { setTempFinca(e.target.value); setTempLote(""); }} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500">
-                                <option value="">Selecciona...</option>
-                                {fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-                             </select>
-                          </div>
-                          <div>
-                             <label className="text-xs font-bold text-slate-500">Lote *</label>
-                             <select value={tempLote} onChange={(e) => setTempLote(e.target.value)} disabled={!tempFinca} className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm outline-none focus:ring-2 focus:ring-emerald-500 disabled:bg-slate-100">
-                                <option value="">{tempFinca ? "Selecciona..." : "-"}</option>
-                                {lotesDisponibles.map(l => <option key={l.id} value={l.id}>{l.codigo} - {l.cultivo.nombre}</option>)}
-                             </select>
-                          </div>
+                       <div className="pt-2">
+                           <button 
+                             onClick={handleAgregarItem} 
+                             disabled={prodSeleccionado ? tempCant > prodSeleccionado.stockActual : true}
+                             className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-slate-200"
+                           >
+                              Confirmar Agregar
+                           </button>
                        </div>
-                       
-                       {/* Notas */}
-                        <div>
-                          <label className="text-xs font-bold text-slate-500">Notas</label>
-                          <input 
-                            type="text" 
-                            value={tempNotas}
-                            onChange={(e) => setTempNotas(e.target.value)}
-                            placeholder="Información adicional (opcional)"
-                            className="w-full mt-1 border border-slate-300 rounded-lg p-2 text-sm focus:ring-2 focus:ring-emerald-500 outline-none bg-slate-50"
-                          />
-                       </div>
-
-                       <button 
-                         onClick={handleAgregarItem} 
-                         disabled={prodSeleccionado ? tempCant > prodSeleccionado.stockActual : false}
-                         className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed text-white py-2 rounded-lg font-medium text-sm transition"
-                        >
-                           + Agregar
-                       </button>
                     </div>
                   )}
 
-                  {/* Lista de Items Agregados */}
+                  {/* Lista de Items */}
                   {!showAddForm && items.length > 0 && (
-                    <div className="space-y-3">
-                       <div className="flex justify-between items-center">
-                          <h3 className="font-bold text-slate-700 text-sm">Productos ({items.length})</h3>
-                          <button onClick={() => setShowAddForm(true)} className="text-emerald-600 text-xs font-bold hover:underline">+ Agregar otro</button>
+                    <div className="space-y-3 pb-20 sm:pb-0">
+                       <div className="flex justify-between items-center px-1">
+                          <h3 className="font-bold text-slate-700 text-sm">Items en la lista ({items.length})</h3>
+                          <button onClick={() => setShowAddForm(true)} className="text-emerald-600 text-xs font-bold hover:bg-emerald-50 px-2 py-1 rounded transition flex items-center gap-1">
+                             <Plus size={14}/> Agregar otro
+                          </button>
                        </div>
-                       <div className="bg-white rounded-lg border border-slate-200 overflow-hidden">
+                       
+                       <div className="grid gap-3">
                           {items.map((item, idx) => {
                              const excedeStock = item.cantidad > item.stockMaximo;
                              return (
-                                <div key={idx} className={`p-3 border-b border-slate-100 last:border-0 flex justify-between items-center ${excedeStock ? 'bg-rose-50' : ''}`}>
+                                <div key={idx} className={`bg-white p-4 rounded-xl border shadow-sm flex justify-between items-start ${excedeStock ? 'border-rose-200 ring-1 ring-rose-100' : 'border-slate-200'}`}>
                                    <div>
-                                      <p className={`font-bold text-sm ${excedeStock ? 'text-rose-700' : 'text-slate-800'}`}>{item.nombre}</p>
-                                      <p className="text-xs text-slate-500">
-                                         {item.cantidad} {item.unidad} · <span className="text-emerald-600 font-medium">{item.fincaNombre} - {item.loteCodigo}</span>
+                                      <p className="font-bold text-slate-800 text-sm">{item.nombre}</p>
+                                      <p className="text-xs text-slate-500 mt-1 flex flex-wrap gap-2">
+                                         <span className="bg-slate-100 px-2 py-0.5 rounded text-slate-600 font-medium">{item.cantidad} {item.unidad}</span>
+                                         <span className="flex items-center gap-1 text-emerald-600"><MapPin size={10}/> {item.fincaNombre} · {item.loteCodigo}</span>
                                       </p>
-                                      {excedeStock && <p className="text-[10px] text-rose-600 font-bold flex items-center gap-1"><AlertCircle size={10}/> Excede stock ({item.stockMaximo})</p>}
+                                      {item.notas && <p className="text-[10px] text-slate-400 mt-1 italic">"{item.notas}"</p>}
+                                      {excedeStock && <p className="text-[10px] text-rose-600 font-bold mt-1 flex items-center gap-1 bg-rose-50 px-2 py-0.5 rounded w-fit"><AlertCircle size={10}/> Stock insuficiente ({item.stockMaximo})</p>}
                                    </div>
-                                   <button onClick={() => handleEliminarItem(idx)} className="text-rose-400 hover:text-rose-600 p-2"><Trash2 size={16}/></button>
+                                   <button onClick={() => handleEliminarItem(idx)} className="text-slate-300 hover:text-rose-500 hover:bg-rose-50 p-2 rounded-lg transition">
+                                      <Trash2 size={18}/>
+                                   </button>
                                 </div>
                              );
                           })}
@@ -478,19 +475,34 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
           )}
         </div>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-slate-200 bg-white flex justify-between shrink-0">
-           {step === 2 ? <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 text-sm font-medium"><ChevronLeft size={16} className="inline mr-1"/>Atrás</button> : <span></span>}
+        {/* Footer Fijo */}
+        <div className="p-4 sm:px-6 py-4 border-t border-slate-200 bg-white flex justify-between items-center shrink-0 z-20">
+           {step === 2 ? (
+              <button onClick={() => setStep(1)} className="text-slate-500 hover:text-slate-800 text-sm font-bold flex items-center gap-1 px-2 py-2 rounded-lg hover:bg-slate-50 transition">
+                 <ChevronLeft size={18}/> Atrás
+              </button>
+           ) : (
+              // Espaciador para mantener el diseño
+              <div/>
+           )}
            
            {step === 1 ? (
-             <button onClick={() => setStep(2)} disabled={!selectedBodega} className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:opacity-50">Siguiente</button>
+             <button 
+                onClick={() => setStep(2)} 
+                disabled={!selectedBodega} 
+                className="bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white px-8 py-3 rounded-xl text-sm font-bold shadow-lg shadow-emerald-200 transition-all active:scale-95"
+             >
+                Siguiente
+             </button>
            ) : (
              <button 
                onClick={handleFinalizar} 
-               disabled={items.length === 0 || guardando || existeErrorStock} 
-               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2 rounded-lg text-sm font-bold disabled:bg-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed flex items-center gap-2"
+               // 🔒 CLAVE: Deshabilitado si el form de agregar está abierto
+               disabled={items.length === 0 || guardando || existeErrorStock || showAddForm} 
+               className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl text-sm font-bold disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed disabled:shadow-none flex items-center gap-2 shadow-lg shadow-emerald-200 transition-all active:scale-95 ml-auto"
              >
-                 {guardando ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} Enviar
+                 {guardando ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>} 
+                 {showAddForm ? "Termina de agregar..." : "Enviar Solicitud"}
              </button>
            )}
         </div>

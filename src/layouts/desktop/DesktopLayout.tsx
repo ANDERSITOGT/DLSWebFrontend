@@ -21,7 +21,6 @@ import { IngresoModal } from "../../modules/movimientos/IngresoModal";
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
-// 👇 NUEVO IMPORT
 import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
 
 type DesktopLayoutProps = {
@@ -78,19 +77,19 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
   const [showSolicitudModal, setShowSolicitudModal] = useState(false); 
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);   
 
-  // --- NUEVOS ESTADOS FASE 2 ---
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
-  // 👇 NUEVO ESTADO FASE 3 (Crear Producto)
   const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
 
   const bgImage = "https://images.unsplash.com/photo-1625246333195-58197bd000aa?q=80&w=1000&auto=format&fit=crop";
 
   return (
-    <div className="min-h-screen bg-slate-50 flex">
+    // 1. CAMBIO: Usamos h-screen (altura fija) y overflow-hidden para evitar scroll en el body
+    <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
       
       {/* SIDEBAR */}
-      <aside className="w-64 relative flex flex-col shadow-2xl z-20">
+      {/* 2. CAMBIO: Quitamos 'relative' si estorbaba y aseguramos h-full para que ocupe todo el alto */}
+      <aside className="w-64 h-full flex flex-col shadow-2xl z-20 relative shrink-0">
         
         {/* Fondos */}
         <div className="absolute inset-0 z-0 bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }} />
@@ -107,7 +106,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           </div>
 
           {/* User Info */}
-          <div className="p-4 border-b border-white/5">
+          <div className="p-4 border-b border-white/5 shrink-0">
              <div className="bg-white/5 rounded-xl p-3 flex items-center gap-3 backdrop-blur-md border border-white/5">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs shadow-lg">
                   {user?.nombre.charAt(0).toUpperCase()}
@@ -119,8 +118,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
              </div>
           </div>
 
-          {/* Navegación */}
-          <nav className="flex-1 py-6 space-y-1 overflow-y-auto">
+          {/* Navegación (Esto sí puede tener scroll si hay muchos items) */}
+          <nav className="flex-1 py-6 space-y-1 overflow-y-auto custom-scrollbar">
             {menuItems.map((item) => {
               const active = location.pathname === item.to;
               return (
@@ -142,8 +141,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
             })}
           </nav>
 
-          {/* Footer Sidebar */}
-          <div className="p-4 border-t border-white/10 shrink-0 space-y-2">
+          {/* Footer Sidebar (Siempre visible al fondo) */}
+          <div className="p-4 border-t border-white/10 shrink-0 space-y-2 bg-slate-900/50 backdrop-blur-sm">
             
             <button
               onClick={() => setShowActions(true)}
@@ -164,7 +163,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
       </aside>
 
       {/* CONTENIDO PRINCIPAL */}
-      <main className="flex-1 overflow-y-auto bg-slate-50 relative z-0">
+      {/* 3. CAMBIO: h-full y overflow-y-auto aquí. Esto hace que solo esta área tenga scroll */}
+      <main className="flex-1 h-full overflow-y-auto bg-slate-50 relative z-0">
          {/* Header móvil opcional */}
         <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center lg:hidden">
             <span className="font-bold text-slate-700">DLS Web</span>
@@ -175,9 +175,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         </div>
       </main>
 
-      {/* --- MODALES --- */}
+      {/* --- MODALES (Sin cambios) --- */}
 
-      {/* 1. Acciones Rápidas */}
       {showActions && (
         <QuickActionsModal 
           onClose={() => setShowActions(false)} 
@@ -185,11 +184,10 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
           onSolicitudClick={() => setShowSolicitudModal(true)}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
-          onCreateProductClick={() => setShowCrearProductoModal(true)} // 👈 CONECTADO
+          onCreateProductClick={() => setShowCrearProductoModal(true)} 
         />
       )}
 
-      {/* 2. Ingreso */}
       {showIngresoModal && (
         <IngresoModal 
           onClose={() => setShowIngresoModal(false)}
@@ -200,7 +198,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         />
       )}
 
-      {/* 3. Solicitud */}
       {showSolicitudModal && (
         <NuevaSolicitudModal
           onClose={() => setShowSolicitudModal(false)}
@@ -211,7 +208,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         />
       )}
 
-      {/* 4. Logout Confirm */}
       {showLogoutConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
              <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
@@ -228,7 +224,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         </div>
       )}
 
-      {/* 5. Ajuste */}
       {showAjusteModal && (
         <AjusteInventarioModal 
           onClose={() => setShowAjusteModal(false)} 
@@ -236,7 +231,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
         />
       )}
 
-      {/* 6. Devolución */}
       {showDevolucionModal && (
          <SolicitudDevolucionModal 
             onClose={() => setShowDevolucionModal(false)} 
@@ -244,12 +238,11 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
          />
       )}
 
-      {/* 7. Crear Producto (NUEVO) */}
       {showCrearProductoModal && (
         <CrearProductoModal
           isOpen={showCrearProductoModal}
           onClose={() => setShowCrearProductoModal(false)}
-          onSuccess={() => setShowCrearProductoModal(false)} // Aquí podrías disparar un refresh de inventario si lo tuvieras
+          onSuccess={() => setShowCrearProductoModal(false)} 
         />
       )}
 
