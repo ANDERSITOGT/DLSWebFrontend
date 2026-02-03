@@ -1,4 +1,4 @@
-//  src/modules/movimientos/AjusteInventarioModal.tsx
+// src/modules/movimientos/AjusteInventarioModal.tsx
 import { useState, useEffect } from "react";
 import { 
   X, 
@@ -46,7 +46,7 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // --- NUEVO: Estado de Éxito ---
+  // --- Estado de Éxito ---
   const [showExito, setShowExito] = useState(false);
   const [mensajeExito, setMensajeExito] = useState("");
 
@@ -81,6 +81,8 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
     setProductoSel(prod);
     setPaso(2);
     setBusqueda(""); 
+    setError(null);
+    setCantidad("");
   };
 
   // --- Enviar Ajuste ---
@@ -88,18 +90,25 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
     e.preventDefault();
     if (!productoSel || !cantidad || !notas) return;
 
+    const cantidadNum = Number(cantidad);
+
+    // 🔒 DOBLE SEGURIDAD: Validación interna por si el usuario habilita el botón con trucos
+    if (tipoAjuste === "FALTANTE" && cantidadNum > productoSel.stockActual) {
+        setError(`Stock insuficiente. Tienes ${productoSel.stockActual}, intentas sacar ${cantidadNum}.`);
+        return;
+    }
+
     setEnviando(true);
     setError(null);
 
     try {
-      const cantidadNum = Number(cantidad);
       const cantidadFinal = tipoAjuste === "FALTANTE" ? -cantidadNum : cantidadNum;
 
       const payload = {
         productoId: productoSel.id,
         cantidad: cantidadFinal,
         notas: notas,
-        tipo: tipoAjuste // Enviamos esto solo para log o validación si se requiere
+        tipo: tipoAjuste 
       };
 
       const res = await fetch(`${API_BASE}/api/movimientos/ajuste`, {
@@ -118,14 +127,10 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
       }
 
       // --- ÉXITO ---
-      // 1. Preparamos el mensaje
       const accion = tipoAjuste === "SOBRANTE" ? "Ingresaron" : "Se descontaron";
       setMensajeExito(`${accion} ${cantidad} ${productoSel.unidad.abreviatura} de ${productoSel.nombre}.`);
       
-      // 2. Ejecutamos el refresh de fondo
       if (onSuccess) onSuccess();
-
-      // 3. Mostramos la pantalla de éxito (NO cerramos todavía)
       setShowExito(true);
 
     } catch (err: any) {
@@ -148,10 +153,7 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
             El inventario ha sido actualizado correctamente. <br/>
             <span className="font-medium text-slate-700 block mt-2">{mensajeExito}</span>
           </p>
-          <button 
-            onClick={onClose} 
-            className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition shadow-lg active:scale-95"
-          >
+          <button onClick={onClose} className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-slate-800 transition shadow-lg active:scale-95">
              Entendido
           </button>
         </div>
@@ -202,7 +204,6 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
                 {resultados.length === 0 && busqueda.length > 2 && !loadingBusqueda && (
                    <p className="text-center text-gray-400 text-sm py-4">No se encontraron productos.</p>
                 )}
-                
                 {resultados.map((prod) => (
                   <button
                     key={prod.id}
@@ -284,11 +285,15 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
                     <input 
                       type="number" 
                       step="0.01"
-                      min="0"
+                      min="0.01" 
                       required
                       value={cantidad}
                       onChange={(e) => setCantidad(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-slate-800 focus:border-transparent font-mono text-lg"
+                      className={`w-full px-4 py-3 rounded-xl border focus:ring-2 font-mono text-lg transition-all ${
+                          (tipoAjuste === "FALTANTE" && productoSel && Number(cantidad) > productoSel.stockActual)
+                          ? "border-rose-300 focus:ring-rose-200 bg-rose-50 text-rose-900"
+                          : "border-gray-200 focus:ring-slate-800 focus:border-transparent"
+                      }`}
                       placeholder="0.00"
                     />
                  </div>
@@ -300,26 +305,27 @@ export function AjusteInventarioModal({ onClose, onSuccess }: Props) {
                       value={notas}
                       onChange={(e) => setNotas(e.target.value)}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-slate-800 focus:border-transparent text-sm"
-                      placeholder="Ej: Producto dañado por lluvia, Vencimiento, Error de conteo..."
+                      placeholder="Ej: Producto dañado por lluvia, Vencimiento..."
                       rows={3}
                     />
                  </div>
               </div>
 
               {error && (
-                <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-lg flex items-center gap-2">
+                <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-lg flex items-center gap-2 border border-rose-100 animate-in fade-in">
                    <AlertTriangle size={16}/> {error}
                 </div>
               )}
 
               <div className="flex gap-3 pt-2">
                  <button type="button" onClick={onClose} className="flex-1 py-3 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition">
-                    Cancelar
+                   Cancelar
                  </button>
                  <button 
                    type="submit" 
-                   disabled={enviando}
-                   className={`flex-1 py-3 font-bold rounded-xl text-white flex items-center justify-center gap-2 shadow-lg transition active:scale-95 ${
+                   // 👇 ARREGLO DEL ERROR DE TYPESCRIPT: Forzamos la comparación a booleana pura
+                   disabled={enviando || (tipoAjuste === "FALTANTE" && !!productoSel && Number(cantidad) > productoSel.stockActual)}
+                   className={`flex-1 py-3 font-bold rounded-xl text-white flex items-center justify-center gap-2 shadow-lg transition active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed ${
                       tipoAjuste === "FALTANTE" 
                         ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200" 
                         : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
