@@ -43,17 +43,17 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
 export function QuickActionsModal({ 
   onClose, 
   onIngresoClick,
-  onSolicitudClick,
+  onSolicitudClick, 
   onAjusteClick,
   onDevolucionClick,
-  onCreateProductClick // <--- 1. NUEVA PROP
+  onCreateProductClick
 }: { 
   onClose: () => void;
   onIngresoClick: () => void;
   onSolicitudClick: () => void; 
   onAjusteClick: () => void;
   onDevolucionClick: () => void;
-  onCreateProductClick: () => void; // Definición del tipo
+  onCreateProductClick: () => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -68,12 +68,12 @@ export function QuickActionsModal({
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
   const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO";
   
-  // 2. PERMISOS ESPECÍFICOS PARA CATÁLOGOS
+  // PERMISOS ESPECÍFICOS PARA CATÁLOGOS
   const isAdmin = rol === "ADMIN";
-  const canCreateProduct = rol === "ADMIN" || rol === "BODEGUERO";
+  // Admin y Bodeguero pueden gestionar productos y proveedores
+  const canManageCatalog = rol === "ADMIN" || rol === "BODEGUERO";
   
-  // La sección de catálogos se muestra si eres Admin O si puedes crear productos
-  const showSectionCatalogos = isAdmin || canCreateProduct;
+  const showSectionCatalogos = canManageCatalog;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -150,22 +150,31 @@ export function QuickActionsModal({
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Catálogos</p>
               
-              {/* Este botón lo ve Admin y Bodeguero */}
-              {canCreateProduct && (
-                <ActionItem 
-                    icon={<Box size={20} />} 
-                    title="Crear Producto" 
-                    desc="Agregar nuevo producto" 
-                    color="text-indigo-600 bg-indigo-50" 
-                    // 3. CAMBIO: Ahora llama a la prop, no navega
-                    onClick={() => { onClose(); onCreateProductClick(); }} 
-                />
+              {/* Productos y Proveedores: Admin y Bodeguero */}
+              {canManageCatalog && (
+                <>
+                    <ActionItem 
+                        icon={<Box size={20} />} 
+                        title="Crear Producto" 
+                        desc="Agregar nuevo producto al sistema" 
+                        color="text-indigo-600 bg-indigo-50" 
+                        onClick={() => { onClose(); onCreateProductClick(); }} 
+                    />
+                    
+                    {/* 🟢 CAMBIO: Proveedores ahora navega a la página de gestión y es visible para bodegueros */}
+                    <ActionItem 
+                        icon={<Users size={20} />} 
+                        title="Proveedores" 
+                        desc="Gestionar lista y contactos" 
+                        color="text-pink-600 bg-pink-50" 
+                        onClick={() => handleNav("/proveedores")} 
+                    />
+                </>
               )}
 
-              {/* Estos botones SOLO los ve el Admin */}
+              {/* Fincas, Bodegas, Lotes: SOLO Admin */}
               {isAdmin && (
                 <>
-                    <ActionItem icon={<Users size={20} />} title="Crear Proveedor" desc="Agregar nuevo proveedor" color="text-pink-600 bg-pink-50" onClick={() => handleNav("/proveedores/nuevo")} />
                     <ActionItem icon={<Home size={20} />} title="Crear Bodega" desc="Agregar nueva bodega" color="text-violet-600 bg-violet-50" onClick={() => handleNav("/bodegas/nuevo")} />
                     <ActionItem icon={<Sprout size={20} />} title="Crear Finca" desc="Agregar nueva finca" color="text-green-600 bg-green-50" onClick={() => handleNav("/fincas/nuevo")} />
                     <ActionItem icon={<MapPin size={20} />} title="Crear Lote" desc="Agregar lote de cultivo" color="text-amber-600 bg-amber-50" onClick={() => handleNav("/lotes/nuevo")} />

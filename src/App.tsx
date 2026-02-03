@@ -13,10 +13,11 @@ import SolicitudesPage from "./modules/solicitudes/SolicitudesPage";
 import { ConfiguracionPage } from "./modules/configuracion/ConfiguracionPage";
 import UsuariosPage from "./modules/usuarios/UsuariosPage";
 import { AsignacionLotesPage } from "./modules/configuracion/AsignacionLotesPage";
+import ProveedoresPage from "./modules/proveedores/ProveedoresPage";
 
-// 1. Importar los Providers
+// Importar los Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
-import { RefreshProvider } from "./context/RefreshContext"; // 👈 NUEVO: Importar el contexto de refresco
+import { RefreshProvider } from "./context/RefreshContext";
 
 // Componente Guardia: Protege las rutas
 function RequireAuth({ children }: { children: ReactNode }) { 
@@ -54,6 +55,7 @@ function AppContent() {
                 <Route path="/configuracion" element={<ConfiguracionPage />} />
                 <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="/asignacion-lotes" element={<AsignacionLotesPage />} />
+                <Route path="/proveedores" element={<ProveedoresPage />} />
               </Routes>
             </Layout>
           </RequireAuth>
@@ -66,7 +68,7 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      {/* 2. ENVOLVER LA APP: Esto permite que el Layout hable con las Páginas */}
+      {/* Envolver la APP con RefreshProvider */}
       <RefreshProvider>
         <AppContent />
       </RefreshProvider>
