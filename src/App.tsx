@@ -13,7 +13,7 @@ import SolicitudesPage from "./modules/solicitudes/SolicitudesPage";
 import { ConfiguracionPage } from "./modules/configuracion/ConfiguracionPage";
 import UsuariosPage from "./modules/usuarios/UsuariosPage";
 import { AsignacionLotesPage } from "./modules/configuracion/AsignacionLotesPage";
-import ProveedoresPage from "./modules/proveedores/ProveedoresPage";
+import ProveedoresPage from "./pages/proveedores/ProveedoresPage";
 
 // Importar los Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
