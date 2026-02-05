@@ -83,7 +83,7 @@ export function MovimientosPage() {
 
   // 🛡️ LÓGICA DE PERMISOS PARA VER LA PESTAÑA DE LOTES
   // El Solicitante NO puede ver lotes. Admin, Bodeguero y Visor SÍ.
-  const puedeVerLotes = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
+  const puedeVerLotes = ["ADMIN", "BODEGUERO", "VISOR", "SOLICITANTE"].includes(user?.rol || "");
 
   const [movimientos, setMovimientos] = useState<MovimientoResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
