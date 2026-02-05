@@ -1,14 +1,13 @@
+//src/components/ui/QuickActionsModal.tsx
+
 import { useNavigate } from "react-router-dom";
 import { 
   X, 
   ArrowDownToLine, 
-  ArrowRightLeft, 
   FileText, 
   Box, 
   Users, 
-  Home, 
   Sprout, 
-  MapPin,
   ClipboardList,
   RotateCcw
 } from "lucide-react";
@@ -39,7 +38,6 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
   );
 }
 
-// Props aceptados por el Modal
 export function QuickActionsModal({ 
   onClose, 
   onIngresoClick,
@@ -64,16 +62,11 @@ export function QuickActionsModal({
     onClose();
   };
 
-  // DEFINICIÓN DE PERMISOS
+  // PERMISOS
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
   const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO";
-  
-  // PERMISOS ESPECÍFICOS PARA CATÁLOGOS
-  const isAdmin = rol === "ADMIN";
-  // Admin y Bodeguero pueden gestionar productos y proveedores
   const canManageCatalog = rol === "ADMIN" || rol === "BODEGUERO";
-  
-  const showSectionCatalogos = canManageCatalog;
+  const isAdmin = rol === "ADMIN";
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -93,7 +86,7 @@ export function QuickActionsModal({
 
         <div className="p-4 overflow-y-auto max-h-[70vh] space-y-6">
           
-          {/* === SECCIÓN MOVIMIENTOS === */}
+          {/* === MOVIMIENTOS === */}
           {showMovimientos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
@@ -112,18 +105,10 @@ export function QuickActionsModal({
                 color="text-amber-600 bg-amber-50"
                 onClick={() => { onClose(); onAjusteClick(); }} 
               />
-
-              <ActionItem 
-                icon={<ArrowRightLeft size={20} />} 
-                title="Registrar Transferencia" 
-                desc="Transferir entre bodegas"
-                color="text-orange-600 bg-orange-50"
-                onClick={() => handleNav("/movimientos/nuevo?tipo=TRANSFERENCIA")} 
-              />
             </div>
           )}
 
-          {/* === SECCIÓN SOLICITUDES === */}
+          {/* === SOLICITUDES === */}
           {showSolicitudes && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
@@ -145,23 +130,21 @@ export function QuickActionsModal({
             </div>
           )}
 
-          {/* === SECCIÓN CATÁLOGOS === */}
-          {showSectionCatalogos && (
+          {/* === CATÁLOGOS Y GESTIÓN === */}
+          {(canManageCatalog || isAdmin) && (
             <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Catálogos</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gestión</p>
               
-              {/* Productos y Proveedores: Admin y Bodeguero */}
               {canManageCatalog && (
                 <>
                     <ActionItem 
                         icon={<Box size={20} />} 
                         title="Crear Producto" 
-                        desc="Agregar nuevo producto al sistema" 
+                        desc="Agregar nuevo producto" 
                         color="text-indigo-600 bg-indigo-50" 
                         onClick={() => { onClose(); onCreateProductClick(); }} 
                     />
                     
-                    {/* 🟢 CAMBIO: Proveedores ahora navega a la página de gestión y es visible para bodegueros */}
                     <ActionItem 
                         icon={<Users size={20} />} 
                         title="Proveedores" 
@@ -172,20 +155,16 @@ export function QuickActionsModal({
                 </>
               )}
 
-              {/* Fincas, Bodegas, Lotes: SOLO Admin */}
+              {/* SOLO ADMIN: Gestión Unificada Fincas/Lotes */}
               {isAdmin && (
-                <>
-                    <ActionItem icon={<Home size={20} />} title="Crear Bodega" desc="Agregar nueva bodega" color="text-violet-600 bg-violet-50" onClick={() => handleNav("/bodegas/nuevo")} />
-                    <ActionItem icon={<Sprout size={20} />} title="Crear Finca" desc="Agregar nueva finca" color="text-green-600 bg-green-50" onClick={() => handleNav("/fincas/nuevo")} />
-                    <ActionItem icon={<MapPin size={20} />} title="Crear Lote" desc="Agregar lote de cultivo" color="text-amber-600 bg-amber-50" onClick={() => handleNav("/lotes/nuevo")} />
-                </>
+                <ActionItem 
+                    icon={<Sprout size={20} />} 
+                    title="Fincas y Lotes" 
+                    desc="Crear fincas y administrar lotes" 
+                    color="text-green-600 bg-green-50" 
+                    onClick={() => handleNav("/fincas")} 
+                />
               )}
-            </div>
-          )}
-
-          {!showMovimientos && !showSolicitudes && !showSectionCatalogos && (
-            <div className="text-center py-8 text-gray-400 text-sm">
-              No tienes acciones rápidas disponibles para tu rol ({rol}).
             </div>
           )}
 

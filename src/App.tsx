@@ -14,6 +14,8 @@ import { ConfiguracionPage } from "./modules/configuracion/ConfiguracionPage";
 import UsuariosPage from "./modules/usuarios/UsuariosPage";
 import { AsignacionLotesPage } from "./modules/configuracion/AsignacionLotesPage";
 import ProveedoresPage from "./pages/proveedores/ProveedoresPage";
+import FincasPage from "./pages/fincas/FincasPage";
+
 
 // Importar los Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
@@ -56,6 +58,7 @@ function AppContent() {
                 <Route path="/usuarios" element={<UsuariosPage />} />
                 <Route path="/asignacion-lotes" element={<AsignacionLotesPage />} />
                 <Route path="/proveedores" element={<ProveedoresPage />} />
+                <Route path="/fincas" element={<FincasPage />} />
               </Routes>
             </Layout>
           </RequireAuth>
