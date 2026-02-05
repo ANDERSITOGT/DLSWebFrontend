@@ -34,19 +34,19 @@ export const catalogosService = {
     return res.json();
   },
 
-  // 👇 ESTA ES LA QUE ARREGLA TU PROBLEMA
-  // Al agregar 'headers: getHeaders()', el backend te dejará pasar.
-  async getFincasLotes() {
-    const res = await fetch(`${API_URL}/catalogos/fincas-lotes`, {
-        headers: getHeaders() 
-    });
-    
-    // Si el token expiró o es inválido, lanzamos error
-    if (res.status === 401) throw new Error("Sesión expirada o no autorizada");
-    if (!res.ok) throw new Error("Error al cargar fincas");
-    
-    return res.json();
-  },
+// 👇 ESTA ES LA QUE ARREGLA TU PROBLEMA
+// Al agregar 'headers: getHeaders()', el backend te dejará pasar.
+async getFincasLotes() {
+  const res = await fetch(`${API_URL}/catalogos/fincas-lotes`, {
+      headers: getHeaders() // ✅ Esto envía el token correctamente
+  });
+  
+  // Si el token expiró o es inválido, lanzamos error
+  if (res.status === 401) throw new Error("Sesión expirada o no autorizada");
+  if (!res.ok) throw new Error("Error al cargar fincas");
+  
+  return res.json();
+},
 
   // Para el módulo de configuración
   async getLotes() {
