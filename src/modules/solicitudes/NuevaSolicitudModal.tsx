@@ -226,7 +226,10 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
     }
   };
 
-  const lotesDisponibles = tempFinca ? fincas.find(f => f.id === tempFinca)?.lote || [] : [];
+//  CORRECCIÓN: Ordenamos los lotes alfabéticamente por código antes de usarlos
+
+const lotesDisponibles = (tempFinca ? fincas.find(f => f.id === tempFinca)?.lote || [] : [])
+    .sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }));
   const existeErrorStock = items.some(i => i.cantidad > i.stockMaximo);
 
   // --- RENDER: VISTA DE ÉXITO ---
