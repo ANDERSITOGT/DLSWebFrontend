@@ -18,16 +18,14 @@ import {
   ArrowRightLeft, 
   RefreshCw,       
   CornerDownLeft,
-  Loader2
+  Loader2,
+  Database
 } from "lucide-react";
-// 👇 1. IMPORTAMOS EL CONTEXTO
 import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
-// -----------------------------
-// Tipos de datos
-// -----------------------------
+// --- TIPOS DE DATOS ---
 type EstadoStock = "Normal" | "Bajo" | "Crítico";
 type EstadoProducto = "ACTIVO" | "INACTIVO";
 
@@ -79,6 +77,7 @@ type CategoriaFiltro = {
   nombre: string;
 };
 
+// Tipos para Modal Movimiento
 type MovimientoTipo = "INGRESO" | "SALIDA" | "TRANSFERENCIA" | "AJUSTE" | "DEVOLUCION";
 type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO" | "CARGANDO..."; 
 
@@ -113,122 +112,139 @@ type MovimientoFullDetalle = {
 // Componente Inventario
 // -----------------------------
 export function Inventario() {
-  // 👇 2. OBTENEMOS EL TOKEN Y USUARIO
   const { user, token } = useAuth();
-  
-  // 👇 3. LÓGICA CORREGIDA: Agregamos "VISOR" aquí
   const puedeVerDetalle = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
 
-  const [busqueda, setBusqueda] = useState("");
+  // Estados de Datos
   const [productos, setProductos] = useState<ProductoInventario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Estado para controlar si ya cargamos TODO (para ocultar el botón "Cargar más")
+  const [vistaCompleta, setVistaCompleta] = useState(false);
+
+  // Filtros
+  const [busqueda, setBusqueda] = useState("");
+  const [categorias, setCategorias] = useState<CategoriaFiltro[]>([]);
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string>(""); 
+  const [mostrandoFiltros, setMostrandoFiltros] = useState(false);
 
   // Modales
   const [detalleProducto, setDetalleProducto] = useState<DetalleProducto | null>(null);
   const [cargandoDetalleProd, setCargandoDetalleProd] = useState(false);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<MovimientoFullDetalle | null>(null);
-  
-  // Filtros
-  const [categorias, setCategorias] = useState<CategoriaFiltro[]>([]);
-  const [categoriaFiltro, setCategoriaFiltro] = useState<string>(""); 
-  const [mostrandoFiltros, setMostrandoFiltros] = useState(false);
 
-  const cargarInventario = useCallback(async (silencioso = false) => {
+  // --- CARGA DE PRODUCTOS (Server-Side) ---
+  const fetchProductos = async (filtros: { limit: number | 'all', search?: string, cat?: string }) => {
+      setCargando(true);
+      setError(null);
       try {
-        if (!silencioso) setCargando(true);
-        if (!silencioso) setError(null);
+          const params = new URLSearchParams();
+          
+          // Manejo del límite
+          if (filtros.limit !== 'all') params.append("limit", filtros.limit.toString());
+          else params.append("limit", "all");
+          
+          // Filtros
+          if (filtros.search) params.append("search", filtros.search);
+          if (filtros.cat) params.append("categoria", filtros.cat);
 
-        // 👇 AGREGAMOS HEADERS
-        const res = await fetch(`${API_BASE}/api/inventario`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (!res.ok) throw new Error("Error al cargar inventario");
-        const json = await res.json();
-        setProductos(json.productos ?? []);
+          const res = await fetch(`${API_BASE}/api/inventario?${params.toString()}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+          });
+          
+          if (!res.ok) throw new Error("Error al cargar inventario");
+          const json = await res.json();
+          setProductos(json.productos ?? []);
+          
+          // Si pedimos 'all', marcamos vista completa
+          if (filtros.limit === 'all') setVistaCompleta(true);
+          else setVistaCompleta(false);
+
       } catch (err: unknown) {
-        console.error(err);
-        if (!silencioso) {
-             const message = err instanceof Error ? err.message : "Error desconocido";
-             setError(message);
-        }
+          console.error(err);
+          setError("Error de conexión");
       } finally {
-        if (!silencioso) setCargando(false);
+          setCargando(false);
       }
-  }, [token]);
-
-  useEffect(() => {
-    cargarInventario(); 
-    const intervalo = setInterval(() => {
-        cargarInventario(true); 
-    }, 15000);
-    return () => clearInterval(intervalo);
-  }, [cargarInventario]);
-
-  useEffect(() => {
-    const fetchCategorias = async () => {
-      try {
-        // 👇 AGREGAMOS HEADERS
-        const res = await fetch(`${API_BASE}/api/categorias`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const json = (await res.json()) as { categorias: CategoriaFiltro[] };
-        setCategorias(json.categorias ?? []);
-      } catch (err) { console.error(err); }
-    };
-    fetchCategorias();
-  }, [token]);
-
-  const productosFiltrados = productos.filter((p) => {
-    const term = busqueda.toLowerCase();
-    const coincideTexto =
-      term.length === 0 ||
-      p.nombre.toLowerCase().includes(term) ||
-      p.codigo.toLowerCase().includes(term);
-    const coincideCategoria = !categoriaFiltro || p.categoria === categoriaFiltro;
-    return coincideTexto && coincideCategoria;
-  });
-
-  const handleClickProducto = async (producto: ProductoInventario) => {
-    if (!puedeVerDetalle) return;
-
-    const [cantidadTexto, unidadTexto] = producto.stockTotal.split(" ");
-    const cantidadNum = Number(cantidadTexto.replace(",", ".")) || 0;
-    const unidad = unidadTexto ?? producto.unidad;
-
-    setDetalleProducto({
-      producto: {
-        id: producto.id,
-        nombre: producto.nombre,
-        codigo: producto.codigo,
-        detalle: producto.detalle,
-        categoria: producto.categoria,
-        unidad: producto.unidad,
-        estadoProducto: producto.estadoProducto,
-      },
-      existenciaTotal: {
-        cantidad: cantidadNum,
-        unidad,
-        texto: producto.stockTotal,
-        estadoStock: producto.estadoStock,
-      },
-      movimientos: [], 
-    });
-    setCargandoDetalleProd(true);
-
-    try {
-      // 👇 AGREGAMOS HEADERS
-      const res = await fetch(`${API_BASE}/api/inventario/${producto.id}`, {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error("Error al cargar detalle");
-      const json = (await res.json()) as DetalleProducto;
-      setDetalleProducto(json);
-    } catch (err) { console.error(err); } 
-    finally { setCargandoDetalleProd(false); }
   };
 
+  // 1. EFECTO: Debounce para Búsqueda y Filtro
+  //    Espera 500ms tras escribir para pedir datos al server
+  useEffect(() => {
+      const timer = setTimeout(() => {
+          // Si hay búsqueda o filtro, pedimos 'all' (búsqueda global), si no, pedimos 30 iniciales
+          const limite = (busqueda || categoriaFiltro) ? 'all' : 30;
+          fetchProductos({ 
+              limit: limite, 
+              search: busqueda, 
+              cat: categoriaFiltro 
+          });
+      }, 500);
+
+      return () => clearTimeout(timer);
+  }, [busqueda, categoriaFiltro, token]);
+
+  // 2. Cargar Categorías (Solo una vez)
+  useEffect(() => {
+      const fetchCats = async () => {
+        try {
+            const res = await fetch(`${API_BASE}/api/inventario/categorias`, {
+                headers: { "Authorization": `Bearer ${token}` }
+            });
+            if(res.ok) {
+                const data = await res.json();
+                setCategorias(data.categorias || []);
+            }
+        } catch(e) { console.error(e); }
+      };
+      fetchCats();
+  }, [token]);
+
+  // Botón "Cargar Todo"
+  const handleCargarTodo = () => {
+      fetchProductos({ limit: 'all', search: busqueda, cat: categoriaFiltro });
+  };
+
+  // Click en Producto -> Cargar Detalle
+  const handleClickProducto = async (prod: ProductoInventario) => {
+      if (!puedeVerDetalle) return;
+      
+      // Parsear stock actual para mostrarlo mientras carga el detalle real
+      const [cantidadTexto, unidadTexto] = prod.stockTotal.split(" ");
+      const cantidadNum = Number(cantidadTexto.replace(",", ".")) || 0;
+      const unidad = unidadTexto ?? prod.unidad;
+
+      // Estado inicial visual (mientras carga el histórico)
+      setDetalleProducto({ 
+          producto: {
+            id: prod.id,
+            nombre: prod.nombre,
+            codigo: prod.codigo,
+            detalle: prod.detalle,
+            categoria: prod.categoria,
+            unidad: prod.unidad,
+            estadoProducto: prod.estadoProducto
+          }, 
+          existenciaTotal: { cantidad: cantidadNum, unidad: unidad, texto: prod.stockTotal, estadoStock: prod.estadoStock }, 
+          movimientos: [] 
+      });
+      
+      setCargandoDetalleProd(true);
+      
+      try {
+          const res = await fetch(`${API_BASE}/api/inventario/${prod.id}`, {
+              headers: { "Authorization": `Bearer ${token}` }
+          });
+          if(res.ok) {
+              const data = await res.json();
+              setDetalleProducto(data);
+          }
+      } catch(e) { console.error(e); }
+      finally { setCargandoDetalleProd(false); }
+  };
+
+  // Abrir Modal de Movimiento (Factura)
   const handleOpenMovimiento = async (itemResumen: MovimientoResumenItem) => {
       const esqueleto: MovimientoFullDetalle = {
           id: itemResumen.documentoUuid || itemResumen.documentoId, 
@@ -236,33 +252,23 @@ export function Inventario() {
           tipo: itemResumen.tipo,
           estado: "CARGANDO...", 
           fecha: itemResumen.fecha,
-          origen: null,
-          destino: null,
-          proveedor: null,
-          solicitante: null,
-          creador: null,
-          productos: [],
-          observacion: null, // 👇 PROPIEDAD FALTANTE AGREGADA
-          cargandoCompleto: true 
+          origen: null, destino: null, proveedor: null, solicitante: null, creador: null,
+          productos: [], observacion: null, cargandoCompleto: true 
       };
-
       setMovimientoSeleccionado(esqueleto);
-
+      
       try {
           const idParaFetch = itemResumen.documentoUuid || itemResumen.documentoId;
-          // 👇 AGREGAMOS HEADERS
           const res = await fetch(`${API_BASE}/api/movimientos/${idParaFetch}`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
-          
           if (!res.ok) throw new Error("Error al cargar movimiento");
-          
           const data = (await res.json()) as MovimientoFullDetalle;
           setMovimientoSeleccionado({ ...data, cargandoCompleto: false });
       } catch (error) {
           console.error(error);
           setMovimientoSeleccionado(prev => prev ? { ...prev, estado: "ANULADO", cargandoCompleto: false } : null);
-          alert("No se pudo cargar el detalle completo del movimiento.");
+          alert("No se pudo cargar el detalle.");
       }
   };
 
@@ -271,110 +277,101 @@ export function Inventario() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-20">
       <header className="mb-2">
         <h1 className="text-xl font-bold text-slate-800 tracking-tight">Inventario</h1>
-        <p className="text-sm text-slate-500">Gestión de productos y existencias.</p>
+        <p className="text-sm text-slate-500">Gestión eficiente de existencias.</p>
       </header>
 
+      {/* BARRA DE BÚSQUEDA Y FILTROS */}
       <section className="space-y-3">
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <div className="w-full md:max-w-xl relative">
             <input
               type="text"
-              placeholder="Buscar por nombre o código..."
+              placeholder="Buscar producto en todo el sistema..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pl-10 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           </div>
-
+          
           <div className="flex gap-2">
-            <button
-              onClick={() => setMostrandoFiltros((prev) => !prev)}
-              className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all shadow-sm ${mostrandoFiltros ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-            >
-              <Filter size={14} /> Filtros
-            </button>
-            <button
-              onClick={handleExportPdf}
-              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-all"
-            >
+             <button 
+                onClick={() => setMostrandoFiltros(!mostrandoFiltros)} 
+                className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all shadow-sm ${mostrandoFiltros ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+             >
+                <Filter size={14} /> Filtros
+             </button>
+             <button onClick={handleExportPdf} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-all">
               <FileText size={14} /> Exportar
             </button>
           </div>
         </div>
 
         {mostrandoFiltros && (
-          <div className="mt-2 animate-in slide-in-from-top-2 fade-in duration-200">
-            <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-              <button
-                onClick={() => setCategoriaFiltro("")}
-                className={cn(
-                  "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all",
-                  !categoriaFiltro
-                    ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-                    : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                )}
-              >
-                Todas
-              </button>
-              {categorias.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setCategoriaFiltro(cat.nombre)}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-[11px] font-medium transition-all",
-                    categoriaFiltro === cat.nombre
-                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-                      : "bg-slate-50 text-slate-600 hover:bg-slate-100"
-                  )}
-                >
-                  {cat.nombre}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm animate-in slide-in-from-top-2">
+                <button onClick={() => setCategoriaFiltro("")} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", !categoriaFiltro ? "bg-emerald-600 text-white shadow-md" : "bg-slate-50 text-slate-600 hover:bg-slate-100")}>Todas</button>
+                {categorias.map(c => (
+                    <button key={c.id} onClick={() => setCategoriaFiltro(c.nombre)} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", categoriaFiltro === c.nombre ? "bg-emerald-600 text-white shadow-md" : "bg-slate-50 text-slate-600 hover:bg-slate-100")}>
+                        {c.nombre}
+                    </button>
+                ))}
             </div>
-          </div>
         )}
       </section>
 
-      <section className="space-y-3">
-        {!cargando && !error && (
-            <div className="flex items-center gap-2">
-                <SectionTitle title="Productos" />
-                <span className="text-xs text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{productosFiltrados.length}</span>
-            </div>
-        )}
+      {/* LISTA DE PRODUCTOS */}
+      <section className="space-y-4">
+         {!cargando && !error && (
+             <div className="flex items-center gap-2">
+                 <SectionTitle title={busqueda ? "Resultados de búsqueda" : "Productos más usados"} />
+                 <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                    {productos.length}
+                 </span>
+             </div>
+         )}
 
-        {cargando && <div className="py-20 text-center text-slate-400 text-sm">Cargando inventario...</div>}
-        {error && <div className="py-10 text-center text-rose-500 text-sm bg-rose-50 rounded-xl border border-rose-100">Error: {error}</div>}
+         {cargando && <div className="py-20 text-center text-slate-400 flex justify-center gap-2 items-center text-sm"><Loader2 className="animate-spin" size={20}/> Cargando inventario...</div>}
+         {error && <div className="py-10 text-center text-rose-500 text-sm bg-rose-50 rounded-xl border border-rose-100">Error: {error}</div>}
+         
+         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+             {productos.map(p => (
+                 <ProductoCard 
+                    key={p.id} 
+                    producto={p} 
+                    onClick={puedeVerDetalle ? () => handleClickProducto(p) : undefined} 
+                 />
+             ))}
+         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {productosFiltrados.map((producto) => (
-            <ProductoCard
-              key={producto.id}
-              producto={producto}
-              onClick={puedeVerDetalle ? () => handleClickProducto(producto) : undefined}
-            />
-          ))}
+         {!cargando && productos.length === 0 && (
+             <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400">
+                 <Package className="w-12 h-12 mx-auto text-slate-300 mb-2 opacity-50"/>
+                 <p className="text-sm font-medium">No se encontraron productos.</p>
+                 <p className="text-xs">Intenta con otro término de búsqueda.</p>
+             </div>
+         )}
 
-          {!cargando && productosFiltrados.length === 0 && (
-            <div className="col-span-full py-12 text-center bg-slate-50 rounded-2xl border border-slate-100 border-dashed">
-                <Package className="w-10 h-10 text-slate-300 mx-auto mb-2"/>
-                <p className="text-slate-500 font-medium">No se encontraron productos.</p>
-            </div>
-          )}
-        </div>
+         {/* BOTÓN CARGAR TODO (Solo si no estamos buscando, hay productos y no se ha cargado todo aun) */}
+         {!cargando && !vistaCompleta && !busqueda && !categoriaFiltro && productos.length > 0 && (
+             <div className="flex justify-center pt-6 pb-4">
+                 <button onClick={handleCargarTodo} className="bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg hover:bg-slate-700 transition active:scale-95 flex items-center gap-2">
+                     <Database size={16}/> Cargar Inventario Completo
+                 </button>
+             </div>
+         )}
       </section>
 
+      {/* MODALES */}
       {detalleProducto && (
-        <DetalleProductoModal
-          detalle={detalleProducto}
-          onClose={() => setDetalleProducto(null)}
-          loading={cargandoDetalleProd}
-          onOpenMovimiento={handleOpenMovimiento} 
-        />
+          <DetalleProductoModal 
+             detalle={detalleProducto} 
+             loading={cargandoDetalleProd} 
+             onClose={() => setDetalleProducto(null)} 
+             onOpenMovimiento={handleOpenMovimiento}
+          />
       )}
 
       {movimientoSeleccionado && (
@@ -391,7 +388,6 @@ export function Inventario() {
 // Componentes UI Auxiliares
 // -----------------------------
 
-// 👇 TARJETA OPTIMIZADA PARA MÓVIL
 function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onClick?: () => void; }) {
   const stockConfig = {
     Normal: { border: "border-l-emerald-500", iconBg: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
@@ -531,9 +527,9 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
                     );
                 })}
                 {totalOcultos > 0 && (
-                     <div className="text-center py-2 text-xs text-slate-400 italic bg-slate-50 rounded-lg">
-                         ... y {totalOcultos} movimientos más antiguos no mostrados.
-                     </div>
+                      <div className="text-center py-2 text-xs text-slate-400 italic bg-slate-50 rounded-lg">
+                          ... y {totalOcultos} movimientos más antiguos no mostrados.
+                      </div>
                 )}
              </div>
           </div>
