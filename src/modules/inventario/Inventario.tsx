@@ -19,9 +19,13 @@ import {
   RefreshCw,       
   CornerDownLeft,
   Loader2,
-  Database
+  Database,
+  Edit2 // IMPORTAMOS EL ICONO DE EDITAR
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+
+// 👇 IMPORTAMOS EL MODAL QUE ACABAMOS DE CREAR
+import InfoProductoModal from "../../modules/inventario/components/InfoProductoModal";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -77,7 +81,6 @@ type CategoriaFiltro = {
   nombre: string;
 };
 
-// Tipos para Modal Movimiento
 type MovimientoTipo = "INGRESO" | "SALIDA" | "TRANSFERENCIA" | "AJUSTE" | "DEVOLUCION";
 type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO" | "CARGANDO..."; 
 
@@ -114,13 +117,12 @@ type MovimientoFullDetalle = {
 export function Inventario() {
   const { user, token } = useAuth();
   const puedeVerDetalle = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
+  const canManageCatalog = ["ADMIN", "BODEGUERO"].includes(user?.rol || ""); // Permiso para editar
 
   // Estados de Datos
   const [productos, setProductos] = useState<ProductoInventario[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // Estado para controlar si ya cargamos TODO (para ocultar el botón "Cargar más")
   const [vistaCompleta, setVistaCompleta] = useState(false);
 
   // Filtros
@@ -133,19 +135,19 @@ export function Inventario() {
   const [detalleProducto, setDetalleProducto] = useState<DetalleProducto | null>(null);
   const [cargandoDetalleProd, setCargandoDetalleProd] = useState(false);
   const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<MovimientoFullDetalle | null>(null);
+  
+  // 👇 NUEVO ESTADO PARA EL MODAL DE EDICIÓN DE PRODUCTO
+  const [showEditModal, setShowEditModal] = useState(false);
 
-  // --- CARGA DE PRODUCTOS (Server-Side) ---
+  // --- CARGA DE PRODUCTOS ---
   const fetchProductos = async (filtros: { limit: number | 'all', search?: string, cat?: string }) => {
       setCargando(true);
       setError(null);
       try {
           const params = new URLSearchParams();
-          
-          // Manejo del límite
           if (filtros.limit !== 'all') params.append("limit", filtros.limit.toString());
           else params.append("limit", "all");
           
-          // Filtros
           if (filtros.search) params.append("search", filtros.search);
           if (filtros.cat) params.append("categoria", filtros.cat);
 
@@ -157,7 +159,6 @@ export function Inventario() {
           const json = await res.json();
           setProductos(json.productos ?? []);
           
-          // Si pedimos 'all', marcamos vista completa
           if (filtros.limit === 'all') setVistaCompleta(true);
           else setVistaCompleta(false);
 
@@ -169,23 +170,15 @@ export function Inventario() {
       }
   };
 
-  // 1. EFECTO: Debounce para Búsqueda y Filtro
-  //    Espera 500ms tras escribir para pedir datos al server
   useEffect(() => {
       const timer = setTimeout(() => {
-          // Si hay búsqueda o filtro, pedimos 'all' (búsqueda global), si no, pedimos 30 iniciales
           const limite = (busqueda || categoriaFiltro) ? 'all' : 30;
-          fetchProductos({ 
-              limit: limite, 
-              search: busqueda, 
-              cat: categoriaFiltro 
-          });
+          fetchProductos({ limit: limite, search: busqueda, cat: categoriaFiltro });
       }, 500);
 
       return () => clearTimeout(timer);
   }, [busqueda, categoriaFiltro, token]);
 
-  // 2. Cargar Categorías (Solo una vez)
   useEffect(() => {
       const fetchCats = async () => {
         try {
@@ -201,21 +194,17 @@ export function Inventario() {
       fetchCats();
   }, [token]);
 
-  // Botón "Cargar Todo"
   const handleCargarTodo = () => {
       fetchProductos({ limit: 'all', search: busqueda, cat: categoriaFiltro });
   };
 
-  // Click en Producto -> Cargar Detalle
   const handleClickProducto = async (prod: ProductoInventario) => {
       if (!puedeVerDetalle) return;
       
-      // Parsear stock actual para mostrarlo mientras carga el detalle real
       const [cantidadTexto, unidadTexto] = prod.stockTotal.split(" ");
       const cantidadNum = Number(cantidadTexto.replace(",", ".")) || 0;
       const unidad = unidadTexto ?? prod.unidad;
 
-      // Estado inicial visual (mientras carga el histórico)
       setDetalleProducto({ 
           producto: {
             id: prod.id,
@@ -244,7 +233,6 @@ export function Inventario() {
       finally { setCargandoDetalleProd(false); }
   };
 
-  // Abrir Modal de Movimiento (Factura)
   const handleOpenMovimiento = async (itemResumen: MovimientoResumenItem) => {
       const esqueleto: MovimientoFullDetalle = {
           id: itemResumen.documentoUuid || itemResumen.documentoId, 
@@ -274,6 +262,21 @@ export function Inventario() {
 
   const handleExportPdf = () => {
     window.open(`${API_BASE}/api/inventario/pdf`, "_blank");
+  };
+
+  // 👇 Función auxiliar para abrir el modal de edición y pasarle la orden de búsqueda
+  const handleOpenEditFromDetail = () => {
+      // Cerramos el modal de detalles
+      setDetalleProducto(null);
+      // Abrimos el modal de InfoProducto
+      setShowEditModal(true);
+      
+      // Hacemos un pequeño "hack" amigable: 
+      // Insertamos el código del producto en la barra de búsqueda global del modal de InfoProducto 
+      // usando un dispatch de evento personalizado o simplemente confiamos en que el usuario 
+      // pegará el código que acaba de ver, o lo dejamos así y dejamos que busque.
+      // *Nota: Para que sea automático se requeriría pasarle un prop `initialSearch` al InfoProductoModal,
+      // pero como lo pediste sin cambiar la arquitectura, al abrirlo se mostrará el buscador limpio.*
   };
 
   return (
@@ -354,7 +357,6 @@ export function Inventario() {
              </div>
          )}
 
-         {/* BOTÓN CARGAR TODO (Solo si no estamos buscando, hay productos y no se ha cargado todo aun) */}
          {!cargando && !vistaCompleta && !busqueda && !categoriaFiltro && productos.length > 0 && (
              <div className="flex justify-center pt-6 pb-4">
                  <button onClick={handleCargarTodo} className="bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg hover:bg-slate-700 transition active:scale-95 flex items-center gap-2">
@@ -371,6 +373,8 @@ export function Inventario() {
              loading={cargandoDetalleProd} 
              onClose={() => setDetalleProducto(null)} 
              onOpenMovimiento={handleOpenMovimiento}
+             canEdit={canManageCatalog} // 👈 PASAMOS PERMISO
+             onEditClick={handleOpenEditFromDetail} // 👈 PASAMOS FUNCION
           />
       )}
 
@@ -379,6 +383,20 @@ export function Inventario() {
              detalle={movimientoSeleccionado}
              onClose={() => setMovimientoSeleccionado(null)}
           />
+      )}
+
+      {/* 👇 EL MODAL DE EDICIÓN SE RENDERIZA AQUÍ */}
+      {showEditModal && (
+         <InfoProductoModal
+           isOpen={showEditModal}
+           onClose={() => setShowEditModal(false)}
+           onSuccess={() => {
+              setShowEditModal(false);
+              // Recargamos el inventario para ver los cambios
+              const limite = (busqueda || categoriaFiltro) ? 'all' : 30;
+              fetchProductos({ limit: limite, search: busqueda, cat: categoriaFiltro });
+           }} 
+         />
       )}
     </div>
   );
@@ -438,9 +456,11 @@ interface DetalleProductoModalProps {
   loading: boolean;
   onClose: () => void;
   onOpenMovimiento: (item: MovimientoResumenItem) => void;
+  canEdit?: boolean;
+  onEditClick?: () => void;
 }
 
-function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: DetalleProductoModalProps) {
+function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento, canEdit, onEditClick }: DetalleProductoModalProps) {
   const { producto, existenciaTotal, movimientos } = detalle;
   const isNegative = existenciaTotal.cantidad < 0;
 
@@ -472,16 +492,33 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento }: D
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm px-4 animate-in fade-in duration-200">
       <div className="max-h-[85vh] w-full max-w-lg overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col animate-in zoom-in-95 duration-200">
-        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50">
-          <div>
+        <div className="flex items-start justify-between border-b border-slate-100 px-6 py-4 bg-slate-50/50 relative">
+          
+          <div className="flex-1 pr-4">
               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{producto.categoria}</span>
-              <h2 className="text-lg font-bold text-slate-900">{producto.nombre}</h2>
-              <p className="text-xs text-slate-500 flex items-center gap-2">
+              <h2 className="text-lg font-bold text-slate-900 pr-8">{producto.nombre}</h2>
+              <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
                   {producto.codigo}
                   {producto.detalle && <span className="text-emerald-600 bg-emerald-50 px-1.5 rounded">{producto.detalle}</span>}
               </p>
           </div>
-          <button onClick={onClose} className="rounded-full p-1.5 hover:bg-slate-200 text-slate-500 transition"><X size={20} /></button>
+          
+          {/* BOTONES DE LA ESQUINA */}
+          <div className="flex gap-2 absolute top-4 right-4">
+            {canEdit && (
+                <button 
+                  onClick={onEditClick} 
+                  className="rounded-full p-2 bg-blue-50 text-blue-600 hover:bg-blue-100 transition shadow-sm"
+                  title="Editar Información"
+                >
+                  <Edit2 size={16} />
+                </button>
+            )}
+            <button onClick={onClose} className="rounded-full p-2 hover:bg-slate-200 text-slate-500 transition">
+              <X size={18} />
+            </button>
+          </div>
+          
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-6 space-y-6">

@@ -19,8 +19,8 @@ import { IngresoModal } from "../../modules/movimientos/IngresoModal";
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
-// 👇 NUEVO IMPORT
 import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
+import InfoProductoModal from "../../modules/inventario/components/InfoProductoModal";
 
 type MobileLayoutProps = {
   children: ReactNode;
@@ -39,10 +39,11 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   // --- NUEVOS ESTADOS FASE 2 ---
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
-  // 👇 NUEVO ESTADO FASE 3 (Crear Producto)
   const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
+  // ESTADO PARA EL MODAL DE INFORMACION
+  const [showInfoProductoModal, setShowInfoProductoModal] = useState(false);
 
-  // Configuración del Menú Inferior (5 Items)
+  // Configuracion del Menu Inferior (5 Items)
   const navItems = [
     { 
       to: "/", 
@@ -84,7 +85,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       
-      {/* 1. Header Móvil */}
+      {/* 1. Header Movil */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm">
          <span className="font-bold text-xl text-slate-800 tracking-tight">
             DLS Web
@@ -100,7 +101,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         {children}
       </main>
 
-      {/* 3. Botón Flotante (+) */}
+      {/* 3. Boton Flotante (+) */}
       <button
         onClick={() => setShowActions(true)}
         className="fixed bottom-24 right-4 w-14 h-14 bg-emerald-600 hover:bg-emerald-500 rounded-full shadow-lg shadow-emerald-600/40 flex items-center justify-center text-white active:scale-95 transition-transform z-40"
@@ -108,7 +109,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <Plus size={28} strokeWidth={2.5} />
       </button>
 
-      {/* 4. Barra de Navegación Inferior (Dark Mode) */}
+      {/* 4. Barra de Navegacion Inferior (Dark Mode) */}
       <nav className="fixed bottom-0 left-0 right-0 bg-slate-900 border-t border-slate-800 pb-safe z-30 shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
         <div className="flex justify-around items-center h-16 relative px-1">
             {navItems.map((item) => {
@@ -140,7 +141,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
           onSolicitudClick={() => setShowSolicitudModal(true)} 
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
-          onCreateProductClick={() => setShowCrearProductoModal(true)} // 👈 CONECTADO
+          onCreateProductClick={() => setShowCrearProductoModal(true)}
+          onInfoProductoClick={() => setShowInfoProductoModal(true)} 
         />
       )}
 
@@ -172,7 +174,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         />
       )}
 
-      {/* 6. Devolución */}
+      {/* 6. Devolucion */}
       {showDevolucionModal && (
          <SolicitudDevolucionModal 
             onClose={() => setShowDevolucionModal(false)} 
@@ -180,12 +182,21 @@ export function MobileLayout({ children }: MobileLayoutProps) {
          />
       )}
 
-      {/* 7. Crear Producto (NUEVO) */}
+      {/* 7. Crear Producto */}
       {showCrearProductoModal && (
         <CrearProductoModal
           isOpen={showCrearProductoModal}
           onClose={() => setShowCrearProductoModal(false)}
           onSuccess={() => setShowCrearProductoModal(false)}
+        />
+      )}
+
+      {/* 8. Informacion y Edicion de Producto (NUEVO) */}
+      {showInfoProductoModal && (
+        <InfoProductoModal
+          isOpen={showInfoProductoModal}
+          onClose={() => setShowInfoProductoModal(false)}
+          onSuccess={() => setShowInfoProductoModal(false)} 
         />
       )}
 

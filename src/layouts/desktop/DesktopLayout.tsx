@@ -1,14 +1,14 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
-  Home, 
-  Boxes, 
-  ArrowLeftRight, 
-  FileText, 
-  Settings, 
-  LogOut,
-  Plus,
-  AlertTriangle
+ Home, 
+ Boxes, 
+ ArrowLeftRight, 
+ FileText, 
+ Settings, 
+ LogOut,
+ Plus,
+ AlertTriangle
 } from "lucide-react";
 
 // Contextos
@@ -22,230 +22,243 @@ import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudMod
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
 import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
+// IMPORTAMOS EL NUEVO MODAL AQUI
+import InfoProductoModal from "../../modules/inventario/components/InfoProductoModal";
 
 type DesktopLayoutProps = {
-  children: ReactNode;
+ children: ReactNode;
 };
 
-// Configuración del Menú
+// Configuracion del Menu
 const menuItems = [
-  { 
-    label: "Inicio", 
-    to: "/", 
-    icon: <Home size={20} />, 
-    color: "group-hover:text-blue-400", 
-    activeClass: "bg-blue-500/20 text-blue-300 border-r-4 border-blue-500" 
-  },
-  { 
-    label: "Inventario", 
-    to: "/inventario", 
-    icon: <Boxes size={20} />, 
-    color: "group-hover:text-emerald-400", 
-    activeClass: "bg-emerald-500/20 text-emerald-300 border-r-4 border-emerald-500"
-  },
-  { 
-    label: "Movimientos", 
-    to: "/movimientos", 
-    icon: <ArrowLeftRight size={20} />, 
-    color: "group-hover:text-amber-400", 
-    activeClass: "bg-amber-500/20 text-amber-300 border-r-4 border-amber-500"
-  },
-  { 
-    label: "Solicitudes", 
-    to: "/solicitudes", 
-    icon: <FileText size={20} />, 
-    color: "group-hover:text-violet-400", 
-    activeClass: "bg-violet-500/20 text-violet-300 border-r-4 border-violet-500"
-  },
-  { 
-    label: "Configuración", 
-    to: "/configuracion", 
-    icon: <Settings size={20} />, 
-    color: "group-hover:text-slate-300", 
-    activeClass: "bg-slate-500/30 text-slate-200 border-r-4 border-slate-400"
-  },
+ { 
+ label: "Inicio", 
+ to: "/", 
+ icon: <Home size={20} />, 
+ color: "group-hover:text-blue-400", 
+ activeClass: "bg-blue-500/20 text-blue-300 border-r-4 border-blue-500" 
+ },
+ { 
+ label: "Inventario", 
+ to: "/inventario", 
+ icon: <Boxes size={20} />, 
+ color: "group-hover:text-emerald-400", 
+ activeClass: "bg-emerald-500/20 text-emerald-300 border-r-4 border-emerald-500"
+ },
+ { 
+ label: "Movimientos", 
+ to: "/movimientos", 
+ icon: <ArrowLeftRight size={20} />, 
+ color: "group-hover:text-amber-400", 
+ activeClass: "bg-amber-500/20 text-amber-300 border-r-4 border-amber-500"
+ },
+ { 
+ label: "Solicitudes", 
+ to: "/solicitudes", 
+ icon: <FileText size={20} />, 
+ color: "group-hover:text-violet-400", 
+ activeClass: "bg-violet-500/20 text-violet-300 border-r-4 border-violet-500"
+ },
+ { 
+ label: "Configuracion", 
+ to: "/configuracion", 
+ icon: <Settings size={20} />, 
+ color: "group-hover:text-slate-300", 
+ activeClass: "bg-slate-500/30 text-slate-200 border-r-4 border-slate-400"
+ },
 ];
 
 export function DesktopLayout({ children }: DesktopLayoutProps) {
-  const { user, logout } = useAuth(); 
-  const location = useLocation();
-  const { triggerRefreshSolicitudes } = useRefresh(); 
+ const { user, logout } = useAuth(); 
+ const location = useLocation();
+ const { triggerRefreshSolicitudes } = useRefresh(); 
 
-  // --- ESTADOS ---
-  const [showActions, setShowActions] = useState(false);       
-  const [showIngresoModal, setShowIngresoModal] = useState(false); 
-  const [showSolicitudModal, setShowSolicitudModal] = useState(false); 
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);   
+ // --- ESTADOS ---
+ const [showActions, setShowActions] = useState(false); 
+ const [showIngresoModal, setShowIngresoModal] = useState(false); 
+ const [showSolicitudModal, setShowSolicitudModal] = useState(false); 
+ const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); 
 
-  const [showAjusteModal, setShowAjusteModal] = useState(false);
-  const [showDevolucionModal, setShowDevolucionModal] = useState(false);
-  const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
+ const [showAjusteModal, setShowAjusteModal] = useState(false);
+ const [showDevolucionModal, setShowDevolucionModal] = useState(false);
+ const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
+ // ESTADO PARA EL NUEVO MODAL DE INFORMACION DE PRODUCTO
+ const [showInfoProductoModal, setShowInfoProductoModal] = useState(false);
 
-  const bgImage = "https://images.unsplash.com/photo-1625246333195-58197bd000aa?q=80&w=1000&auto=format&fit=crop";
 
-  return (
-    // 1. CAMBIO: Usamos h-screen (altura fija) y overflow-hidden para evitar scroll en el body
-    <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
-      
-      {/* SIDEBAR */}
-      {/* 2. CAMBIO: Quitamos 'relative' si estorbaba y aseguramos h-full para que ocupe todo el alto */}
-      <aside className="w-64 h-full flex flex-col shadow-2xl z-20 relative shrink-0">
-        
-        {/* Fondos */}
-        <div className="absolute inset-0 z-0 bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }} />
-        <div className="absolute inset-0 z-0 bg-slate-900/90 backdrop-blur-[2px]" />
+ const bgImage = "https://cdn0.ecologiaverde.com/es/posts/0/5/6/sector_agricola_que_es_actividades_e_importancia_4650_orig.jpg";
 
-        {/* Contenido Sidebar */}
-        <div className="relative z-10 flex flex-col h-full text-white">
-          
-          {/* Header Logo */}
-          <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
-            <div className="font-bold text-xl tracking-wide flex items-center gap-2">
-               <span className="bg-gradient-to-tr from-emerald-400 to-blue-500 bg-clip-text text-transparent">DLS Web</span>
-            </div>
-          </div>
+ return (
+ <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
+ 
+ {/* SIDEBAR */}
+ <aside className="w-64 h-full flex flex-col shadow-2xl z-20 relative shrink-0">
+ 
+ {/* Fondos */}
+ <div className="absolute inset-0 z-0 bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }} />
+ <div className="absolute inset-0 z-0 bg-slate-900/90 backdrop-blur-[2px]" />
 
-          {/* User Info */}
-          <div className="p-4 border-b border-white/5 shrink-0">
-             <div className="bg-white/5 rounded-xl p-3 flex items-center gap-3 backdrop-blur-md border border-white/5">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs shadow-lg">
-                  {user?.nombre.charAt(0).toUpperCase()}
-                </div>
-                <div className="overflow-hidden">
-                   <p className="text-sm font-medium truncate">{user?.nombre}</p>
-                   <p className="text-[10px] text-slate-400 uppercase tracking-wider">{user?.rol}</p>
-                </div>
-             </div>
-          </div>
+ {/* Contenido Sidebar */}
+ <div className="relative z-10 flex flex-col h-full text-white">
+ 
+ {/* Header Logo */}
+ <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
+ <div className="font-bold text-xl tracking-wide flex items-center gap-2">
+ <span className="bg-gradient-to-tr from-emerald-400 to-blue-500 bg-clip-text text-transparent">DLS Web</span>
+ </div>
+ </div>
 
-          {/* Navegación (Esto sí puede tener scroll si hay muchos items) */}
-          <nav className="flex-1 py-6 space-y-1 overflow-y-auto custom-scrollbar">
-            {menuItems.map((item) => {
-              const active = location.pathname === item.to;
-              return (
-                <Link
-                  key={item.to}
-                  to={item.to}
-                  className={`
-                    group relative flex items-center px-6 py-3.5 text-sm font-medium transition-all duration-200
-                    ${active ? item.activeClass : "text-slate-400 hover:bg-white/5 hover:text-white"}
-                  `}
-                >
-                  <span className={`mr-3 transition-colors ${active ? "" : item.color}`}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                  {active && <div className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-white/5 to-transparent pointer-events-none" />}
-                </Link>
-              );
-            })}
-          </nav>
+ {/* User Info */}
+ <div className="p-4 border-b border-white/5 shrink-0">
+ <div className="bg-white/5 rounded-xl p-3 flex items-center gap-3 backdrop-blur-md border border-white/5">
+ <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xs shadow-lg">
+ {user?.nombre.charAt(0).toUpperCase()}
+ </div>
+ <div className="overflow-hidden">
+ <p className="text-sm font-medium truncate">{user?.nombre}</p>
+ <p className="text-[10px] text-slate-400 uppercase tracking-wider">{user?.rol}</p>
+ </div>
+ </div>
+ </div>
 
-          {/* Footer Sidebar (Siempre visible al fondo) */}
-          <div className="p-4 border-t border-white/10 shrink-0 space-y-2 bg-slate-900/50 backdrop-blur-sm">
-            
-            <button
-              onClick={() => setShowActions(true)}
-              className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
-            >
-               <Plus size={20}/> Acciones Rápidas
-            </button>
+ {/* Navegacion */}
+ <nav className="flex-1 py-6 space-y-1 overflow-y-auto custom-scrollbar">
+ {menuItems.map((item) => {
+ const active = location.pathname === item.to;
+ return (
+ <Link
+ key={item.to}
+ to={item.to}
+ className={`
+ group relative flex items-center px-6 py-3.5 text-sm font-medium transition-all duration-200
+ ${active ? item.activeClass : "text-slate-400 hover:bg-white/5 hover:text-white"}
+ `}
+ >
+ <span className={`mr-3 transition-colors ${active ? "" : item.color}`}>
+ {item.icon}
+ </span>
+ {item.label}
+ {active && <div className="absolute inset-y-0 left-0 w-full bg-gradient-to-r from-white/5 to-transparent pointer-events-none" />}
+ </Link>
+ );
+ })}
+ </nav>
 
-            <button
-              onClick={() => setShowLogoutConfirm(true)}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
-            >
-              <LogOut size={16} /> Cerrar Sesión
-            </button>
-          </div>
+ {/* Footer Sidebar */}
+ <div className="p-4 border-t border-white/10 shrink-0 space-y-2 bg-slate-900/50 backdrop-blur-sm">
+ 
+ <button
+ onClick={() => setShowActions(true)}
+ className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
+ >
+ <Plus size={20}/> Acciones Rapidas
+ </button>
 
-        </div>
-      </aside>
+ <button
+ onClick={() => setShowLogoutConfirm(true)}
+ className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors"
+ >
+ <LogOut size={16} /> Cerrar Sesion
+ </button>
+ </div>
 
-      {/* CONTENIDO PRINCIPAL */}
-      {/* 3. CAMBIO: h-full y overflow-y-auto aquí. Esto hace que solo esta área tenga scroll */}
-      <main className="flex-1 h-full overflow-y-auto bg-slate-50 relative z-0">
-         {/* Header móvil opcional */}
-        <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center lg:hidden">
-            <span className="font-bold text-slate-700">DLS Web</span>
-        </header>
+ </div>
+ </aside>
 
-        <div className="p-4 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8">
-           {children}
-        </div>
-      </main>
+ {/* CONTENIDO PRINCIPAL */}
+ <main className="flex-1 h-full overflow-y-auto bg-slate-50 relative z-0">
+ {/* Header movil opcional */}
+ <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center lg:hidden">
+ <span className="font-bold text-slate-700">DLS Web</span>
+ </header>
 
-      {/* --- MODALES (Sin cambios) --- */}
+ <div className="p-4 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8">
+ {children}
+ </div>
+ </main>
 
-      {showActions && (
-        <QuickActionsModal 
-          onClose={() => setShowActions(false)} 
-          onIngresoClick={() => setShowIngresoModal(true)} 
-          onSolicitudClick={() => setShowSolicitudModal(true)}
-          onAjusteClick={() => setShowAjusteModal(true)}
-          onDevolucionClick={() => setShowDevolucionModal(true)}
-          onCreateProductClick={() => setShowCrearProductoModal(true)} 
-        />
-      )}
+ {/* --- MODALES --- */}
 
-      {showIngresoModal && (
-        <IngresoModal 
-          onClose={() => setShowIngresoModal(false)}
-          onSuccess={() => {
-            setShowIngresoModal(false);
-            triggerRefreshSolicitudes(); 
-          }}
-        />
-      )}
+ {showActions && (
+ <QuickActionsModal 
+ onClose={() => setShowActions(false)} 
+ onIngresoClick={() => setShowIngresoModal(true)} 
+ onSolicitudClick={() => setShowSolicitudModal(true)}
+ onAjusteClick={() => setShowAjusteModal(true)}
+ onDevolucionClick={() => setShowDevolucionModal(true)}
+ onCreateProductClick={() => setShowCrearProductoModal(true)} 
+ // PASAMOS LA FUNCION AQUI
+ onInfoProductoClick={() => setShowInfoProductoModal(true)}
+ />
+ )}
 
-      {showSolicitudModal && (
-        <NuevaSolicitudModal
-          onClose={() => setShowSolicitudModal(false)}
-          onSuccess={() => {
-            setShowSolicitudModal(false);
-            triggerRefreshSolicitudes(); 
-          }}
-        />
-      )}
+ {showIngresoModal && (
+ <IngresoModal 
+ onClose={() => setShowIngresoModal(false)}
+ onSuccess={() => {
+ setShowIngresoModal(false);
+ triggerRefreshSolicitudes(); 
+ }}
+ />
+ )}
 
-      {showLogoutConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
-             <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
-                <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle className="text-rose-600 w-8 h-8" />
-                </div>
-                <h3 className="text-lg font-bold text-slate-800 mb-2">¿Cerrar Sesión?</h3>
-                <p className="text-sm text-slate-500 mb-6">¿Estás seguro de que quieres salir del sistema?</p>
-                <div className="flex gap-3">
-                    <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Cancelar</button>
-                    <button onClick={logout} className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 transition shadow-lg shadow-rose-200">Sí, Salir</button>
-                </div>
-             </div>
-        </div>
-      )}
+ {showSolicitudModal && (
+ <NuevaSolicitudModal
+ onClose={() => setShowSolicitudModal(false)}
+ onSuccess={() => {
+ setShowSolicitudModal(false);
+ triggerRefreshSolicitudes(); 
+ }}
+ />
+ )}
 
-      {showAjusteModal && (
-        <AjusteInventarioModal 
-          onClose={() => setShowAjusteModal(false)} 
-          onSuccess={() => {}}
-        />
-      )}
+ {showLogoutConfirm && (
+ <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">
+ <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 text-center animate-in zoom-in-95">
+ <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
+ <AlertTriangle className="text-rose-600 w-8 h-8" />
+ </div>
+ <h3 className="text-lg font-bold text-slate-800 mb-2">¿Cerrar Sesion?</h3>
+ <p className="text-sm text-slate-500 mb-6">¿Estas seguro de que quieres salir del sistema?</p>
+ <div className="flex gap-3">
+ <button onClick={() => setShowLogoutConfirm(false)} className="flex-1 bg-white border border-slate-200 text-slate-700 py-2.5 rounded-xl font-bold text-sm hover:bg-slate-50 transition">Cancelar</button>
+ <button onClick={logout} className="flex-1 bg-rose-600 text-white py-2.5 rounded-xl font-bold text-sm hover:bg-rose-700 transition shadow-lg shadow-rose-200">Si, Salir</button>
+ </div>
+ </div>
+ </div>
+ )}
 
-      {showDevolucionModal && (
-         <SolicitudDevolucionModal 
-            onClose={() => setShowDevolucionModal(false)} 
-            onSuccess={() => triggerRefreshSolicitudes()} 
-         />
-      )}
+ {showAjusteModal && (
+ <AjusteInventarioModal 
+ onClose={() => setShowAjusteModal(false)} 
+ onSuccess={() => {}}
+ />
+ )}
 
-      {showCrearProductoModal && (
-        <CrearProductoModal
-          isOpen={showCrearProductoModal}
-          onClose={() => setShowCrearProductoModal(false)}
-          onSuccess={() => setShowCrearProductoModal(false)} 
-        />
-      )}
+ {showDevolucionModal && (
+ <SolicitudDevolucionModal 
+ onClose={() => setShowDevolucionModal(false)} 
+ onSuccess={() => triggerRefreshSolicitudes()} 
+ />
+ )}
 
-    </div>
-  );
+ {showCrearProductoModal && (
+ <CrearProductoModal
+ isOpen={showCrearProductoModal}
+ onClose={() => setShowCrearProductoModal(false)}
+ onSuccess={() => setShowCrearProductoModal(false)} 
+ />
+ )}
+
+ {/* RENDERIZAMOS EL NUEVO MODAL AQUI */}
+ {showInfoProductoModal && (
+ <InfoProductoModal
+ isOpen={showInfoProductoModal}
+ onClose={() => setShowInfoProductoModal(false)}
+ onSuccess={() => setShowInfoProductoModal(false)} 
+ />
+ )}
+
+ </div>
+ );
 }

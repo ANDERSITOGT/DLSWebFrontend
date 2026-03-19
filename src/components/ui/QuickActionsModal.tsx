@@ -1,5 +1,3 @@
-//src/components/ui/QuickActionsModal.tsx
-
 import { useNavigate } from "react-router-dom";
 import { 
   X, 
@@ -9,7 +7,8 @@ import {
   Users, 
   Sprout, 
   ClipboardList,
-  RotateCcw
+  RotateCcw,
+  PackageSearch
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
@@ -44,7 +43,8 @@ export function QuickActionsModal({
   onSolicitudClick, 
   onAjusteClick,
   onDevolucionClick,
-  onCreateProductClick
+  onCreateProductClick,
+  onInfoProductoClick // Nueva propiedad agregada
 }: { 
   onClose: () => void;
   onIngresoClick: () => void;
@@ -52,6 +52,7 @@ export function QuickActionsModal({
   onAjusteClick: () => void;
   onDevolucionClick: () => void;
   onCreateProductClick: () => void;
+  onInfoProductoClick: () => void;
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -76,8 +77,8 @@ export function QuickActionsModal({
         
         <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
           <div>
-            <h3 className="font-bold text-gray-800">Acciones Rápidas</h3>
-            <p className="text-xs text-gray-500">Selecciona una acción para continuar</p>
+            <h3 className="font-bold text-gray-800">Acciones Rapidas</h3>
+            <p className="text-xs text-gray-500">Selecciona una accion para continuar</p>
           </div>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 text-gray-400 transition-colors">
             <X size={20} />
@@ -101,7 +102,7 @@ export function QuickActionsModal({
               <ActionItem 
                 icon={<ClipboardList size={20} />} 
                 title="Registrar Ajuste" 
-                desc="Corrección de inventario (+/-)"
+                desc="Correccion de inventario (+/-)"
                 color="text-amber-600 bg-amber-50"
                 onClick={() => { onClose(); onAjusteClick(); }} 
               />
@@ -122,7 +123,7 @@ export function QuickActionsModal({
 
               <ActionItem 
                 icon={<RotateCcw size={20} />} 
-                title="Solicitar Devolución" 
+                title="Solicitar Devolucion" 
                 desc="Regresar material a bodega"
                 color="text-rose-600 bg-rose-50"
                 onClick={() => { onClose(); onDevolucionClick(); }}
@@ -130,19 +131,28 @@ export function QuickActionsModal({
             </div>
           )}
 
-          {/* === CATÁLOGOS Y GESTIÓN === */}
+          {/* === CATALOGOS Y GESTION === */}
           {(canManageCatalog || isAdmin) && (
             <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gestión</p>
+              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gestion</p>
               
               {canManageCatalog && (
                 <>
                     <ActionItem 
                         icon={<Box size={20} />} 
                         title="Crear Producto" 
-                        desc="Agregar nuevo producto" 
+                        desc="Agregar nuevo producto al sistema" 
                         color="text-indigo-600 bg-indigo-50" 
                         onClick={() => { onClose(); onCreateProductClick(); }} 
+                    />
+
+                    {/* Nueva accion agregada aqui */}
+                    <ActionItem 
+                        icon={<PackageSearch size={20} />} 
+                        title="Informacion de Producto" 
+                        desc="Consultar y editar datos generales" 
+                        color="text-cyan-600 bg-cyan-50" 
+                        onClick={() => { onClose(); onInfoProductoClick(); }} 
                     />
                     
                     <ActionItem 
@@ -155,7 +165,7 @@ export function QuickActionsModal({
                 </>
               )}
 
-              {/* SOLO ADMIN: Gestión Unificada Fincas/Lotes */}
+              {/* SOLO ADMIN: Gestion Unificada Fincas/Lotes */}
               {isAdmin && (
                 <ActionItem 
                     icon={<Sprout size={20} />} 
