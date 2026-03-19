@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { User, Mail, Shield, LogOut, Users, ChevronRight, Sprout } from "lucide-react"; // 👈 Agregamos el icono Sprout
+import { User, Mail, Shield, LogOut, Users, ChevronRight, Sprout, AlertTriangle } from "lucide-react"; // 👈 Agregamos el icono Sprout
 
 export function ConfiguracionPage() {
   const { user, logout } = useAuth();
@@ -112,6 +112,24 @@ export function ConfiguracionPage() {
                 </button>
 
               </div>
+
+<div 
+    onClick={() => navigate('/configuracion/edicion-critica')}
+    className="flex items-center justify-between p-5 bg-white border border-rose-100 rounded-2xl shadow-sm hover:shadow-md cursor-pointer group transition-all"
+>
+    <div className="flex items-center gap-4">
+        <div className="bg-rose-50 p-3 rounded-xl text-rose-600 group-hover:bg-rose-100 transition-colors">
+            <AlertTriangle size={24} />
+        </div>
+        <div>
+            <h3 className="font-bold text-slate-800">Edición Crítica (Modo Dios)</h3>
+            <p className="text-sm text-slate-500">Auditoría y corrección forzada de documentos e inventario histórico.</p>
+        </div>
+    </div>
+    <ChevronRight className="text-slate-400 group-hover:text-rose-500 transition-colors" />
+</div>
+
+              
           </div>
       )}
 

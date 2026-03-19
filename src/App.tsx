@@ -15,6 +15,7 @@ import UsuariosPage from "./modules/usuarios/UsuariosPage";
 import { AsignacionLotesPage } from "./modules/configuracion/AsignacionLotesPage";
 import ProveedoresPage from "./pages/proveedores/ProveedoresPage";
 import FincasPage from "./pages/fincas/FincasPage";
+import { EdicionCriticaPage } from './modules/configuracion/EdicionCriticaPage';
 
 
 // Importar los Providers
@@ -59,6 +60,8 @@ function AppContent() {
                 <Route path="/asignacion-lotes" element={<AsignacionLotesPage />} />
                 <Route path="/proveedores" element={<ProveedoresPage />} />
                 <Route path="/fincas" element={<FincasPage />} />
+                <Route path="/configuracion/edicion-critica" element={<EdicionCriticaPage />} />
+                
               </Routes>
             </Layout>
           </RequireAuth>
