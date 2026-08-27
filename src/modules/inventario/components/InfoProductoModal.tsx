@@ -6,11 +6,12 @@ const API_BASE = import.meta.env.VITE_API_URL;
 
 interface Props {
   isOpen: boolean;
+  initialSearch?: string;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props) {
+export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSuccess }: Props) {
   const { token } = useAuth();
   
   // Estados de flujo: 'search' | 'view' | 'edit'
@@ -34,12 +35,12 @@ export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props)
   useEffect(() => {
     if (isOpen) {
       setStep('search');
-      setQuery("");
+      setQuery(initialSearch ?? "");
       setSearchResults([]);
       setSelectedProduct(null);
       setError(null);
     }
-  }, [isOpen]);
+  }, [isOpen, initialSearch]);
 
   // Logica de busqueda con debounce
   useEffect(() => {
@@ -56,7 +57,12 @@ export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props)
         });
         if (res.ok) {
           const data = await res.json();
-          setSearchResults(data);
+          const productos = Array.isArray(data) ? data : data.productos ?? [];
+          setSearchResults(productos);
+          if (initialSearch) {
+            const productoInicial = productos.find((producto: any) => producto.codigo === initialSearch) ?? productos[0];
+            if (productoInicial) handleSelectProduct(productoInicial);
+          }
         }
       } catch (e) {
         console.error(e);
@@ -77,6 +83,8 @@ export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props)
       unidadid: product.unidadid,
       ingredienteactivo: product.ingredienteactivo || "",
       precioref: product.precioref || "",
+      dosis_200lt: product.dosis_200lt ?? "",
+      comentarioDosis: product.comentarioDosis || "",
       activo: product.activo
     });
     setStep('view');
@@ -229,6 +237,14 @@ export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props)
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Precio Ref.</p>
                   <p className="text-sm font-medium text-slate-800">{selectedProduct.precioref ? `Q ${selectedProduct.precioref}` : "N/A"}</p>
                 </div>
+                <div>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Dosis / 200 L</p>
+                  <p className="text-sm font-medium text-slate-800">{selectedProduct.dosis_200lt ?? "N/A"}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Comentario de Dosis</p>
+                  <p className="text-sm font-medium text-slate-800 whitespace-pre-wrap">{selectedProduct.comentarioDosis || "Ninguno"}</p>
+                </div>
               </div>
 
               <button onClick={enterEditMode} className="w-full py-3 bg-slate-900 text-white rounded-xl font-bold hover:bg-slate-800 transition-colors flex items-center justify-center gap-2">
@@ -267,6 +283,17 @@ export default function InfoProductoModal({ isOpen, onClose, onSuccess }: Props)
               <div>
                 <label className="text-xs font-bold text-slate-500 uppercase">Ingrediente Activo</label>
                 <input type="text" className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={formData.ingredienteactivo} onChange={e => setFormData({...formData, ingredienteactivo: e.target.value})} />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Dosis / 200 L</label>
+                  <input type="number" step="any" className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={formData.dosis_200lt} onChange={e => setFormData({...formData, dosis_200lt: e.target.value})} />
+                </div>
+                <div>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Comentario de Dosis</label>
+                  <textarea className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-y" rows={2} value={formData.comentarioDosis} onChange={e => setFormData({...formData, comentarioDosis: e.target.value})} />
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">

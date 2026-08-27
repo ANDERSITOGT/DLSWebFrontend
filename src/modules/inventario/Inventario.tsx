@@ -37,6 +37,8 @@ type ProductoInventario = {
   id: string;
   nombre: string;
   codigo: string;
+  dosis_200lt: number | string | null;
+  comentarioDosis: string | null;
   detalle: string;
   categoria: string;
   unidad: string;
@@ -138,6 +140,7 @@ export function Inventario() {
   
   // 👇 NUEVO ESTADO PARA EL MODAL DE EDICIÓN DE PRODUCTO
   const [showEditModal, setShowEditModal] = useState(false);
+  const [productoParaEditar, setProductoParaEditar] = useState<string | null>(null);
 
   // --- CARGA DE PRODUCTOS ---
   const fetchProductos = async (filtros: { limit: number | 'all', search?: string, cat?: string }) => {
@@ -265,18 +268,12 @@ export function Inventario() {
   };
 
   // 👇 Función auxiliar para abrir el modal de edición y pasarle la orden de búsqueda
-  const handleOpenEditFromDetail = () => {
+    const handleOpenEditFromDetail = () => {
       // Cerramos el modal de detalles
+      setProductoParaEditar(detalleProducto?.producto.codigo ?? null);
       setDetalleProducto(null);
       // Abrimos el modal de InfoProducto
       setShowEditModal(true);
-      
-      // Hacemos un pequeño "hack" amigable: 
-      // Insertamos el código del producto en la barra de búsqueda global del modal de InfoProducto 
-      // usando un dispatch de evento personalizado o simplemente confiamos en que el usuario 
-      // pegará el código que acaba de ver, o lo dejamos así y dejamos que busque.
-      // *Nota: Para que sea automático se requeriría pasarle un prop `initialSearch` al InfoProductoModal,
-      // pero como lo pediste sin cambiar la arquitectura, al abrirlo se mostrará el buscador limpio.*
   };
 
   return (
@@ -389,9 +386,11 @@ export function Inventario() {
       {showEditModal && (
          <InfoProductoModal
            isOpen={showEditModal}
+          initialSearch={productoParaEditar ?? undefined}
            onClose={() => setShowEditModal(false)}
            onSuccess={() => {
               setShowEditModal(false);
+            setProductoParaEditar(null);
               // Recargamos el inventario para ver los cambios
               const limite = (busqueda || categoriaFiltro) ? 'all' : 30;
               fetchProductos({ limit: limite, search: busqueda, cat: categoriaFiltro });
@@ -441,6 +440,17 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
                       <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
                       <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">{producto.stockTotal}</p>
                 </div>
+
+                <div>
+                    <p className="text-[9px] sm:text-[10px] text-emerald-500 uppercase font-bold">Dosis / 200 L</p>
+                    <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">
+                      {producto.dosis_200lt ?? "N/A"}
+                    </p>
+                    <p className="text-[9px] text-slate-400 truncate max-w-[120px]" title={producto.comentarioDosis || undefined}>
+                      {producto.comentarioDosis || "Sin comentario"}
+                    </p>
+                </div>
+
                 <Badge variant="outline" className={cn("text-[9px] sm:text-[10px] border shrink-0", stockConfig.badge)}>
                     {producto.estadoStock}
                 </Badge>
