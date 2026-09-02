@@ -18,6 +18,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   // Estados del Formulario
   const [nombre, setNombre] = useState("");
   const [ingredienteActivo, setIngredienteActivo] = useState(""); 
+  const [dosis200Lt, setDosis200Lt] = useState("");
+  const [comentarioDosis, setComentarioDosis] = useState("");
   const [unidadId, setUnidadId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
 
@@ -60,14 +62,24 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
     setLoading(true);
 
     try {
+      const payload: Record<string, unknown> = {
+        nombre,
+        ingredienteactivo: ingredienteActivo || null,
+        unidadid: unidadId,
+        categoriaid: categoriaId,
+      };
+
+      if (dosis200Lt.trim() !== "") {
+        payload.dosis_200lt = Number(dosis200Lt);
+      }
+
+      if (comentarioDosis.trim() !== "") {
+        payload.comentarioDosis = comentarioDosis.trim();
+      }
+
       const res = await apiFetch("/api/productos", {
         method: "POST",
-        body: JSON.stringify({
-          nombre,
-          ingredienteactivo: ingredienteActivo,
-          unidadid: unidadId,
-          categoriaid: categoriaId
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -97,6 +109,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   const limpiarFormulario = () => {
     setNombre("");
     setIngredienteActivo("");
+    setDosis200Lt("");
+    setComentarioDosis("");
     setUnidadId("");
     setCategoriaId("");
     setError(null);
@@ -178,6 +192,32 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
                 placeholder="Ej: Sal Isopropilamina"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-blue-50/30 transition-all"
               />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Dosis</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={dosis200Lt}
+                  onChange={(e) => setDosis200Lt(e.target.value)}
+                  placeholder="Opcional"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Comentario</label>
+                <input
+                  type="text"
+                  value={comentarioDosis}
+                  onChange={(e) => setComentarioDosis(e.target.value)}
+                  placeholder="Opcional"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+                />
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

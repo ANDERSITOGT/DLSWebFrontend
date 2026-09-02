@@ -442,7 +442,7 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
                 </div>
 
                 <div>
-                    <p className="text-[9px] sm:text-[10px] text-emerald-500 uppercase font-bold">Dosis / 200 L</p>
+                    <p className="text-[9px] sm:text-[10px] text-emerald-500 uppercase font-bold">Dosis</p>
                     <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">
                       {producto.dosis_200lt ?? "N/A"}
                     </p>

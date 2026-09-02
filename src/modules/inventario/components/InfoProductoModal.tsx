@@ -238,7 +238,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
                   <p className="text-sm font-medium text-slate-800">{selectedProduct.precioref ? `Q ${selectedProduct.precioref}` : "N/A"}</p>
                 </div>
                 <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Dosis / 200 L</p>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase">Dosis</p>
                   <p className="text-sm font-medium text-slate-800">{selectedProduct.dosis_200lt ?? "N/A"}</p>
                 </div>
                 <div className="col-span-2">
@@ -287,7 +287,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase">Dosis / 200 L</label>
+                  <label className="text-xs font-bold text-slate-500 uppercase">Dosis</label>
                   <input type="number" step="any" className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={formData.dosis_200lt} onChange={e => setFormData({...formData, dosis_200lt: e.target.value})} />
                 </div>
                 <div>
