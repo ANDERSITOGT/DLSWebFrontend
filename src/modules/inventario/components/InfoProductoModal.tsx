@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { X, Search, Loader2, Edit2, Save, AlertTriangle, ArrowLeft } from "lucide-react";
+import { X, Loader2, Edit2, Save, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
+import BuscadorSelect, { type BuscadorOption } from "../../../components/ui/BuscadorSelect";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -18,61 +19,46 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
   const [step, setStep] = useState<'search' | 'view' | 'edit'>('search');
   
   // Estados de busqueda
-  const [query, setQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
 
   // Estados de datos
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [formData, setFormData] = useState<any>({});
-  const [catalogos, setCatalogos] = useState({ categorias: [], unidades: [] });
+  const [catalogos, setCatalogos] = useState<{ categorias: any[]; unidades: any[] }>({ categorias: [], unidades: [] });
   
   // Estados de red
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const categoriaSeleccionada = catalogos.categorias.find((categoria: any) => categoria.id === formData.categoriaid);
+  const unidadSeleccionada = catalogos.unidades.find((unidad: any) => unidad.id === formData.unidadid);
+
   // Reiniciar estado al abrir/cerrar
   useEffect(() => {
     if (isOpen) {
       setStep('search');
-      setQuery(initialSearch ?? "");
-      setSearchResults([]);
       setSelectedProduct(null);
       setError(null);
     }
   }, [isOpen, initialSearch]);
 
-  // Logica de busqueda con debounce
-  useEffect(() => {
-    if (step !== 'search' || query.trim().length === 0) {
-      setSearchResults([]);
-      return;
+  const buscarOpcionesProducto = async (termino: string): Promise<BuscadorOption[]> => {
+    try {
+      const res = await fetch(`${API_BASE}/api/catalogos/productos/buscar?q=${encodeURIComponent(termino)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      const productos = Array.isArray(data) ? data : data.productos ?? [];
+      return productos.map((producto: any) => ({
+        label: `${producto.codigo} - ${producto.nombre}`,
+        value: producto.id,
+        data: producto
+      }));
+    } catch (e) {
+      console.error(e);
+      return [];
     }
-
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        const res = await fetch(`${API_BASE}/api/catalogos/productos/buscar?q=${query}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const productos = Array.isArray(data) ? data : data.productos ?? [];
-          setSearchResults(productos);
-          if (initialSearch) {
-            const productoInicial = productos.find((producto: any) => producto.codigo === initialSearch) ?? productos[0];
-            if (productoInicial) handleSelectProduct(productoInicial);
-          }
-        }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 400);
-
-    return () => clearTimeout(timer);
-  }, [query, step, token]);
+  };
 
   const handleSelectProduct = (product: any) => {
     setSelectedProduct(product);
@@ -169,41 +155,16 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
           {/* ESTADO 1: BUSQUEDA */}
           {step === 'search' && (
             <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                  type="text" 
-                  autoFocus
-                  placeholder="Escribe el nombre o codigo..."
-                  className="w-full pl-10 pr-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-800"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                />
-              </div>
-              
-              <div className="mt-4 space-y-2">
-                {isSearching ? (
-                  <div className="py-8 flex justify-center text-blue-500"><Loader2 className="animate-spin" size={24} /></div>
-                ) : searchResults.length > 0 ? (
-                  searchResults.map(prod => (
-                    <div 
-                      key={prod.id} 
-                      onClick={() => handleSelectProduct(prod)}
-                      className="p-3 border border-slate-100 rounded-xl hover:bg-blue-50 hover:border-blue-200 cursor-pointer transition-colors flex justify-between items-center group"
-                    >
-                      <div>
-                        <p className="font-bold text-slate-800 group-hover:text-blue-700">{prod.nombre}</p>
-                        <p className="text-xs text-slate-500">{prod.codigo}</p>
-                      </div>
-                      <span className={`text-[10px] px-2 py-1 rounded-md font-bold ${prod.activo ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                        {prod.activo ? 'ACTIVO' : 'INACTIVO'}
-                      </span>
-                    </div>
-                  ))
-                ) : query.length > 0 ? (
-                  <div className="py-8 text-center text-slate-400 text-sm">No se encontraron productos.</div>
-                ) : null}
-              </div>
+              <BuscadorSelect
+                loadOptions={buscarOpcionesProducto}
+                value={null}
+                onChange={(option) => {
+                  if (option?.data) handleSelectProduct(option.data);
+                }}
+                placeholder="Escribe el nombre o código..."
+                isClearable={false}
+                noOptionsMessage="No se encontraron productos"
+              />
             </div>
           )}
 
@@ -299,15 +260,23 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase">Categoria</label>
-                  <select className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none bg-white" value={formData.categoriaid} onChange={e => setFormData({...formData, categoriaid: e.target.value})}>
-                    {catalogos.categorias.map((c: any) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-                  </select>
+                  <BuscadorSelect
+                    options={catalogos.categorias.map((categoria: any) => ({ label: categoria.nombre, value: categoria.id, data: categoria }))}
+                    value={categoriaSeleccionada ? { label: categoriaSeleccionada.nombre, value: formData.categoriaid } : null}
+                    onChange={(option) => setFormData({...formData, categoriaid: option?.value ?? ""})}
+                    placeholder="Seleccionar categoría..."
+                    noOptionsMessage="No se encontraron categorías"
+                  />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 uppercase">Unidad Base</label>
-                  <select className="w-full mt-1 p-2.5 border border-amber-300 bg-amber-50/30 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 outline-none" value={formData.unidadid} onChange={e => setFormData({...formData, unidadid: e.target.value})}>
-                    {catalogos.unidades.map((u: any) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
-                  </select>
+                  <BuscadorSelect
+                    options={catalogos.unidades.map((unidad: any) => ({ label: unidad.nombre, value: unidad.id, data: unidad }))}
+                    value={unidadSeleccionada ? { label: unidadSeleccionada.nombre, value: formData.unidadid } : null}
+                    onChange={(option) => setFormData({...formData, unidadid: option?.value ?? ""})}
+                    placeholder="Seleccionar unidad..."
+                    noOptionsMessage="No se encontraron unidades"
+                  />
                   <p className="text-[10px] text-amber-600 mt-1 font-medium leading-tight">Cambiar la unidad altera la lectura del historial.</p>
                 </div>
               </div>

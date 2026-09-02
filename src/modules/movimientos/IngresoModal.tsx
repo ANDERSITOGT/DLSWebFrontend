@@ -1,11 +1,25 @@
 // src/modules/movimientos/IngresoModal.tsx
-import { useState, useEffect, useRef } from "react";
-import { 
-  X, ChevronLeft, Loader2, Plus, Trash2, Search, Save, 
-  FileText, Receipt, CheckCircle2, Package, Calendar, User, Building2, Calculator, PlusCircle, Camera
+import {
+  Building2, Calculator,
+  Calendar,
+  Camera,
+  CheckCircle2,
+  ChevronLeft,
+  FileText,
+  Loader2,
+  Package,
+  Plus,
+  PlusCircle,
+  Receipt,
+  Save,
+  Trash2,
+  User,
+  X
 } from "lucide-react";
-import { catalogosService } from "../../services/catalogosService";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { catalogosService } from "../../services/catalogosService";
+import BuscadorSelect, { type BuscadorOption } from "../../components/ui/BuscadorSelect";
 
 // 👇 IMPORTANTE: Importamos el modal de crear producto
 // Asegúrate que la ruta sea correcta según tu estructura de carpetas
@@ -55,6 +69,11 @@ const normalizarTexto = (value: unknown) => {
 
 const normalizarNit = (value: unknown) => {
   return normalizarTexto(value).replace(/[^a-zA-Z0-9]/g, "").toLowerCase();
+};
+
+const isValidScannerImage = (file: File) => {
+  const validTypes = ["image/png", "image/jpeg", "image/jpg"];
+  return validTypes.includes(file.type) || /\.(png|jpe?g)$/i.test(file.name);
 };
 
 const normalizarFecha = (value: unknown) => {
@@ -148,9 +167,6 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
   const [showCreateProduct, setShowCreateProduct] = useState(false);
 
   // Formulario Producto
-  const [busqueda, setBusqueda] = useState("");
-  const [resultados, setResultados] = useState<ProductoResult[]>([]);
-  const [buscandoProd, setBuscandoProd] = useState(false);
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
@@ -177,21 +193,6 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     loadData();
   }, []);
 
-  // Buscar productos
-  const handleBuscar = async () => {
-    setBuscandoProd(true);
-    try {
-      const res = await catalogosService.buscarProductos(busqueda);
-      setResultados(res);
-    } catch (error) { console.error(error); } 
-    finally { setBuscandoProd(false); }
-  };
-
-  const isValidScannerImage = (file: File) => {
-    const validTypes = ["image/png", "image/jpeg", "image/jpg"];
-    return validTypes.includes(file.type) || /\.(png|jpe?g)$/i.test(file.name);
-  };
-
   const resetScannerSelection = () => {
     setScannerFile(null);
     setScannerError(null);
@@ -203,7 +204,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     if (scannerCameraInputRef.current) scannerCameraInputRef.current.value = "";
   };
 
-  const handleScannerSelection = (file?: File) => {
+  const handleScannerSelection = useCallback((file?: File) => {
     if (!file) return;
     if (isScanning) return;
 
@@ -220,7 +221,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
       if (prev) URL.revokeObjectURL(prev);
       return URL.createObjectURL(file);
     });
-  };
+  }, [isScanning]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -240,7 +241,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
 
     window.addEventListener("paste", handlePaste);
     return () => window.removeEventListener("paste", handlePaste);
-  }, [isScanning]);
+  }, [handleScannerSelection, isScanning]);
 
   const procesarDocumento = async (file: File) => {
     if (!file || isScanning) return;
@@ -539,10 +540,22 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     setProdSeleccionado(null);
     setTempCant(1);
     setTempCostoTotal(0);
-    setBusqueda("");
-    setResultados([]);
     setEditingItemIndex(null);
     setShowAddForm(false);
+  };
+
+  const buscarOpcionesProducto = async (termino: string): Promise<BuscadorOption<ProductoResult>[]> => {
+    try {
+      const productos = await catalogosService.buscarProductos(termino);
+      return productos.map((producto: ProductoResult) => ({
+        label: `${producto.nombre} (${producto.codigo})`,
+        value: producto.id,
+        data: producto
+      }));
+    } catch (error) {
+      console.error("Error buscando productos:", error);
+      return [];
+    }
   };
 
   const handleEditarItem = (index: number) => {
@@ -561,8 +574,6 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     setProdSeleccionado(productoBase);
     setTempCant(itemActual.cantidad);
     setTempCostoTotal(itemActual.costoTotal);
-    setBusqueda("");
-    setResultados([]);
     setShowAddForm(true);
   };
 
@@ -781,14 +792,24 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
                       
                       <div>
                          <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Proveedor *</label>
-                         <select 
-                           value={selectedProveedor}
-                           onChange={(e) => setSelectedProveedor(e.target.value)}
-                           className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-slate-500/20 focus:border-slate-500 bg-slate-50 focus:bg-white transition-all"
-                         >
-                           <option value="">-- Seleccione Proveedor --</option>
-                           {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre} (NIT: {p.nit || "C/F"})</option>)}
-                         </select>
+                         <BuscadorSelect<Proveedor>
+                           options={proveedores.map((proveedor) => ({
+                             label: `${proveedor.nombre} (NIT: ${proveedor.nit || "C/F"})`,
+                             value: proveedor.id,
+                             data: proveedor
+                           }))}
+                           value={proveedores
+                             .filter((proveedor) => proveedor.id === selectedProveedor)
+                             .map((proveedor) => ({
+                               label: `${proveedor.nombre} (NIT: ${proveedor.nit || "C/F"})`,
+                               value: proveedor.id,
+                               data: proveedor
+                             }))[0] ?? null}
+                           onChange={(option) => setSelectedProveedor(option?.value ?? "")}
+                           placeholder="Seleccione Proveedor..."
+                           isClearable
+                           noOptionsMessage="No se encontraron proveedores"
+                         />
                       </div>
 
                       <div className="bg-slate-50 p-1 rounded-xl flex gap-1 border border-slate-200">
@@ -881,7 +902,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
 
                        {/* Buscador */}
                        {!prodSeleccionado ? (
-                         <div>
+                         <div className="relative">
                             {/* 🆕 AQUÍ ESTÁ EL ACCESO DIRECTO PARA CREAR PRODUCTO */}
                             <div className="flex justify-between items-end mb-1">
                                <label className="text-xs font-bold text-slate-500 uppercase block">Buscar Producto</label>
@@ -893,36 +914,20 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
                                </button>
                             </div>
 
-                            <div className="flex gap-2">
-                               <div className="relative flex-1">
-                                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
-                                  <input 
-                                    type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
-                                    placeholder="Nombre o código..."
-                                    className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-                                    autoFocus
-                                  />
-                               </div>
-                               <button onClick={handleBuscar} className="bg-slate-800 text-white px-4 rounded-xl hover:bg-slate-700 transition">
-                                 {buscandoProd ? <Loader2 className="animate-spin" size={20}/> : "Buscar"}
-                               </button>
-                            </div>
-                            
-                            {resultados.length > 0 && (
-                              <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl shadow-lg bg-white divide-y divide-slate-100 absolute w-full z-20 left-0">
-                                {resultados.map(p => (
-                                  <button key={p.id} onClick={() => {
-                                      setProdSeleccionado(p);
-                                      setTempCostoTotal(0); 
-                                  }} className="w-full text-left p-3 hover:bg-slate-50 transition flex justify-between items-center group">
-                                     <div>
-                                        <span className="font-medium text-slate-700 text-sm block group-hover:text-slate-900">{p.nombre}</span>
-                                        <span className="text-xs text-slate-400">{p.codigo}</span>
-                                     </div>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                            <BuscadorSelect<ProductoResult>
+                              loadOptions={buscarOpcionesProducto}
+                              value={null}
+                              onChange={(option) => {
+                                const producto = option?.data;
+                                if (producto) {
+                                  setProdSeleccionado(producto);
+                                  setTempCostoTotal(0);
+                                }
+                              }}
+                              placeholder="Nombre o código..."
+                              isClearable={false}
+                              noOptionsMessage="No se encontraron productos"
+                            />
                          </div>
                        ) : (
                           <div className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-200">

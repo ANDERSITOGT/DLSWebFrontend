@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { X, Save, AlertCircle, FlaskConical, Check } from "lucide-react"; 
 import { apiFetch } from "../../../services/api";
+import BuscadorSelect from "../../../components/ui/BuscadorSelect";
 
 interface Props {
   isOpen: boolean;
@@ -224,38 +225,28 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
               {/* CATEGORÍA */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-600 uppercase">Categoría</label>
-                <select 
-                  required
-                  value={categoriaId}
-                  onChange={(e) => setCategoriaId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {categorias.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
+                <BuscadorSelect<ItemCatalogo>
+                  options={categorias.map((categoria) => ({ label: categoria.nombre, value: categoria.id, data: categoria }))}
+                  value={categorias.find((categoria) => categoria.id === categoriaId) ? { label: categorias.find((categoria) => categoria.id === categoriaId)!.nombre, value: categoriaId } : null}
+                  onChange={(option) => setCategoriaId(option?.value ?? "")}
+                  placeholder="Seleccionar..."
+                  isClearable
+                  noOptionsMessage="No se encontraron categorías"
+                />
                 <p className="text-[10px] text-gray-400">Determina el prefijo (Ej: FUN001)</p>
               </div>
 
               {/* UNIDAD */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-600 uppercase">Unidad</label>
-                <select 
-                  required
-                  value={unidadId}
-                  onChange={(e) => setUnidadId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {unidades.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre} ({u.abreviatura})
-                    </option>
-                  ))}
-                </select>
+                <BuscadorSelect<ItemCatalogo>
+                  options={unidades.map((unidad) => ({ label: `${unidad.nombre} (${unidad.abreviatura || ""})`, value: unidad.id, data: unidad }))}
+                  value={unidades.find((unidad) => unidad.id === unidadId) ? { label: `${unidades.find((unidad) => unidad.id === unidadId)!.nombre} (${unidades.find((unidad) => unidad.id === unidadId)!.abreviatura || ""})`, value: unidadId } : null}
+                  onChange={(option) => setUnidadId(option?.value ?? "")}
+                  placeholder="Seleccionar..."
+                  isClearable
+                  noOptionsMessage="No se encontraron unidades"
+                />
               </div>
             </div>
 

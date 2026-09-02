@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { 
   X, 
-  Search, 
   Loader2, 
   AlertTriangle, 
   CheckCircle2, 
@@ -16,6 +15,7 @@ import {
   FileText // 👈 ¡Icono agregado!
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import BuscadorSelect, { type BuscadorOption } from "../../components/ui/BuscadorSelect";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -72,8 +72,6 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
   const [provSel, setProvSel] = useState("");
   const [bodegaSel, setBodegaSel] = useState("");
   const [itemsProveedor, setItemsProveedor] = useState<ItemDevolucion[]>([]);
-  const [busquedaProd, setBusquedaProd] = useState("");
-  const [resBusqueda, setResBusqueda] = useState<any[]>([]); 
 
   // Efectos de Carga
   useEffect(() => {
@@ -83,22 +81,6 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
   useEffect(() => {
     if (activeTab === "PROVEEDOR" && esBodeguero) cargarCatalogos();
   }, [activeTab]);
-
-  useEffect(() => {
-      const timer = setTimeout(async () => {
-          if (activeTab === "PROVEEDOR" && busquedaProd.length > 2) {
-              try {
-                  const res = await fetch(`${API_BASE}/api/catalogos/productos-busqueda?q=${busquedaProd}`, {
-                      headers: { Authorization: `Bearer ${token}` }
-                  });
-                  if(res.ok) setResBusqueda(await res.json());
-              } catch(e) { console.error(e); }
-          } else {
-              setResBusqueda([]);
-          }
-      }, 500);
-      return () => clearTimeout(timer);
-  }, [busquedaProd, activeTab]);
 
   // --- LÓGICA INTERNA ---
   const cargarHistorial = async () => {
@@ -234,8 +216,24 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
               notas: "" 
           }
       ]);
-      setBusquedaProd("");
-      setResBusqueda([]);
+  };
+
+    const buscarOpcionesProducto = async (termino: string): Promise<BuscadorOption[]> => {
+      try {
+          const res = await fetch(`${API_BASE}/api/catalogos/productos-busqueda?q=${encodeURIComponent(termino)}`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          if (!res.ok) return [];
+          const productos = await res.json();
+          return productos.map((producto: any) => ({
+              label: `${producto.nombre} (${producto.codigo})`,
+              value: producto.id,
+              data: producto
+          }));
+      } catch (e) {
+          console.error(e);
+          return [];
+      }
   };
 
   const enviarDevolucionProveedor = async () => {
@@ -453,23 +451,23 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Proveedor Destino</label>
-                                <select 
-                                   className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50 focus:bg-white transition-all"
-                                   value={provSel} onChange={e => setProvSel(e.target.value)}
-                                >
-                                    <option value="">-- Seleccionar --</option>
-                                    {proveedores.map(p => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                                </select>
+                                          <BuscadorSelect<Proveedor>
+                                              options={proveedores.map((proveedor) => ({ label: proveedor.nombre, value: proveedor.id, data: proveedor }))}
+                                              value={proveedores.find((proveedor) => proveedor.id === provSel) ? { label: proveedores.find((proveedor) => proveedor.id === provSel)!.nombre, value: provSel } : null}
+                                              onChange={(option) => setProvSel(option?.value ?? "")}
+                                              placeholder="Seleccionar proveedor..."
+                                              noOptionsMessage="No se encontraron proveedores"
+                                          />
                             </div>
                             <div>
                                 <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Desde Bodega</label>
-                                <select 
-                                   className="w-full border border-gray-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-rose-500 bg-slate-50 focus:bg-white transition-all"
-                                   value={bodegaSel} onChange={e => setBodegaSel(e.target.value)}
-                                >
-                                    <option value="">-- Seleccionar --</option>
-                                    {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-                                </select>
+                                          <BuscadorSelect<Bodega>
+                                              options={bodegas.map((bodega) => ({ label: bodega.nombre, value: bodega.id, data: bodega }))}
+                                              value={bodegas.find((bodega) => bodega.id === bodegaSel) ? { label: bodegas.find((bodega) => bodega.id === bodegaSel)!.nombre, value: bodegaSel } : null}
+                                              onChange={(option) => setBodegaSel(option?.value ?? "")}
+                                              placeholder="Seleccionar bodega..."
+                                              noOptionsMessage="No se encontraron bodegas"
+                                          />
                             </div>
                         </div>
                     </div>
@@ -477,29 +475,14 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
                     <div className="space-y-2">
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Agregar Productos</label>
                         <div className="relative z-20">
-                            <input 
-                               type="text" placeholder="Buscar producto..." 
-                               className="w-full border border-gray-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-rose-500 outline-none shadow-sm"
-                               value={busquedaProd} onChange={e => setBusquedaProd(e.target.value)}
+                            <BuscadorSelect
+                              loadOptions={buscarOpcionesProducto}
+                              value={null}
+                              onChange={(option) => { if (option?.data) agregarItemProv(option.data); }}
+                              placeholder="Buscar producto..."
+                              isClearable={false}
+                              noOptionsMessage="No se encontraron productos"
                             />
-                            <Search className="absolute left-3 top-3.5 text-gray-400" size={18}/>
-                            
-                            {resBusqueda.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 bg-white shadow-xl rounded-xl border border-gray-100 mt-2 max-h-56 overflow-y-auto divide-y divide-gray-50 z-30">
-                                    {resBusqueda.map(r => (
-                                        <button 
-                                          key={r.id} onClick={() => agregarItemProv(r)}
-                                          className="w-full text-left px-4 py-3 hover:bg-rose-50 transition-colors"
-                                        >
-                                            <div className="font-bold text-slate-700 text-sm">{r.nombre}</div>
-                                            <div className="text-xs text-slate-400 flex gap-2">
-                                                <span>{r.codigo}</span>
-                                                <span className="bg-slate-100 px-1.5 rounded text-slate-600">Stock: {r.stockActual}</span>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
                         </div>
                     </div>
 

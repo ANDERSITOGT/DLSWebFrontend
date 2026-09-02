@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { 
-  X, ChevronLeft, Loader2, Trash2, Search, Save, MapPin, CheckCircle2, AlertCircle, Plus 
+  X, ChevronLeft, Loader2, Trash2, Save, MapPin, CheckCircle2, AlertCircle, Plus 
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import BuscadorSelect, { type BuscadorOption } from "../../components/ui/BuscadorSelect";
 // 👇 1. IMPORTAMOS EL NUEVO COMPONENTE (Asegúrate de la ruta)
 import { ConfirmModal } from "../../components/ui/ConfirmModal"; 
 
@@ -42,9 +43,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
   // Paso 2: Detalles
   const [items, setItems] = useState<ItemSolicitud[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
-  const [busqueda, setBusqueda] = useState("");
-  const [resultados, setResultados] = useState<ProductoResult[]>([]);
-  const [buscandoProd, setBuscandoProd] = useState(false);
     
   // Formulario temporal
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
@@ -98,18 +96,20 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
     }
   };
 
-  // ============================================================
-  // 2. BUSCAR PRODUCTOS
-  // ============================================================
-  const handleBuscar = async () => {
-    setBuscandoProd(true);
+  const buscarOpcionesProducto = async (termino: string): Promise<BuscadorOption<ProductoResult>[]> => {
     try {
-      const res = await fetch(`${API_URL}/api/catalogos/productos-busqueda?q=${busqueda}`);
+      const res = await fetch(`${API_URL}/api/catalogos/productos-busqueda?q=${encodeURIComponent(termino)}`);
       if (!res.ok) throw new Error("Error buscando");
-      const data = await res.json();
-      setResultados(data);
-    } catch (error) { console.error(error); } 
-    finally { setBuscandoProd(false); }
+      const productos: ProductoResult[] = await res.json();
+      return productos.map((producto) => ({
+        label: `${producto.nombre} (${producto.codigo})`,
+        value: producto.id,
+        data: producto
+      }));
+    } catch (error) {
+      console.error(error);
+      return [];
+    }
   };
 
   // ============================================================
@@ -162,8 +162,6 @@ export function NuevaSolicitudModal({ onClose, onSuccess }: NuevaSolicitudModalP
     setProdSeleccionado(null);
     setTempCant(1);
     setTempNotas("");
-    setBusqueda("");
-    setResultados([]);
     setShowAddForm(false); 
   };
 
@@ -295,10 +293,13 @@ const lotesDisponibles = (tempFinca ? fincas.find(f => f.id === tempFinca)?.lote
                    <div className="bg-white p-5 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-5">
                       <div>
                         <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Bodega de Destino *</label>
-                        <select value={selectedBodega} onChange={(e) => setSelectedBodega(e.target.value)} className="w-full border border-slate-300 rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all bg-slate-50 focus:bg-white">
-                          <option value="">-- Selecciona una bodega --</option>
-                          {bodegas.map(b => <option key={b.id} value={b.id}>{b.nombre}</option>)}
-                        </select>
+                        <BuscadorSelect<Bodega>
+                          options={bodegas.map((bodega) => ({ label: bodega.nombre, value: bodega.id, data: bodega }))}
+                          value={bodegas.find((bodega) => bodega.id === selectedBodega) ? { label: bodegas.find((bodega) => bodega.id === selectedBodega)!.nombre, value: selectedBodega } : null}
+                          onChange={(option) => setSelectedBodega(option?.value ?? "")}
+                          placeholder="Selecciona una bodega..."
+                          noOptionsMessage="No se encontraron bodegas"
+                        />
                       </div>
                       <div>
                           <label className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1.5 block">Observaciones Generales</label>
@@ -324,25 +325,18 @@ const lotesDisponibles = (tempFinca ? fincas.find(f => f.id === tempFinca)?.lote
                        <button onClick={() => setShowAddForm(false)} className="absolute top-3 right-3 p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition"><X size={20}/></button>
                        <h3 className="font-bold text-slate-800 text-base border-b border-slate-100 pb-2 mb-4">Agregar Nuevo Item</h3>
                        {!prodSeleccionado ? (
-                         <div>
+                         <div className="relative">
                            <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Buscar Producto</label>
-                           <div className="flex gap-2">
-                             <div className="relative flex-1">
-                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18}/>
-                                <input type="text" value={busqueda} onChange={(e) => setBusqueda(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleBuscar()} placeholder="Nombre o código..." className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200" autoFocus />
-                             </div>
-                             <button onClick={handleBuscar} className="bg-slate-800 text-white px-4 rounded-xl hover:bg-slate-700 transition">{buscandoProd ? <Loader2 className="animate-spin" size={20}/> : "Buscar"}</button>
-                           </div>
-                           {resultados.length > 0 && (
-                             <div className="mt-2 max-h-48 overflow-y-auto border border-slate-200 rounded-xl shadow-lg bg-white divide-y divide-slate-100 absolute w-full z-20 left-0">
-                               {resultados.map(p => (
-                                 <button key={p.id} onClick={() => setProdSeleccionado(p)} className="w-full text-left p-3 hover:bg-emerald-50 transition flex justify-between items-center group">
-                                   <div><span className="font-medium text-slate-700 text-sm block group-hover:text-emerald-700">{p.nombre}</span><span className="text-xs text-slate-400">{p.codigo}</span></div>
-                                   <span className={`text-[10px] px-2 py-1 rounded-full font-bold ${p.stockActual > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>Stock: {p.stockActual} {p.unidad?.abreviatura}</span>
-                                 </button>
-                               ))}
-                             </div>
-                           )}
+                           <BuscadorSelect<ProductoResult>
+                             loadOptions={buscarOpcionesProducto}
+                             value={null}
+                             onChange={(option) => {
+                               if (option?.data) setProdSeleccionado(option.data);
+                             }}
+                             placeholder="Nombre o código..."
+                             isClearable={false}
+                             noOptionsMessage="No se encontraron productos"
+                           />
                          </div>
                        ) : (
                           <div className="flex justify-between items-center bg-emerald-50 p-3 rounded-xl border border-emerald-100">
@@ -367,15 +361,24 @@ const lotesDisponibles = (tempFinca ? fincas.find(f => f.id === tempFinca)?.lote
                            </div>
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Finca</label>
-                              <select value={tempFinca} onChange={(e) => { setTempFinca(e.target.value); setTempLote(""); }} className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white">
-                                 <option value="">Selecciona...</option>{fincas.map(f => <option key={f.id} value={f.id}>{f.nombre}</option>)}
-                              </select>
+                              <BuscadorSelect<Finca>
+                                options={fincas.map((finca) => ({ label: finca.nombre, value: finca.id, data: finca }))}
+                                value={fincas.find((finca) => finca.id === tempFinca) ? { label: fincas.find((finca) => finca.id === tempFinca)!.nombre, value: tempFinca } : null}
+                                onChange={(option) => { setTempFinca(option?.value ?? ""); setTempLote(""); }}
+                                placeholder="Selecciona..."
+                                noOptionsMessage="No se encontraron fincas"
+                              />
                            </div>
                            <div>
                               <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Lote</label>
-                              <select value={tempLote} onChange={(e) => setTempLote(e.target.value)} disabled={!tempFinca} className="w-full border border-slate-300 rounded-xl p-2.5 text-base sm:text-sm outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 bg-white disabled:bg-slate-100 disabled:text-slate-400">
-                                 <option value="">{tempFinca ? "Selecciona..." : "-"}</option>{lotesDisponibles.map(l => <option key={l.id} value={l.id}>{l.codigo} - {l.cultivo.nombre}</option>)}
-                              </select>
+                              <BuscadorSelect
+                                options={lotesDisponibles.map((lote) => ({ label: `${lote.codigo} - ${lote.cultivo.nombre}`, value: lote.id, data: lote }))}
+                                value={lotesDisponibles.find((lote) => lote.id === tempLote) ? { label: `${lotesDisponibles.find((lote) => lote.id === tempLote)!.codigo} - ${lotesDisponibles.find((lote) => lote.id === tempLote)!.cultivo.nombre}`, value: tempLote } : null}
+                                onChange={(option) => setTempLote(option?.value ?? "")}
+                                placeholder={tempFinca ? "Selecciona..." : "-"}
+                                isDisabled={!tempFinca}
+                                noOptionsMessage="No se encontraron lotes"
+                              />
                            </div>
                            <div className="sm:col-span-2">
                              <label className="text-xs font-bold text-slate-500 uppercase mb-1 block">Notas (Opcional)</label>
