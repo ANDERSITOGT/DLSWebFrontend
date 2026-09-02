@@ -152,6 +152,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
   const [resultados, setResultados] = useState<ProductoResult[]>([]);
   const [buscandoProd, setBuscandoProd] = useState(false);
   const [prodSeleccionado, setProdSeleccionado] = useState<ProductoResult | null>(null);
+  const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
   
   const [tempCant, setTempCant] = useState<number | string>(1);
   const [tempCostoTotal, setTempCostoTotal] = useState<number | string>(0);
@@ -534,6 +535,37 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     }
   };
 
+  const resetFormularioProducto = () => {
+    setProdSeleccionado(null);
+    setTempCant(1);
+    setTempCostoTotal(0);
+    setBusqueda("");
+    setResultados([]);
+    setEditingItemIndex(null);
+    setShowAddForm(false);
+  };
+
+  const handleEditarItem = (index: number) => {
+    const itemActual = items[index];
+    if (!itemActual) return;
+
+    const productoBase: ProductoResult = {
+      id: itemActual.productoId ?? "",
+      nombre: itemActual.nombre,
+      codigo: itemActual.productoCodigo ?? "",
+      unidad: { abreviatura: itemActual.unidad || "" },
+      precioref: itemActual.costoUnitario
+    };
+
+    setEditingItemIndex(index);
+    setProdSeleccionado(productoBase);
+    setTempCant(itemActual.cantidad);
+    setTempCostoTotal(itemActual.costoTotal);
+    setBusqueda("");
+    setResultados([]);
+    setShowAddForm(true);
+  };
+
   // Agregar Item
   const handleAgregarItem = () => {
     const cantNum = Number(tempCant);
@@ -546,29 +578,32 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
     const costoUnitarioCalc = costoTotalNum > 0 ? (costoTotalNum / cantNum) : 0;
 
     const nuevo: ItemIngreso = {
-      productoId: prodSeleccionado.id,
+      productoId: prodSeleccionado.id || null,
       nombre: prodSeleccionado.nombre,
-      unidad: prodSeleccionado.unidad.abreviatura,
+      unidad: prodSeleccionado.unidad?.abreviatura || "",
       cantidad: cantNum,
       costoUnitario: costoUnitarioCalc, 
-      costoTotal: costoTotalNum         
+      costoTotal: costoTotalNum,
+      productoCodigo: prodSeleccionado.codigo || undefined
     };
 
-    setItems([...items, nuevo]);
-    
-    // Reset y cerrar formulario
-    setProdSeleccionado(null);
-    setTempCant(1);
-    setTempCostoTotal(0);
-    setBusqueda("");
-    setResultados([]);
-    setShowAddForm(false);
+    setItems((prev) => {
+      if (editingItemIndex !== null) {
+        return prev.map((item, index) => index === editingItemIndex ? nuevo : item);
+      }
+      return [...prev, nuevo];
+    });
+
+    resetFormularioProducto();
   };
 
   const handleEliminarItem = (index: number) => {
     const nueva = [...items];
     nueva.splice(index, 1);
     setItems(nueva);
+    if (editingItemIndex === index) {
+      resetFormularioProducto();
+    }
   };
 
   // Finalizar
@@ -932,7 +967,7 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
                              disabled={!prodSeleccionado || Number(tempCant) < 0.0001} 
                              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed text-white py-3 rounded-xl font-bold text-sm transition shadow-lg shadow-slate-200"
                            >
-                              Confirmar Item
+                              {editingItemIndex !== null ? "Guardar Cambios" : "Confirmar Item"}
                            </button>
                        </div>
                     </div>
@@ -950,7 +985,11 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
 
                        <div className="grid gap-3">
                           {items.map((item, idx) => (
-                             <div key={idx} className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
+                             <div
+                               key={idx}
+                               onClick={() => handleEditarItem(idx)}
+                               className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center cursor-pointer hover:border-slate-300 hover:shadow-md transition-all"
+                             >
                                  <div>
                                     <p className="font-bold text-slate-800 text-sm">{item.nombre}</p>
                                     <p className="text-xs text-slate-500 mt-1">
@@ -963,7 +1002,14 @@ export function IngresoModal({ onClose, onSuccess }: IngresoModalProps) {
                                         <p className="text-[10px] text-slate-400 font-bold uppercase">Total Línea</p>
                                         <p className="font-bold text-slate-800 text-base">Q{item.costoTotal.toFixed(2)}</p>
                                      </div>
-                                     <button onClick={() => handleEliminarItem(idx)} className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition ml-2">
+                                     <button
+                                       type="button"
+                                       onClick={(e) => {
+                                         e.stopPropagation();
+                                         handleEliminarItem(idx);
+                                       }}
+                                       className="text-slate-300 hover:text-red-500 hover:bg-red-50 p-2 rounded-lg transition ml-2"
+                                     >
                                         <Trash2 size={18}/>
                                      </button>
                                  </div>
