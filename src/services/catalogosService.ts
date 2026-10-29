@@ -14,14 +14,14 @@ export const catalogosService = {
   
   // Obtener Bodegas (Pública)
   async getBodegas() {
-    const res = await fetch(`${API_URL}/catalogos/bodegas`);
+    const res = await fetch(`${API_URL}/inventario/bodegas`);
     if (!res.ok) throw new Error("Error al cargar bodegas");
     return res.json();
   },
 
   // Obtener Proveedores (Pública)
   async getProveedores() {
-    const res = await fetch(`${API_URL}/catalogos/proveedores`);
+    const res = await fetch(`${API_URL}/proveedores/catalogo`);
     if (!res.ok) throw new Error("Error al cargar proveedores");
     return res.json();
   },
@@ -29,7 +29,7 @@ export const catalogosService = {
   // Buscar Productos (Pública)
   async buscarProductos(termino: string) {
     const query = termino ? `?q=${encodeURIComponent(termino)}` : "";
-    const res = await fetch(`${API_URL}/catalogos/productos-busqueda${query}`);
+    const res = await fetch(`${API_URL}/productos/productos-busqueda${query}`);
     if (!res.ok) throw new Error("Error al buscar productos");
     return res.json();
   },
@@ -37,7 +37,7 @@ export const catalogosService = {
 // 👇 ESTA ES LA QUE ARREGLA TU PROBLEMA
 // Al agregar 'headers: getHeaders()', el backend te dejará pasar.
 async getFincasLotes() {
-  const res = await fetch(`${API_URL}/catalogos/fincas-lotes`, {
+  const res = await fetch(`${API_URL}/fincas/fincas-lotes`, {
       headers: getHeaders() // ✅ Esto envía el token correctamente
   });
   
@@ -50,7 +50,7 @@ async getFincasLotes() {
 
   // Para el módulo de configuración
   async getLotes() {
-      const res = await fetch(`${API_URL}/catalogos/lotes`, {
+      const res = await fetch(`${API_URL}/lotes/catalogo`, {
           headers: getHeaders()
       });
       if (!res.ok) throw new Error("Error al cargar lotes");

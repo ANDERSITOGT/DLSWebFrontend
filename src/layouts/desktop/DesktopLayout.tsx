@@ -9,6 +9,7 @@ import {
  LogOut,
  Plus,
  AlertTriangle
+ ,Sprout
 } from "lucide-react";
 
 // Contextos
@@ -59,7 +60,14 @@ const menuItems = [
  color: "group-hover:text-violet-400", 
  activeClass: "bg-violet-500/20 text-violet-300 border-r-4 border-violet-500"
  },
- { 
+ {
+ label: "Cosechas",
+ to: "/cosechas",
+ icon: <Sprout size={20} />,
+ color: "group-hover:text-lime-400",
+ activeClass: "bg-lime-500/20 text-lime-300 border-r-4 border-lime-500"
+ },
+ {
  label: "Configuracion", 
  to: "/configuracion", 
  icon: <Settings size={20} />, 

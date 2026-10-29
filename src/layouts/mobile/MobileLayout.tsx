@@ -7,6 +7,7 @@ import {
   FileText, 
   Settings, 
   Plus
+  ,Sprout
 } from "lucide-react";
 
 // Contextos
@@ -73,7 +74,14 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       activeColor: "text-violet-400",
       indicatorColor: "bg-violet-400"
     },
-    { 
+    {
+        to: "/cosechas",
+        icon: <Sprout size={20} />,
+        label: "Cosechas",
+        activeColor: "text-lime-400",
+        indicatorColor: "bg-lime-400"
+    },
+    {
         to: "/configuracion", 
         icon: <Settings size={20} />, 
         label: "Ajustes",
