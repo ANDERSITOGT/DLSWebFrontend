@@ -1,29 +1,30 @@
 import { useEffect, useState } from "react";
-import { 
-  Sprout, 
-  MapPin, 
-  ChevronRight, 
-  ChevronDown, 
-  Calendar, 
-  DollarSign, 
-  Package, 
-  User, 
-  X, 
+import {
+  Sprout,
+  MapPin,
+  ChevronRight,
+  ChevronDown,
+  Calendar,
+  DollarSign,
+  Package,
+  User,
+  X,
   FileText,
   Loader2,
   Tractor,
   Layers,
-  ArrowDownLeft, 
-  ArrowUpRight, 
-  ArrowRightLeft, 
-  RefreshCw, 
+  ArrowDownLeft,
+  ArrowUpRight,
+  ArrowRightLeft,
+  RefreshCw,
   CornerDownLeft,
   Truck,
   Droplets // 👈 Nuevo icono para aplicaciones
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { Badge } from "../../components/ui/Badge"; 
-import { cn } from "../../utils/cn"; 
+import { Badge } from "../../components/ui/Badge";
+import { Card, CardContent } from "../../components/ui/card";
+import { cn } from "../../utils/cn";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -72,7 +73,7 @@ type ProductoEnMovimiento = {
   id: string;
   productoNombre: string;
   productoCodigo: string;
-  cantidad: string; 
+  cantidad: string;
   unidad: string;
   loteCodigo: string | null;
   loteId: string | null;
@@ -82,7 +83,7 @@ type ProductoEnMovimiento = {
 type MovimientoDetalle = {
   id: string;
   codigo: string;
-  consecutivo?: string; 
+  consecutivo?: string;
   tipo: MovimientoTipo;
   estado: MovimientoEstado;
   fecha: string | null;
@@ -129,7 +130,7 @@ export function MovimientosLotesPage() {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 flex items-center gap-3">
              <div className="bg-emerald-100 p-2 rounded-xl text-emerald-600">
-                <Sprout size={28} /> 
+                <Sprout size={28} />
              </div>
              Lotes Agrícolas
           </h1>
@@ -156,9 +157,9 @@ export function MovimientosLotesPage() {
       ) : (
         <div className="space-y-8">
           {fincas.map((finca) => (
-            <FincaSection 
-              key={finca.fincaId} 
-              finca={finca} 
+            <FincaSection
+              key={finca.fincaId}
+              finca={finca}
               onSelectLote={(id) => setSelectedLoteId(id)}
             />
           ))}
@@ -166,9 +167,9 @@ export function MovimientosLotesPage() {
       )}
 
       {selectedLoteId && (
-        <LoteDetalleModal 
-          loteId={selectedLoteId} 
-          onClose={() => setSelectedLoteId(null)} 
+        <LoteDetalleModal
+          loteId={selectedLoteId}
+          onClose={() => setSelectedLoteId(null)}
         />
       )}
     </div>
@@ -177,10 +178,10 @@ export function MovimientosLotesPage() {
 
 function FincaSection({ finca, onSelectLote }: { finca: FincaGroup; onSelectLote: (id: string) => void }) {
   const [isOpen, setIsOpen] = useState(true);
-  
+
   return (
     <div className="bg-white rounded-3xl shadow-lg shadow-slate-100/50 border border-slate-200 overflow-hidden transition-all hover:shadow-xl hover:shadow-slate-200/50">
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between p-5 bg-gradient-to-r from-slate-50 via-white to-white hover:from-blue-50/50 transition-all border-b border-slate-100 group"
       >
@@ -245,17 +246,18 @@ function LoteCard({ lote, onClick }: { lote: LoteBasic; onClick: () => void }) {
   const fechaVisual = lote.fechaSiembra ? new Date(lote.fechaSiembra).toLocaleDateString() : "-";
 
   return (
-    <div 
+    <Card
       onClick={onClick}
       className={`
-        relative group cursor-pointer rounded-2xl p-5 transition-all duration-300
-        bg-white border shadow-sm hover:shadow-xl hover:-translate-y-1
-        ${isActivo 
-            ? 'border-slate-200 border-t-4 border-t-emerald-500' 
-            : 'border-slate-200 border-t-4 border-t-slate-300 bg-slate-50'} 
+        relative group cursor-pointer rounded-xl transition-all duration-300
+        bg-white border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1
+        ${isActivo
+            ? ''
+            : 'bg-slate-50'}
       `}
     >
-      <div className="flex justify-between items-start mb-4">
+      <CardContent className="p-5">
+       <div className="flex justify-between items-start mb-4">
          <div>
             <h4 className="font-extrabold text-slate-800 text-xl tracking-tight group-hover:text-emerald-700 transition-colors">
                 {lote.codigo}
@@ -268,21 +270,21 @@ function LoteCard({ lote, onClick }: { lote: LoteBasic; onClick: () => void }) {
                 <p className="text-[10px] text-slate-400 flex items-center gap-1 font-medium bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
                    <Calendar size={10}/> {fechaVisual}
                 </p>
-            </div>
+             </div>
          </div>
-         <Badge 
-            variant={isActivo ? undefined : "outline"} 
+         <Badge
+            variant={isActivo ? undefined : "outline"}
             className={isActivo ? "bg-emerald-100 text-emerald-700 border-transparent shadow-none" : "text-slate-500 bg-slate-100 border-slate-200"}
          >
             {lote.estado}
          </Badge>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-xs mb-4">
+       <div className="grid grid-cols-2 gap-3 text-xs mb-4">
          <div className="bg-blue-50/50 p-2.5 rounded-xl border border-blue-100/50">
             <span className="block text-[10px] text-blue-400 uppercase font-bold mb-0.5">Área</span>
             <span className="font-bold text-blue-700 text-sm">{lote.area}</span>
-         </div>
+          </div>
          <div className="bg-emerald-50/50 p-2.5 rounded-xl border border-emerald-100/50">
             <span className="block text-[10px] text-emerald-500 uppercase font-bold mb-0.5">Inversión</span>
             <span className="font-bold text-emerald-700 text-sm flex items-center gap-0.5">
@@ -291,7 +293,7 @@ function LoteCard({ lote, onClick }: { lote: LoteBasic; onClick: () => void }) {
          </div>
       </div>
 
-      <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+       <div className="flex items-center justify-between pt-3 border-t border-slate-100">
          <div className="flex items-center gap-2 overflow-hidden flex-1">
             <User size={14} className="text-slate-300"/>
             <div className="flex flex-wrap gap-1">
@@ -306,14 +308,15 @@ function LoteCard({ lote, onClick }: { lote: LoteBasic; onClick: () => void }) {
                 )}
             </div>
          </div>
-         
+
          {/* 🟢 NUEVO: Contador de Aplicaciones */}
          <div className="flex items-center gap-1.5 text-slate-400" title="Aplicaciones realizadas">
             <Droplets size={14} className="text-blue-400"/>
             <span className="text-xs font-bold text-slate-600">{lote.conteoAplicaciones}</span>
          </div>
-      </div>
-    </div>
+       </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -337,7 +340,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
            headers: { "Authorization": `Bearer ${token}` }
         });
         if (res.ok) setData(await res.json());
-      } catch (e) { console.error(e); } 
+      } catch (e) { console.error(e); }
       finally { setLoading(false); }
     };
     fetchDetail();
@@ -376,7 +379,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
        <div className="bg-white w-full max-w-4xl max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden animate-in zoom-in-95 duration-200 border border-white/20">
-          
+
           <div className="p-6 border-b border-slate-100 flex justify-between items-start bg-gradient-to-r from-emerald-50/50 to-white">
              <div>
                 <div className="flex items-center gap-3">
@@ -387,19 +390,19 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
                 </div>
                 <div className="flex flex-wrap items-center gap-3 mt-2 text-sm font-medium text-slate-600">
                    <span className="flex items-center gap-1.5"><MapPin size={16} className="text-blue-500"/> {data.info.finca}</span>
-                   <span className="text-slate-300">|</span> 
+                   <span className="text-slate-300">|</span>
                    <span className="flex items-center gap-1.5"><Sprout size={16} className="text-emerald-500"/> {data.info.cultivo}</span>
-                   <span className="text-slate-300">|</span> 
+                   <span className="text-slate-300">|</span>
                    <span className="flex items-center gap-1.5"><Calendar size={16} className="text-amber-500"/> Siembra: {fechaSiembraVisual}</span>
                 </div>
              </div>
              <div className="flex gap-2">
-                <button 
-                    onClick={handleExportPDF} 
+                <button
+                    onClick={handleExportPDF}
                     disabled={exporting}
                     className="flex items-center gap-2 px-4 py-2 bg-slate-800 text-white text-xs font-bold rounded-xl hover:bg-slate-700 transition shadow-xl shadow-slate-200 active:scale-95 disabled:opacity-50"
                 >
-                   {exporting ? <Loader2 size={16} className="animate-spin"/> : <FileText size={16}/>} 
+                   {exporting ? <Loader2 size={16} className="animate-spin"/> : <FileText size={16}/>}
                    Reporte PDF
                 </button>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-rose-50 text-slate-400 hover:text-rose-500 transition border border-transparent hover:border-rose-100">
@@ -409,7 +412,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
           </div>
 
           <div className="flex-1 overflow-y-auto p-6 lg:p-8 bg-slate-50/50">
-             
+
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                 <StatBox label="Área Total" value={data.info.area} icon={<MapPin className="text-white" size={20}/>} colorClass="bg-blue-500 shadow-blue-200"/>
                 <StatBox label="Encargados" value={data.info.encargados.length > 0 ? data.info.encargados.join(", ") : "Sin asignar"} icon={<User className="text-white" size={20}/>} colorClass="bg-violet-500 shadow-violet-200"/>
@@ -432,11 +435,11 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
                         <p className="text-slate-400 text-sm">No hay aplicaciones registradas.</p>
                     </div>
                 )}
-                
+
                 {data.historial.map((item) => (
-                   <div 
-                        key={item.id} 
-                        onClick={() => setSelectedMovimientoId(item.documentoId)} 
+                   <div
+                        key={item.id}
+                        onClick={() => setSelectedMovimientoId(item.documentoId)}
                         className="bg-white p-4 rounded-xl border border-slate-200/60 shadow-sm flex flex-col md:flex-row justify-between items-start md:items-center gap-4 hover:border-emerald-300 hover:shadow-md transition-all duration-200 group cursor-pointer"
                    >
                       <div className="flex items-center gap-4">
@@ -451,7 +454,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
                                </span>
                             </div>
                             <p className="text-xs text-slate-500 flex items-center gap-2">
-                               <Calendar size={12} className="text-emerald-500"/> 
+                               <Calendar size={12} className="text-emerald-500"/>
                                <span className="font-medium text-slate-600">{new Date(item.fecha).toLocaleDateString()}</span>
                                <span className="text-slate-300">•</span>
                                {item.tipo}
@@ -476,8 +479,8 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
        </div>
 
        {selectedMovimientoId && (
-           <MovimientoFullModal 
-                movimientoId={selectedMovimientoId} 
+           <MovimientoFullModal
+                movimientoId={selectedMovimientoId}
                 onClose={() => setSelectedMovimientoId(null)}
            />
        )}
@@ -497,7 +500,7 @@ function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; 
                     headers: { "Authorization": `Bearer ${token}` }
                 });
                 if(res.ok) setDetalle(await res.json());
-            } catch (e) { console.error(e); } 
+            } catch (e) { console.error(e); }
             finally { setLoading(false); }
         };
         fetchMovimiento();
@@ -521,7 +524,7 @@ function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in">
             <div className="w-full max-w-xl bg-white rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[80vh] animate-in zoom-in-95">
-                
+
                 <div className="flex items-center justify-between p-4 border-b border-slate-100 bg-slate-50">
                     <div>
                         <div className="flex gap-2 mb-1">

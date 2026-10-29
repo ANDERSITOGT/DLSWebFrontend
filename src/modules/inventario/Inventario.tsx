@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import {
   Card,
   CardContent,
-} from "../../components/ui/Card";
+} from "../../components/ui/card";
 import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
@@ -295,7 +295,7 @@ export function Inventario() {
               placeholder="Buscar producto en todo el sistema..."
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-4 py-2.5 pl-10 text-sm shadow-sm focus:border-emerald-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 transition-all"
+              className="w-full rounded-xl border border-slate-300 bg-white px-4 py-2.5 pl-10 text-sm shadow-sm placeholder:text-slate-400 focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600 transition-all"
             />
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           </div>
@@ -303,21 +303,21 @@ export function Inventario() {
           <div className="flex gap-2">
              <button 
                 onClick={() => setMostrandoFiltros(!mostrandoFiltros)} 
-                className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all shadow-sm ${mostrandoFiltros ? 'bg-slate-100 border-slate-300 text-slate-800' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-xs font-bold transition-all shadow-sm ${mostrandoFiltros ? 'bg-slate-200 border-slate-400 text-slate-800' : 'bg-white border-slate-300 text-slate-600 hover:bg-slate-50'}`}
              >
                 <Filter size={14} /> Filtros
              </button>
-             <button onClick={handleExportPdf} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-all">
+             <button onClick={handleExportPdf} className="flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-600 shadow-sm hover:bg-slate-50 transition-all">
               <FileText size={14} /> Exportar
             </button>
           </div>
         </div>
 
         {mostrandoFiltros && (
-            <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm animate-in slide-in-from-top-2">
-                <button onClick={() => setCategoriaFiltro("")} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", !categoriaFiltro ? "bg-emerald-600 text-white shadow-md" : "bg-slate-50 text-slate-600 hover:bg-slate-100")}>Todas</button>
+            <div className="flex flex-wrap gap-2 bg-white p-4 rounded-2xl border border-slate-300 shadow-sm animate-in slide-in-from-top-2">
+                <button onClick={() => setCategoriaFiltro("")} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", !categoriaFiltro ? "bg-teal-700 text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>Todas</button>
                 {categorias.map(c => (
-                    <button key={c.id} onClick={() => setCategoriaFiltro(c.nombre)} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", categoriaFiltro === c.nombre ? "bg-emerald-600 text-white shadow-md" : "bg-slate-50 text-slate-600 hover:bg-slate-100")}>
+                    <button key={c.id} onClick={() => setCategoriaFiltro(c.nombre)} className={cn("rounded-full px-3 py-1.5 text-[11px] font-bold transition-colors", categoriaFiltro === c.nombre ? "bg-teal-700 text-white shadow-md" : "bg-slate-100 text-slate-600 hover:bg-slate-200")}>
                         {c.nombre}
                     </button>
                 ))}
@@ -330,7 +330,7 @@ export function Inventario() {
          {!cargando && !error && (
              <div className="flex items-center gap-2">
                  <SectionTitle title={busqueda ? "Resultados de búsqueda" : "Productos más usados"} />
-                 <span className="text-xs bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold">
+                 <span className="text-xs bg-slate-200 text-slate-600 px-2 py-0.5 rounded-full font-bold">
                     {productos.length}
                  </span>
              </div>
@@ -350,7 +350,7 @@ export function Inventario() {
          </div>
 
          {!cargando && productos.length === 0 && (
-             <div className="text-center py-12 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-slate-400">
+             <div className="text-center py-12 bg-white/70 rounded-xl border border-dashed border-slate-300 text-slate-400">
                  <Package className="w-12 h-12 mx-auto text-slate-300 mb-2 opacity-50"/>
                  <p className="text-sm font-medium">No se encontraron productos.</p>
                  <p className="text-xs">Intenta con otro término de búsqueda.</p>
@@ -359,7 +359,7 @@ export function Inventario() {
 
          {!cargando && !vistaCompleta && !busqueda && !categoriaFiltro && productos.length > 0 && (
              <div className="flex justify-center pt-6 pb-4">
-                 <button onClick={handleCargarTodo} className="bg-slate-800 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg hover:bg-slate-700 transition active:scale-95 flex items-center gap-2">
+                 <button onClick={handleCargarTodo} className="bg-slate-900 text-white px-6 py-3 rounded-full text-sm font-bold shadow-lg hover:bg-slate-800 transition active:scale-95 flex items-center gap-2">
                      <Database size={16}/> Cargar Inventario Completo
                  </button>
              </div>
@@ -408,9 +408,9 @@ export function Inventario() {
 
 function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onClick?: () => void; }) {
   const stockConfig = {
-    Normal: { border: "border-l-emerald-500", iconBg: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    Bajo:   { border: "border-l-amber-500",   iconBg: "bg-amber-100 text-amber-600",   badge: "bg-amber-50 text-amber-700 border-amber-200" },
-    Crítico:{ border: "border-l-rose-500",    iconBg: "bg-rose-100 text-rose-600",     badge: "bg-rose-50 text-rose-700 border-rose-200" },
+    Normal: { iconBg: "bg-teal-50 text-teal-700", badge: "bg-teal-50 text-teal-700 border-teal-200" },
+    Bajo:   { iconBg: "bg-amber-50 text-amber-700", badge: "bg-amber-50 text-amber-700 border-amber-200" },
+    Crítico:{ iconBg: "bg-rose-50 text-rose-700", badge: "bg-rose-50 text-rose-700 border-rose-200" },
   }[producto.estadoStock];
 
   const isInteractive = !!onClick;
@@ -418,9 +418,8 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
   return (
     <Card
       className={cn(
-          "rounded-xl border-l-[4px] border-y border-r border-slate-100 overflow-hidden", 
-          isInteractive ? "shadow-sm hover:shadow-md cursor-pointer transition-all" : "cursor-default opacity-95",
-          stockConfig.border
+          "mb-4 overflow-hidden rounded-xl hover:-translate-y-0.5",
+          isInteractive ? "cursor-pointer transition-all" : "cursor-default opacity-95",
       )}
       onClick={onClick}
     >
@@ -430,16 +429,16 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
         </div>
         <div className="flex-1 min-w-0">
             <div className="flex justify-between items-start mb-1 gap-2">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-800 truncate" title={producto.nombre}>{producto.nombre}</h3>
-                <Badge variant="outline" className={cn("shrink-0 text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider h-fit", producto.estadoProducto === 'ACTIVO' ? "border-emerald-200 text-emerald-600" : "border-slate-200 text-slate-400")}>
+                <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate" title={producto.nombre}>{producto.nombre}</h3>
+                <Badge variant="outline" className={cn("shrink-0 text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider h-fit", producto.estadoProducto === 'ACTIVO' ? "border-teal-300 text-teal-800" : "border-slate-300 text-slate-600")}>
                     {producto.estadoProducto === 'ACTIVO' ? 'ACT' : 'INA'}
                 </Badge>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-500 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
-            <div className="flex items-end justify-between mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-slate-50">
+            <p className="text-[10px] sm:text-[11px] text-slate-600 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
+            <div className="flex items-end justify-between mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-slate-100">
                 <div>
-                      <p className="text-[9px] sm:text-[10px] text-slate-400 uppercase font-bold">Existencia</p>
-                      <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">{producto.stockTotal}</p>
+                      <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold">Existencia</p>
+                      <p className="text-sm sm:text-base font-bold text-slate-900 truncate max-w-[120px]">{producto.stockTotal}</p>
                 </div>
                 <Badge variant="outline" className={cn("text-[9px] sm:text-[10px] border shrink-0", stockConfig.badge)}>
                     {producto.estadoStock}

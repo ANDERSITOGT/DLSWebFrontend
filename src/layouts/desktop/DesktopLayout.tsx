@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
- Home, 
- Boxes, 
- ArrowLeftRight, 
- FileText, 
- Settings, 
+import {
+ Home,
+ Boxes,
+ ArrowLeftRight,
+ FileText,
+ Settings,
  LogOut,
  Plus,
  AlertTriangle
@@ -18,7 +18,7 @@ import { useRefresh } from "../../context/RefreshContext";
 
 // Modales
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
-import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
+import { IngresoModal } from "../../modules/movimientos/IngresoModal";
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
@@ -32,60 +32,60 @@ type DesktopLayoutProps = {
 
 // Configuracion del Menu
 const menuItems = [
- { 
- label: "Inicio", 
- to: "/", 
- icon: <Home size={20} />, 
- color: "group-hover:text-blue-400", 
- activeClass: "bg-blue-500/20 text-blue-300 border-r-4 border-blue-500" 
+ {
+ label: "Inicio",
+ to: "/",
+ icon: <Home size={20} />,
+ color: "group-hover:text-blue-400",
+ activeClass: "bg-blue-500/20 text-blue-300 border-r-4 border-blue-500"
  },
- { 
- label: "Inventario", 
- to: "/inventario", 
- icon: <Boxes size={20} />, 
- color: "group-hover:text-emerald-400", 
+ {
+ label: "Inventario",
+ to: "/bodega/inventario",
+ icon: <Boxes size={20} />,
+ color: "group-hover:text-emerald-400",
  activeClass: "bg-emerald-500/20 text-emerald-300 border-r-4 border-emerald-500"
  },
- { 
- label: "Movimientos", 
- to: "/movimientos", 
- icon: <ArrowLeftRight size={20} />, 
- color: "group-hover:text-amber-400", 
+ {
+ label: "Movimientos",
+ to: "/bodega/movimientos",
+ icon: <ArrowLeftRight size={20} />,
+ color: "group-hover:text-amber-400",
  activeClass: "bg-amber-500/20 text-amber-300 border-r-4 border-amber-500"
  },
- { 
- label: "Solicitudes", 
- to: "/solicitudes", 
- icon: <FileText size={20} />, 
- color: "group-hover:text-violet-400", 
+ {
+ label: "Solicitudes",
+ to: "/bodega/solicitudes",
+ icon: <FileText size={20} />,
+ color: "group-hover:text-violet-400",
  activeClass: "bg-violet-500/20 text-violet-300 border-r-4 border-violet-500"
  },
  {
  label: "Cosechas",
- to: "/cosechas",
+ to: "/cosechas/registro",
  icon: <Sprout size={20} />,
  color: "group-hover:text-lime-400",
  activeClass: "bg-lime-500/20 text-lime-300 border-r-4 border-lime-500"
  },
  {
- label: "Configuracion", 
- to: "/configuracion", 
- icon: <Settings size={20} />, 
- color: "group-hover:text-slate-300", 
+ label: "Configuracion",
+ to: "/bodega/configuracion",
+ icon: <Settings size={20} />,
+ color: "group-hover:text-slate-300",
  activeClass: "bg-slate-500/30 text-slate-200 border-r-4 border-slate-400"
  },
 ];
 
 export function DesktopLayout({ children }: DesktopLayoutProps) {
- const { user, logout } = useAuth(); 
+ const { user, logout } = useAuth();
  const location = useLocation();
- const { triggerRefreshSolicitudes } = useRefresh(); 
+ const { triggerRefreshSolicitudes } = useRefresh();
 
  // --- ESTADOS ---
- const [showActions, setShowActions] = useState(false); 
- const [showIngresoModal, setShowIngresoModal] = useState(false); 
- const [showSolicitudModal, setShowSolicitudModal] = useState(false); 
- const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); 
+ const [showActions, setShowActions] = useState(false);
+ const [showIngresoModal, setShowIngresoModal] = useState(false);
+ const [showSolicitudModal, setShowSolicitudModal] = useState(false);
+ const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
  const [showAjusteModal, setShowAjusteModal] = useState(false);
  const [showDevolucionModal, setShowDevolucionModal] = useState(false);
@@ -98,17 +98,17 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
 
  return (
  <div className="h-screen w-full bg-slate-50 flex overflow-hidden">
- 
+
  {/* SIDEBAR */}
  <aside className="w-64 h-full flex flex-col shadow-2xl z-20 relative shrink-0">
- 
+
  {/* Fondos */}
  <div className="absolute inset-0 z-0 bg-cover bg-center overflow-hidden" style={{ backgroundImage: `url(${bgImage})` }} />
  <div className="absolute inset-0 z-0 bg-slate-900/90 backdrop-blur-[2px]" />
 
  {/* Contenido Sidebar */}
  <div className="relative z-10 flex flex-col h-full text-white">
- 
+
  {/* Header Logo */}
  <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
  <div className="font-bold text-xl tracking-wide flex items-center gap-2">
@@ -154,7 +154,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
 
  {/* Footer Sidebar */}
  <div className="p-4 border-t border-white/10 shrink-0 space-y-2 bg-slate-900/50 backdrop-blur-sm">
- 
+
  <button
  onClick={() => setShowActions(true)}
  className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-2.5 rounded-lg shadow-lg shadow-emerald-900/50 transition-all active:scale-95 flex items-center justify-center gap-2"
@@ -188,24 +188,24 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  {/* --- MODALES --- */}
 
  {showActions && (
- <QuickActionsModal 
- onClose={() => setShowActions(false)} 
- onIngresoClick={() => setShowIngresoModal(true)} 
+ <QuickActionsModal
+ onClose={() => setShowActions(false)}
+ onIngresoClick={() => setShowIngresoModal(true)}
  onSolicitudClick={() => setShowSolicitudModal(true)}
  onAjusteClick={() => setShowAjusteModal(true)}
  onDevolucionClick={() => setShowDevolucionModal(true)}
- onCreateProductClick={() => setShowCrearProductoModal(true)} 
+ onCreateProductClick={() => setShowCrearProductoModal(true)}
  // PASAMOS LA FUNCION AQUI
  onInfoProductoClick={() => setShowInfoProductoModal(true)}
  />
  )}
 
  {showIngresoModal && (
- <IngresoModal 
+ <IngresoModal
  onClose={() => setShowIngresoModal(false)}
  onSuccess={() => {
  setShowIngresoModal(false);
- triggerRefreshSolicitudes(); 
+ triggerRefreshSolicitudes();
  }}
  />
  )}
@@ -215,7 +215,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  onClose={() => setShowSolicitudModal(false)}
  onSuccess={() => {
  setShowSolicitudModal(false);
- triggerRefreshSolicitudes(); 
+ triggerRefreshSolicitudes();
  }}
  />
  )}
@@ -237,16 +237,16 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  )}
 
  {showAjusteModal && (
- <AjusteInventarioModal 
- onClose={() => setShowAjusteModal(false)} 
+ <AjusteInventarioModal
+ onClose={() => setShowAjusteModal(false)}
  onSuccess={() => {}}
  />
  )}
 
  {showDevolucionModal && (
- <SolicitudDevolucionModal 
- onClose={() => setShowDevolucionModal(false)} 
- onSuccess={() => triggerRefreshSolicitudes()} 
+ <SolicitudDevolucionModal
+ onClose={() => setShowDevolucionModal(false)}
+ onSuccess={() => triggerRefreshSolicitudes()}
  />
  )}
 
@@ -254,7 +254,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  <CrearProductoModal
  isOpen={showCrearProductoModal}
  onClose={() => setShowCrearProductoModal(false)}
- onSuccess={() => setShowCrearProductoModal(false)} 
+ onSuccess={() => setShowCrearProductoModal(false)}
  />
  )}
 
@@ -263,7 +263,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  <InfoProductoModal
  isOpen={showInfoProductoModal}
  onClose={() => setShowInfoProductoModal(false)}
- onSuccess={() => setShowInfoProductoModal(false)} 
+ onSuccess={() => setShowInfoProductoModal(false)}
  />
  )}
 

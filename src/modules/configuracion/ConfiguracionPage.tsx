@@ -17,7 +17,7 @@ export function ConfiguracionPage() {
 
   return (
     <div className="max-w-3xl mx-auto space-y-8 pb-12">
-      
+
       {/* Encabezado */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Configuración</h1>
@@ -40,7 +40,7 @@ export function ConfiguracionPage() {
 
         <div className="p-6 space-y-4">
             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Información Personal</h3>
-            
+
             <div className="grid gap-4 md:grid-cols-2">
                 <div className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl">
                     <div className="p-2 bg-slate-50 rounded-lg text-slate-500">
@@ -69,12 +69,12 @@ export function ConfiguracionPage() {
       {user?.rol === "ADMIN" && (
           <div>
               <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider mb-3">Administración</h3>
-              
+
               <div className="space-y-3"> {/* 👈 Contenedor para separar los botones */}
-                
+
                 {/* Botón Gestión de Usuarios */}
-                <button 
-                  onClick={() => navigate("/usuarios")}
+                <button
+                  onClick={() => navigate("/bodega/configuracion/usuarios")}
                   className="w-full flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-indigo-200 transition-all group text-left"
                 >
                     <div className="flex items-center gap-4">
@@ -92,8 +92,8 @@ export function ConfiguracionPage() {
                 </button>
 
                 {/* 👇 NUEVO BOTÓN: Asignación de Lotes */}
-                <button 
-                  onClick={() => navigate("/asignacion-lotes")} 
+                <button
+                  onClick={() => navigate("/bodega/configuracion/asignacion-lotes")}
                   className="w-full flex items-center justify-between p-5 bg-white border border-slate-200 rounded-xl shadow-sm hover:shadow-md hover:border-emerald-200 transition-all group text-left"
                 >
                     <div className="flex items-center gap-4">
@@ -113,8 +113,8 @@ export function ConfiguracionPage() {
 
               </div>
 
-<div 
-    onClick={() => navigate('/configuracion/edicion-critica')}
+<div
+    onClick={() => navigate('/bodega/configuracion/edicion-critica')}
     className="flex items-center justify-between p-5 bg-white border border-rose-100 rounded-2xl shadow-sm hover:shadow-md cursor-pointer group transition-all"
 >
     <div className="flex items-center gap-4">
@@ -129,14 +129,14 @@ export function ConfiguracionPage() {
     <ChevronRight className="text-slate-400 group-hover:text-rose-500 transition-colors" />
 </div>
 
-              
+
           </div>
       )}
 
       {/* 3. Zona de Peligro */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
         <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4">Sesión</h3>
-        <button 
+        <button
             onClick={logout}
             className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-rose-50 text-rose-700 rounded-xl hover:bg-rose-100 border border-rose-100 transition-all font-bold text-sm shadow-sm active:scale-95"
         >

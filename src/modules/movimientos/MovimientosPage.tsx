@@ -4,7 +4,7 @@ import {
   Card,
   CardContent,
   CardTitle,
-} from "../../components/ui/Card";
+} from "../../components/ui/card";
 import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
@@ -203,7 +203,7 @@ export function MovimientosPage() {
           {/* 👇 AQUÍ ESTÁ EL CAMBIO VISUAL: Solo mostramos si tiene permiso */}
           {puedeVerLotes && (
             <Link
-              to="/movimientos/lotes"
+              to="/bodega/movimientos/lotes"
               className="flex-1 text-center rounded-lg py-2 text-xs font-medium text-slate-500 hover:text-slate-700 hover:bg-slate-200/50 transition-all"
             >
               Lotes Agrícolas
@@ -252,11 +252,11 @@ export function MovimientosPage() {
 // ------------------------------------
 function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen; onClick: () => void; }) {
   const tipoConfig = {
-    INGRESO:       { border: "border-l-emerald-500", icon: <ArrowDownLeft size={20}/>,  bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-    SALIDA:        { border: "border-l-rose-500",    icon: <ArrowUpRight size={20}/>,   bgIcon: "bg-rose-100 text-rose-600",       badge: "bg-rose-50 text-rose-700 border-rose-200" },
-    TRANSFERENCIA: { border: "border-l-sky-500",     icon: <ArrowRightLeft size={20}/>, bgIcon: "bg-sky-100 text-sky-600",        badge: "bg-sky-50 text-sky-700 border-sky-200" },
-    AJUSTE:        { border: "border-l-amber-500",   icon: <RefreshCw size={20}/>,      bgIcon: "bg-amber-100 text-amber-600",     badge: "bg-amber-50 text-amber-700 border-amber-200" },
-    DEVOLUCION:    { border: "border-l-violet-500",  icon: <CornerDownLeft size={20}/>, bgIcon: "bg-violet-100 text-violet-600",   badge: "bg-violet-50 text-violet-700 border-violet-200" },
+    INGRESO:       { icon: <ArrowDownLeft size={20}/>,  bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
+    SALIDA:        { icon: <ArrowUpRight size={20}/>,   bgIcon: "bg-rose-100 text-rose-600",       badge: "bg-rose-50 text-rose-700 border-rose-200" },
+    TRANSFERENCIA: { icon: <ArrowRightLeft size={20}/>, bgIcon: "bg-sky-100 text-sky-600",        badge: "bg-sky-50 text-sky-700 border-sky-200" },
+    AJUSTE:        { icon: <RefreshCw size={20}/>,      bgIcon: "bg-amber-100 text-amber-600",     badge: "bg-amber-50 text-amber-700 border-amber-200" },
+    DEVOLUCION:    { icon: <CornerDownLeft size={20}/>, bgIcon: "bg-violet-100 text-violet-600",   badge: "bg-violet-50 text-violet-700 border-violet-200" },
   }[movimiento.tipo];
 
   const estadoBadge = movimiento.estado === "APROBADO" 
@@ -281,8 +281,7 @@ function MovimientoCard({ movimiento, onClick }: { movimiento: MovimientoResumen
   return (
     <Card
       className={cn(
-          "rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border-l-[4px] border-y border-r border-slate-100 group", 
-          tipoConfig.border
+          "mb-4 rounded-xl border border-slate-800 bg-white shadow-sm transition-all hover:shadow-md cursor-pointer group"
       )}
       onClick={onClick}
     >

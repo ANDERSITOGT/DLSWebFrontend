@@ -2,8 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Fondo global similar a Figma */
-body {
-  @apply bg-slate-50;
-  /* por si no quieres Tailwind aquí: background-color: #F5F7FA; */
+@layer base {
+  :root {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 240 5% 16%;
+    --muted-foreground: 240 5% 65%;
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 221 83% 53%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 98%;
+    --card: 240 6% 10%;
+    --card-foreground: 0 0% 98%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+    --muted: 240 5% 16%;
+    --muted-foreground: 240 5% 65%;
+    --border: 240 4% 18%;
+    --input: 240 4% 18%;
+    --ring: 221 83% 53%;
+    --destructive: 0 63% 45%;
+    --destructive-foreground: 0 0% 98%;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    margin: 0;
+  }
+
+  #root {
+    @apply min-h-screen bg-background text-foreground;
+  }
+
+  .app-surface {
+    background-color: #f4f6f4;
+    background-image: url("/farm-pattern.svg");
+    background-repeat: repeat;
+    background-size: 240px 240px;
+  }
+}
+
+@layer components {
+  .app-card {
+    border: 2px solid #334155 !important;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+    box-shadow:
+      0 2px 2px rgba(15, 23, 42, 0.1),
+      0 8px 18px rgba(15, 23, 42, 0.16),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    transition:
+      transform 180ms ease,
+      box-shadow 180ms ease,
+      border-color 180ms ease;
+  }
+
+  .app-card:hover {
+    border-color: #0f172a !important;
+    box-shadow:
+      0 2px 2px rgba(15, 23, 42, 0.1),
+      0 14px 28px rgba(15, 23, 42, 0.22),
+      inset 0 1px 0 rgba(255, 255, 255, 0.95);
+  }
 }

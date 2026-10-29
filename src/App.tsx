@@ -1,9 +1,7 @@
 // src/App.tsx
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
-import { useIsMobile } from "./hooks/useIsMobile";
-import { MobileLayout } from "./layouts/mobile/MobileLayout";
-import { DesktopLayout } from "./layouts/desktop/DesktopLayout";
+import { MainLayout } from "./layouts/MainLayout";
 import { InicioPage } from "./modules/inicio/InicioPage";
 import LoginPage from "./modules/auth/LoginPage";
 import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
@@ -17,6 +15,8 @@ import ProveedoresPage from "./pages/proveedores/ProveedoresPage";
 import FincasPage from "./pages/fincas/FincasPage";
 import { EdicionCriticaPage } from './modules/configuracion/EdicionCriticaPage';
 import { CosechasPage } from "./modules/cosechas/CosechasPage";
+import { BodegaDashboard } from "./modules/bodega/BodegaDashboard";
+import { CosechasDashboard } from "./modules/cosechas/CosechasDashboard";
 
 
 // Importar los Providers
@@ -36,9 +36,6 @@ function RequireAuth({ children }: { children: ReactNode }) {
 }
 
 function AppContent() {
-  const isMobile = useIsMobile();
-  const Layout = isMobile ? MobileLayout : DesktopLayout;
-
   return (
     <Routes>
       {/* Ruta Pública: Login */}
@@ -49,23 +46,25 @@ function AppContent() {
         path="/*"
         element={
           <RequireAuth>
-            <Layout>
+            <MainLayout>
               <Routes>
                 <Route path="/" element={<InicioPage />} />
-                <Route path="/inventario" element={<Inventario />} />
-                <Route path="/movimientos" element={<MovimientosPage />} />
-                <Route path="/movimientos/lotes" element={<MovimientosLotesPage />} />
-                <Route path="/solicitudes" element={<SolicitudesPage />} />
-                <Route path="/configuracion" element={<ConfiguracionPage />} />
-                <Route path="/usuarios" element={<UsuariosPage />} />
-                <Route path="/asignacion-lotes" element={<AsignacionLotesPage />} />
-                <Route path="/proveedores" element={<ProveedoresPage />} />
-                <Route path="/fincas" element={<FincasPage />} />
-                <Route path="/cosechas" element={<CosechasPage />} />
-                <Route path="/configuracion/edicion-critica" element={<EdicionCriticaPage />} />
+                <Route path="/bodega" element={<BodegaDashboard />} />
+                <Route path="/bodega/inventario" element={<Inventario />} />
+                <Route path="/bodega/movimientos" element={<MovimientosPage />} />
+                <Route path="/bodega/movimientos/lotes" element={<MovimientosLotesPage />} />
+                <Route path="/bodega/solicitudes" element={<SolicitudesPage />} />
+                <Route path="/bodega/configuracion" element={<ConfiguracionPage />} />
+                <Route path="/bodega/configuracion/usuarios" element={<UsuariosPage />} />
+                <Route path="/bodega/configuracion/asignacion-lotes" element={<AsignacionLotesPage />} />
+                <Route path="/bodega/proveedores" element={<ProveedoresPage />} />
+                <Route path="/bodega/configuracion/edicion-critica" element={<EdicionCriticaPage />} />
+                <Route path="/cosechas" element={<CosechasDashboard />} />
+                <Route path="/cosechas/fincas" element={<FincasPage />} />
+                <Route path="/cosechas/registro" element={<CosechasPage />} />
                 
               </Routes>
-            </Layout>
+            </MainLayout>
           </RequireAuth>
         }
       />

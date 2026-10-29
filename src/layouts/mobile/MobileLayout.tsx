@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { 
-  Home, 
-  Boxes, 
-  ArrowLeftRight, 
-  FileText, 
-  Settings, 
+import {
+  Home,
+  Boxes,
+  ArrowLeftRight,
+  FileText,
+  Settings,
   Plus
   ,Sprout
 } from "lucide-react";
@@ -16,7 +16,7 @@ import { useRefresh } from "../../context/RefreshContext";
 
 // Modales
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
-import { IngresoModal } from "../../modules/movimientos/IngresoModal"; 
+import { IngresoModal } from "../../modules/movimientos/IngresoModal";
 import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
@@ -29,7 +29,7 @@ type MobileLayoutProps = {
 
 export function MobileLayout({ children }: MobileLayoutProps) {
   const location = useLocation();
-  const { user } = useAuth(); 
+  const { user } = useAuth();
   const { triggerRefreshSolicitudes } = useRefresh();
 
   // --- ESTADOS ---
@@ -46,44 +46,44 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
   // Configuracion del Menu Inferior (5 Items)
   const navItems = [
-    { 
-      to: "/", 
-      icon: <Home size={20} />, 
+    {
+      to: "/",
+      icon: <Home size={20} />,
       label: "Inicio",
       activeColor: "text-blue-400",
       indicatorColor: "bg-blue-400"
     },
-    { 
-      to: "/inventario", 
-      icon: <Boxes size={20} />, 
+    {
+      to: "/bodega/inventario",
+      icon: <Boxes size={20} />,
       label: "Stock",
       activeColor: "text-emerald-400",
       indicatorColor: "bg-emerald-400"
     },
-    { 
-        to: "/movimientos", 
-        icon: <ArrowLeftRight size={20} />, 
+    {
+        to: "/bodega/movimientos",
+        icon: <ArrowLeftRight size={20} />,
         label: "Movim.",
         activeColor: "text-amber-400",
         indicatorColor: "bg-amber-400"
     },
-    { 
-      to: "/solicitudes", 
-      icon: <FileText size={20} />, 
+    {
+      to: "/bodega/solicitudes",
+      icon: <FileText size={20} />,
       label: "Solicit.",
       activeColor: "text-violet-400",
       indicatorColor: "bg-violet-400"
     },
     {
-        to: "/cosechas",
+        to: "/cosechas/registro",
         icon: <Sprout size={20} />,
         label: "Cosechas",
         activeColor: "text-lime-400",
         indicatorColor: "bg-lime-400"
     },
     {
-        to: "/configuracion", 
-        icon: <Settings size={20} />, 
+        to: "/bodega/configuracion",
+        icon: <Settings size={20} />,
         label: "Ajustes",
         activeColor: "text-slate-200",
         indicatorColor: "bg-slate-200"
@@ -92,13 +92,13 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
-      
+
       {/* 1. Header Movil */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm">
          <span className="font-bold text-xl text-slate-800 tracking-tight">
             DLS Web
          </span>
-         
+
          <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-700 border border-slate-200">
             {user?.nombre.charAt(0).toUpperCase()}
          </div>
@@ -123,9 +123,9 @@ export function MobileLayout({ children }: MobileLayoutProps) {
             {navItems.map((item) => {
                 const isActive = location.pathname === item.to;
                 return (
-                    <Link 
-                        key={item.to} 
-                        to={item.to} 
+                    <Link
+                        key={item.to}
+                        to={item.to}
                         className="flex flex-col items-center justify-center w-full h-full space-y-1 group"
                     >
                         <div className={`transition-colors duration-200 ${isActive ? item.activeColor : "text-slate-500 group-hover:text-slate-300"}`}>
@@ -143,23 +143,23 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
       {/* --- MODALES --- */}
       {showActions && (
-        <QuickActionsModal 
-          onClose={() => setShowActions(false)} 
-          onIngresoClick={() => setShowIngresoModal(true)} 
-          onSolicitudClick={() => setShowSolicitudModal(true)} 
+        <QuickActionsModal
+          onClose={() => setShowActions(false)}
+          onIngresoClick={() => setShowIngresoModal(true)}
+          onSolicitudClick={() => setShowSolicitudModal(true)}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
           onCreateProductClick={() => setShowCrearProductoModal(true)}
-          onInfoProductoClick={() => setShowInfoProductoModal(true)} 
+          onInfoProductoClick={() => setShowInfoProductoModal(true)}
         />
       )}
 
       {showIngresoModal && (
-        <IngresoModal 
+        <IngresoModal
           onClose={() => setShowIngresoModal(false)}
           onSuccess={() => {
             setShowIngresoModal(false);
-            triggerRefreshSolicitudes(); 
+            triggerRefreshSolicitudes();
           }}
         />
       )}
@@ -169,23 +169,23 @@ export function MobileLayout({ children }: MobileLayoutProps) {
           onClose={() => setShowSolicitudModal(false)}
           onSuccess={() => {
             setShowSolicitudModal(false);
-            triggerRefreshSolicitudes(); 
+            triggerRefreshSolicitudes();
           }}
         />
       )}
 
       {/* 5. Ajuste */}
       {showAjusteModal && (
-        <AjusteInventarioModal 
-           onClose={() => setShowAjusteModal(false)} 
+        <AjusteInventarioModal
+           onClose={() => setShowAjusteModal(false)}
            onSuccess={() => {}}
         />
       )}
 
       {/* 6. Devolucion */}
       {showDevolucionModal && (
-         <SolicitudDevolucionModal 
-            onClose={() => setShowDevolucionModal(false)} 
+         <SolicitudDevolucionModal
+            onClose={() => setShowDevolucionModal(false)}
             onSuccess={() => triggerRefreshSolicitudes()}
          />
       )}
@@ -204,7 +204,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
         <InfoProductoModal
           isOpen={showInfoProductoModal}
           onClose={() => setShowInfoProductoModal(false)}
-          onSuccess={() => setShowInfoProductoModal(false)} 
+          onSuccess={() => setShowInfoProductoModal(false)}
         />
       )}
 

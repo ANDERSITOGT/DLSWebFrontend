@@ -5,7 +5,7 @@ import {
   CardContent,
   CardDescription,
   CardTitle,
-} from "../../components/ui/Card";
+} from "../../components/ui/card";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { Badge } from "../../components/ui/Badge";
 import { StatCard } from "../../components/ui/StatCard";

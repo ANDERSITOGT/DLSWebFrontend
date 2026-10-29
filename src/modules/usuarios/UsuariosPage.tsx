@@ -49,7 +49,7 @@ export default function UsuariosPage() {
       {/* Header */}
       <div>
         <button 
-          onClick={() => navigate("/configuracion")}
+          onClick={() => navigate("/bodega/configuracion")}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-4 font-medium text-sm"
         >
           <ArrowLeft size={18} />

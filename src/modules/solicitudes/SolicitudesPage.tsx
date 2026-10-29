@@ -3,7 +3,7 @@ import {
   Card,
   CardContent,
   CardTitle,
-} from "../../components/ui/Card";
+} from "../../components/ui/card";
 import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
@@ -257,7 +257,6 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
   const isDevolucion = solicitud.tipo === "DEVOLUCION";
 
   let config = {
-      border: "border-l-slate-200", 
       icon: <Clock size={20}/>, 
       bgIcon: "bg-slate-100 text-slate-500", 
       badge: "bg-slate-100 text-slate-600"
@@ -266,31 +265,31 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
   if (isDevolucion) {
       switch (solicitud.estado) {
           case "PENDIENTE":
-              config = { border: "border-l-violet-400", icon: <RotateCcw size={20}/>, bgIcon: "bg-violet-100 text-violet-600", badge: "bg-violet-50 text-violet-700 border-violet-200" };
+              config = { icon: <RotateCcw size={20}/>, bgIcon: "bg-violet-100 text-violet-600", badge: "bg-violet-50 text-violet-700 border-violet-200" };
               break;
           case "APROBADA":
-              config = { border: "border-l-fuchsia-500", icon: <CheckCircle2 size={20}/>, bgIcon: "bg-fuchsia-100 text-fuchsia-600", badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" };
+              config = { icon: <CheckCircle2 size={20}/>, bgIcon: "bg-fuchsia-100 text-fuchsia-600", badge: "bg-fuchsia-50 text-fuchsia-700 border-fuchsia-200" };
               break;
           case "ENTREGADA": 
-              config = { border: "border-l-purple-600", icon: <PackageCheck size={20}/>, bgIcon: "bg-purple-100 text-purple-700", badge: "bg-purple-50 text-purple-800 border-purple-200" };
+              config = { icon: <PackageCheck size={20}/>, bgIcon: "bg-purple-100 text-purple-700", badge: "bg-purple-50 text-purple-800 border-purple-200" };
               break;
           case "RECHAZADA": 
-              config = { border: "border-l-slate-500", icon: <Ban size={20}/>, bgIcon: "bg-slate-100 text-slate-600", badge: "bg-slate-50 text-slate-700 border-slate-200" };
+              config = { icon: <Ban size={20}/>, bgIcon: "bg-slate-100 text-slate-600", badge: "bg-slate-50 text-slate-700 border-slate-200" };
               break;
       }
   } else {
       switch (solicitud.estado) {
           case "PENDIENTE":
-              config = { border: "border-l-amber-500", icon: <Clock size={20}/>, bgIcon: "bg-amber-100 text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" };
+              config = { icon: <Clock size={20}/>, bgIcon: "bg-amber-100 text-amber-600", badge: "bg-amber-50 text-amber-700 border-amber-200" };
               break;
           case "APROBADA":
-              config = { border: "border-l-emerald-500", icon: <CheckCircle2 size={20}/>, bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
+              config = { icon: <CheckCircle2 size={20}/>, bgIcon: "bg-emerald-100 text-emerald-600", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" };
               break;
           case "ENTREGADA":
-              config = { border: "border-l-blue-500", icon: <Truck size={20}/>, bgIcon: "bg-blue-100 text-blue-600", badge: "bg-blue-50 text-blue-700 border-blue-200" };
+              config = { icon: <Truck size={20}/>, bgIcon: "bg-blue-100 text-blue-600", badge: "bg-blue-50 text-blue-700 border-blue-200" };
               break;
           case "RECHAZADA": 
-              config = { border: "border-l-rose-500", icon: <Ban size={20}/>, bgIcon: "bg-rose-100 text-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200" };
+              config = { icon: <Ban size={20}/>, bgIcon: "bg-rose-100 text-rose-600", badge: "bg-rose-50 text-rose-700 border-rose-200" };
               break;
       }
   }
@@ -300,8 +299,7 @@ function SolicitudCard({ solicitud, onClick }: { solicitud: SolicitudResumen; on
   return (
     <Card 
         className={cn(
-            "rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border-l-[4px] border-y border-r border-slate-100 group", 
-            config.border
+            "rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer border border-slate-800 bg-white group"
         )} 
         onClick={onClick}
     >

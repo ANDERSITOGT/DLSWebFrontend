@@ -3,7 +3,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useUserRole, useSetUserRole, type UserRole } from "../../hooks/useUserRole";
-import { Card, CardContent, CardTitle, CardDescription } from "../../components/ui/Card";
+import { Card, CardContent, CardTitle, CardDescription } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 
 const roles: { id: UserRole; label: string; description: string }[] = [

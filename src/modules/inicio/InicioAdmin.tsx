@@ -4,7 +4,7 @@ import { StatCard } from "../../components/ui/StatCard";
 import {
   Card,
   CardContent,
-} from "../../components/ui/Card";
+} from "../../components/ui/card";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { Badge } from "../../components/ui/Badge";
 import { IconCircle } from "../../components/ui/IconCircle";

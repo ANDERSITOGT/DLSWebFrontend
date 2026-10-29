@@ -1,16 +1,22 @@
 import { useNavigate } from "react-router-dom";
-import { 
-  X, 
-  ArrowDownToLine, 
-  FileText, 
-  Box, 
-  Users, 
-  Sprout, 
+import {
+  ArrowDownToLine,
+  FileText,
+  Box,
+  Users,
+  Sprout,
   ClipboardList,
   RotateCcw,
   PackageSearch
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "./dialog";
 
 type ActionItemProps = {
   icon: React.ReactNode;
@@ -22,7 +28,7 @@ type ActionItemProps = {
 
 function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue-50" }: ActionItemProps) {
   return (
-    <button 
+    <button
       onClick={onClick}
       className="w-full flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors text-left group"
     >
@@ -37,18 +43,18 @@ function ActionItem({ icon, title, desc, onClick, color = "text-blue-600 bg-blue
   );
 }
 
-export function QuickActionsModal({ 
-  onClose, 
+export function QuickActionsModal({
+  onClose,
   onIngresoClick,
-  onSolicitudClick, 
+  onSolicitudClick,
   onAjusteClick,
   onDevolucionClick,
   onCreateProductClick,
   onInfoProductoClick // Nueva propiedad agregada
-}: { 
+}: {
   onClose: () => void;
   onIngresoClick: () => void;
-  onSolicitudClick: () => void; 
+  onSolicitudClick: () => void;
   onAjusteClick: () => void;
   onDevolucionClick: () => void;
   onCreateProductClick: () => void;
@@ -56,7 +62,7 @@ export function QuickActionsModal({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const rol = user?.rol; 
+  const rol = user?.rol;
 
   const handleNav = (path: string) => {
     navigate(path);
@@ -70,41 +76,35 @@ export function QuickActionsModal({
   const isAdmin = rol === "ADMIN";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="absolute inset-0" onClick={onClose}></div>
+    <Dialog open={true} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="bg-white sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle className="text-slate-800">Acciones Rápidas</DialogTitle>
+          <DialogDescription>
+            Selecciona una acción para continuar
+          </DialogDescription>
+        </DialogHeader>
 
-      <div className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 sm:zoom-in-95 duration-200">
-        
-        <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50/50">
-          <div>
-            <h3 className="font-bold text-gray-800">Acciones Rapidas</h3>
-            <p className="text-xs text-gray-500">Selecciona una accion para continuar</p>
-          </div>
-          <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-200 text-gray-400 transition-colors">
-            <X size={20} />
-          </button>
-        </div>
+        <div className="max-h-[70vh] space-y-6 overflow-y-auto">
 
-        <div className="p-4 overflow-y-auto max-h-[70vh] space-y-6">
-          
           {/* === MOVIMIENTOS === */}
           {showMovimientos && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
-              
-              <ActionItem 
-                icon={<ArrowDownToLine size={20} />} 
-                title="Registrar Ingreso" 
+
+              <ActionItem
+                icon={<ArrowDownToLine size={20} />}
+                title="Registrar Ingreso"
                 desc="Registrar entrada de productos"
-                onClick={() => { onClose(); onIngresoClick(); }} 
+                onClick={() => { onClose(); onIngresoClick(); }}
               />
-              
-              <ActionItem 
-                icon={<ClipboardList size={20} />} 
-                title="Registrar Ajuste" 
+
+              <ActionItem
+                icon={<ClipboardList size={20} />}
+                title="Registrar Ajuste"
                 desc="Correccion de inventario (+/-)"
                 color="text-amber-600 bg-amber-50"
-                onClick={() => { onClose(); onAjusteClick(); }} 
+                onClick={() => { onClose(); onAjusteClick(); }}
               />
             </div>
           )}
@@ -113,17 +113,17 @@ export function QuickActionsModal({
           {showSolicitudes && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
-              <ActionItem 
-                icon={<FileText size={20} />} 
-                title="Nueva Solicitud" 
+              <ActionItem
+                icon={<FileText size={20} />}
+                title="Nueva Solicitud"
                 desc="Solicitar productos de bodega"
                 color="text-emerald-600 bg-emerald-50"
                 onClick={() => { onClose(); onSolicitudClick(); }}
               />
 
-              <ActionItem 
-                icon={<RotateCcw size={20} />} 
-                title="Solicitar Devolucion" 
+              <ActionItem
+                icon={<RotateCcw size={20} />}
+                title="Solicitar Devolucion"
                 desc="Regresar material a bodega"
                 color="text-rose-600 bg-rose-50"
                 onClick={() => { onClose(); onDevolucionClick(); }}
@@ -135,51 +135,51 @@ export function QuickActionsModal({
           {(canManageCatalog || isAdmin) && (
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Gestion</p>
-              
+
               {canManageCatalog && (
                 <>
-                    <ActionItem 
-                        icon={<Box size={20} />} 
-                        title="Crear Producto" 
-                        desc="Agregar nuevo producto al sistema" 
-                        color="text-indigo-600 bg-indigo-50" 
-                        onClick={() => { onClose(); onCreateProductClick(); }} 
+                    <ActionItem
+                        icon={<Box size={20} />}
+                        title="Crear Producto"
+                        desc="Agregar nuevo producto al sistema"
+                        color="text-indigo-600 bg-indigo-50"
+                        onClick={() => { onClose(); onCreateProductClick(); }}
                     />
 
                     {/* Nueva accion agregada aqui */}
-                    <ActionItem 
-                        icon={<PackageSearch size={20} />} 
-                        title="Informacion de Producto" 
-                        desc="Consultar y editar datos generales" 
-                        color="text-cyan-600 bg-cyan-50" 
-                        onClick={() => { onClose(); onInfoProductoClick(); }} 
+                    <ActionItem
+                        icon={<PackageSearch size={20} />}
+                        title="Informacion de Producto"
+                        desc="Consultar y editar datos generales"
+                        color="text-cyan-600 bg-cyan-50"
+                        onClick={() => { onClose(); onInfoProductoClick(); }}
                     />
-                    
-                    <ActionItem 
-                        icon={<Users size={20} />} 
-                        title="Proveedores" 
-                        desc="Gestionar lista y contactos" 
-                        color="text-pink-600 bg-pink-50" 
-                        onClick={() => handleNav("/proveedores")} 
+
+                    <ActionItem
+                        icon={<Users size={20} />}
+                        title="Proveedores"
+                        desc="Gestionar lista y contactos"
+                        color="text-pink-600 bg-pink-50"
+                        onClick={() => handleNav("/bodega/proveedores")}
                     />
                 </>
               )}
 
               {/* SOLO ADMIN: Gestion Unificada Fincas/Lotes */}
               {isAdmin && (
-                <ActionItem 
-                    icon={<Sprout size={20} />} 
-                    title="Fincas y Lotes" 
-                    desc="Crear fincas y administrar lotes" 
-                    color="text-green-600 bg-green-50" 
-                    onClick={() => handleNav("/fincas")} 
+                <ActionItem
+                    icon={<Sprout size={20} />}
+                    title="Fincas y Lotes"
+                    desc="Crear fincas y administrar lotes"
+                    color="text-green-600 bg-green-50"
+                    onClick={() => handleNav("/cosechas/fincas")}
                 />
               )}
             </div>
           )}
 
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

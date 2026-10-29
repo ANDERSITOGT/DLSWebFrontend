@@ -42,6 +42,7 @@ DLSWebFrontend/
 │   │   ├── dta.txt            # Archivo auxiliar/documentación de componentes
 │   │   └── ui/                # Piezas visuales reutilizables
 │   │       ├── Badge.tsx              # Etiqueta visual para estados/categorías
+│   │       ├── BuscadorSelect.tsx      # Selector con búsqueda para catálogos
 │   │       ├── Card.tsx               # Contenedor visual de contenido
 │   │       ├── ConfirmModal.tsx       # Modal para confirmar acciones
 │   │       ├── IconCircle.tsx          # Icono dentro de un círculo
@@ -73,6 +74,10 @@ DLSWebFrontend/
 │   │   │   └── components/
 │   │   │       ├── CrearProductoModal.tsx # Alta de productos
 │   │   │       └── InfoProductoModal.tsx  # Consulta/edición de información de producto
+│   │   ├── cosechas/
+│   │   │   ├── CosechasPage.tsx            # Tabla, estados y KPIs de cosechas
+│   │   │   └── components/
+│   │   │       └── RegistroCosechaModal.tsx # Alta de una cosecha
 │   │   ├── movimientos/
 │   │   │   ├── MovimientosPage.tsx      # Movimientos generales de inventario
 │   │   │   ├── MovimientosLotesPage.tsx # Movimientos agrupados por lote
@@ -100,7 +105,8 @@ DLSWebFrontend/
 │   ├── services/               # Adaptadores para llamadas HTTP al backend
 │   │   ├── api.ts              # Cliente común: URL, token y manejo 401/403
 │   │   ├── apiInicio.ts        # Consulta del panel del bodeguero
-│   │   └── catalogosService.ts # Consultas de bodegas, proveedores, productos y lotes
+│   │   ├── catalogosService.ts # Consultas de catálogos de fincas, inventario y productos
+│   │   └── cosechasService.ts  # Consulta y registro de cosechas y catálogos relacionados
 │   ├── store/                  # Reservado para estado global adicional (actualmente vacío)
 │   ├── types/                  # Reservado para tipos compartidos (actualmente vacío)
 │   └── utils/
@@ -135,6 +141,7 @@ DLSWebFrontend/
 | `/asignacion-lotes` | `AsignacionLotesPage` | Asignación de lotes |
 | `/proveedores` | `ProveedoresPage` | Proveedores |
 | `/fincas` | `FincasPage` | Fincas |
+| `/cosechas` | `CosechasPage` | Registro, seguimiento y KPIs de cosechas |
 | `/configuracion/edicion-critica` | `EdicionCriticaPage` | Ediciones críticas |
 
 ## Autenticación y datos
@@ -144,8 +151,11 @@ DLSWebFrontend/
 - `RequireAuth` redirige a `/login` cuando no existe una sesión.
 - `api.ts` centraliza las peticiones que necesitan el token y limpia la sesión
   cuando la API responde `401` o `403`.
-- `apiInicio.ts` y `catalogosService.ts` son adaptadores específicos para
-  endpoints concretos.
+- `apiInicio.ts`, `catalogosService.ts` y `cosechasService.ts` son adaptadores
+  específicos para endpoints concretos.
+- `CosechasPage` calcula los totales de libras cosechadas, vendidas y rechazadas
+  para mostrarlos mediante `StatCard`. La tabla determina el estado como
+  `Liquidado`, `Enviado` o `En Campo` según las boletas y libras vendidas.
 - `RefreshContext` no trae datos por sí mismo: incrementa un contador para que
   las pantallas que lo consumen vuelvan a consultar sus datos después de una
   operación.
@@ -163,11 +173,23 @@ Navegador
                                   ├── movimientos
                                   ├── solicitudes
                                   ├── usuarios
+                                  ├── cosechas
                                   └── catálogos
 ```
 
 Para localizar o ejecutar el backend hay que revisar otro repositorio o
 servicio. En este proyecto, la URL se configura mediante `VITE_API_URL`.
+
+Los principales endpoints consumidos por el frontend incluyen:
+
+| Servicio | Endpoints |
+|---|---|
+| Cosechas | `/api/cosechas`, `/api/cosechas/empacadoras`, `/api/cosechas/cultivos` |
+| Lotes | `/api/lotes/catalogo` |
+| Fincas | `/api/fincas/fincas-lotes` |
+| Proveedores | `/api/proveedores/catalogo` |
+| Inventario | `/api/inventario/bodegas` |
+| Productos | `/api/productos/categorias`, `/api/productos/unidades`, `/api/productos/productos-busqueda`, `/api/productos/productos/buscar` |
 
 ## Comandos principales
 
@@ -177,4 +199,3 @@ npm run build     # TypeScript + build de producción
 npm run lint      # Revisión estática
 npm run preview   # Servir localmente el build generado
 ```
-

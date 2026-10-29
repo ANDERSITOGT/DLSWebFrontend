@@ -263,7 +263,7 @@ export function EdicionCriticaPage() {
     <div className="max-w-7xl mx-auto space-y-6 pb-12 animate-in fade-in duration-500">
       
       <div>
-        <button onClick={() => navigate("/configuracion")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-4 font-medium text-sm">
+        <button onClick={() => navigate("/bodega/configuracion")} className="flex items-center gap-2 text-slate-500 hover:text-slate-800 transition-colors mb-4 font-medium text-sm">
           <ArrowLeft size={18} /> Volver a Configuración
         </button>
         <div className="flex items-center gap-3">
