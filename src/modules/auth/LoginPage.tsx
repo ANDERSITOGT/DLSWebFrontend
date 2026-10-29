@@ -81,7 +81,7 @@ export default function LoginPage() {
             </div>
             
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">
-              Bienvenido de nuevo
+              Bienvenidos de nuevo
             </h2>
             <p className="mt-2 text-sm text-slate-500">
               Ingresa a tu cuenta DLS Web

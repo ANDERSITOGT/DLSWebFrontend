@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from "react";
 import { X, Save, AlertCircle, FlaskConical, Check } from "lucide-react"; 
 import { apiFetch } from "../../../services/api";
+import BuscadorSelect from "../../../components/ui/BuscadorSelect";
 
 interface Props {
   isOpen: boolean;
@@ -18,6 +19,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   // Estados del Formulario
   const [nombre, setNombre] = useState("");
   const [ingredienteActivo, setIngredienteActivo] = useState(""); 
+  const [dosis200Lt, setDosis200Lt] = useState("");
+  const [comentarioDosis, setComentarioDosis] = useState("");
   const [unidadId, setUnidadId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
 
@@ -60,14 +63,24 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
     setLoading(true);
 
     try {
+      const payload: Record<string, unknown> = {
+        nombre,
+        ingredienteactivo: ingredienteActivo || null,
+        unidadid: unidadId,
+        categoriaid: categoriaId,
+      };
+
+      if (dosis200Lt.trim() !== "") {
+        payload.dosis_200lt = Number(dosis200Lt);
+      }
+
+      if (comentarioDosis.trim() !== "") {
+        payload.comentarioDosis = comentarioDosis.trim();
+      }
+
       const res = await apiFetch("/api/productos", {
         method: "POST",
-        body: JSON.stringify({
-          nombre,
-          ingredienteactivo: ingredienteActivo,
-          unidadid: unidadId,
-          categoriaid: categoriaId
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -97,6 +110,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   const limpiarFormulario = () => {
     setNombre("");
     setIngredienteActivo("");
+    setDosis200Lt("");
+    setComentarioDosis("");
     setUnidadId("");
     setCategoriaId("");
     setError(null);
@@ -181,41 +196,57 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Dosis</label>
+                <input
+                  type="number"
+                  step="any"
+                  min="0"
+                  value={dosis200Lt}
+                  onChange={(e) => setDosis200Lt(e.target.value)}
+                  placeholder="Opcional"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">Comentario</label>
+                <input
+                  type="text"
+                  value={comentarioDosis}
+                  onChange={(e) => setComentarioDosis(e.target.value)}
+                  placeholder="Opcional"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* CATEGORÍA */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-600 uppercase">Categoría</label>
-                <select 
-                  required
-                  value={categoriaId}
-                  onChange={(e) => setCategoriaId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {categorias.map(c => (
-                    <option key={c.id} value={c.id}>
-                      {c.nombre}
-                    </option>
-                  ))}
-                </select>
+                <BuscadorSelect<ItemCatalogo>
+                  options={categorias.map((categoria) => ({ label: categoria.nombre, value: categoria.id, data: categoria }))}
+                  value={categorias.find((categoria) => categoria.id === categoriaId) ? { label: categorias.find((categoria) => categoria.id === categoriaId)!.nombre, value: categoriaId } : null}
+                  onChange={(option) => setCategoriaId(option?.value ?? "")}
+                  placeholder="Seleccionar..."
+                  isClearable
+                  noOptionsMessage="No se encontraron categorías"
+                />
                 <p className="text-[10px] text-gray-400">Determina el prefijo (Ej: FUN001)</p>
               </div>
 
               {/* UNIDAD */}
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-gray-600 uppercase">Unidad</label>
-                <select 
-                  required
-                  value={unidadId}
-                  onChange={(e) => setUnidadId(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none bg-white transition-all"
-                >
-                  <option value="">-- Seleccionar --</option>
-                  {unidades.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre} ({u.abreviatura})
-                    </option>
-                  ))}
-                </select>
+                <BuscadorSelect<ItemCatalogo>
+                  options={unidades.map((unidad) => ({ label: `${unidad.nombre} (${unidad.abreviatura || ""})`, value: unidad.id, data: unidad }))}
+                  value={unidades.find((unidad) => unidad.id === unidadId) ? { label: `${unidades.find((unidad) => unidad.id === unidadId)!.nombre} (${unidades.find((unidad) => unidad.id === unidadId)!.abreviatura || ""})`, value: unidadId } : null}
+                  onChange={(option) => setUnidadId(option?.value ?? "")}
+                  placeholder="Seleccionar..."
+                  isClearable
+                  noOptionsMessage="No se encontraron unidades"
+                />
               </div>
             </div>
 
