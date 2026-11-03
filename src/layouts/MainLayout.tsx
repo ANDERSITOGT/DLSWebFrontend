@@ -55,15 +55,15 @@ export function MainLayout({ children }: MainLayoutProps) {
       : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background text-foreground">
-      <header className="fixed inset-x-0 top-0 z-30 h-16 w-full bg-slate-800">
+    <div className="flex min-h-screen flex-col bg-slate-950 text-foreground">
+      <header className="fixed inset-x-0 top-0 z-30 h-16 w-full bg-slate-950 shadow-lg shadow-slate-950/20">
         <div className="flex h-full items-center justify-between gap-4 px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <button
               type="button"
               onClick={() => setSidebarOpen((open) => !open)}
               aria-label={sidebarOpen ? "Contraer menú lateral" : "Expandir menú lateral"}
-              className="hidden shrink-0 rounded-lg p-2 text-slate-300 transition-colors hover:bg-slate-700 hover:text-white md:inline-flex"
+              className="hidden shrink-0 rounded-lg p-2 text-slate-200 transition-colors hover:bg-slate-800 hover:text-white md:inline-flex"
             >
               <Menu size={19} />
             </button>
@@ -88,7 +88,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                   onClick={() => setModuleMenuOpen((open) => !open)}
                   aria-expanded={moduleMenuOpen}
                   aria-haspopup="menu"
-                  className="inline-flex items-center gap-1 rounded-full bg-transparent px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="inline-flex items-center gap-1 rounded-full bg-transparent px-3 py-2 text-sm font-medium text-slate-200 transition-colors hover:bg-slate-800 hover:text-white"
                 >
                   {activeModule === "BODEGA" ? "Bodega" : "Cosechas"}
                   <ChevronDown
@@ -101,7 +101,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 {moduleMenuOpen && (
                   <div
                     role="menu"
-                    className="absolute left-0 top-full z-40 mt-2 min-w-36 rounded-xl bg-card p-1 shadow-xl shadow-black/30"
+                    className="absolute left-0 top-full z-40 mt-2 min-w-36 rounded-xl border border-slate-700 bg-slate-900 p-1 text-slate-100 shadow-xl shadow-black/40"
                   >
                     <button
                       type="button"
@@ -114,7 +114,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                       className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                         activeModule === "BODEGA"
                           ? "bg-primary/15 text-primary"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          : "text-slate-300 hover:bg-slate-800 hover:text-white"
                       }`}
                     >
                       Bodega
@@ -130,7 +130,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                       className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
                         activeModule === "COSECHAS"
                           ? "bg-primary/15 text-primary"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          : "text-slate-300 hover:bg-slate-800 hover:text-white"
                       }`}
                     >
                       Cosechas
@@ -145,13 +145,13 @@ export function MainLayout({ children }: MainLayoutProps) {
             )}
           </div>
 
-          <label className="hidden w-full max-w-md items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-muted-foreground md:flex">
+          <label className="hidden w-full max-w-md items-center gap-2 rounded-full border border-slate-700 bg-slate-900 px-4 py-2 text-slate-300 shadow-inner shadow-black/20 md:flex">
             <Search size={16} />
             <input
               type="search"
               placeholder="Buscar..."
               aria-label="Buscar"
-              className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-slate-400"
             />
           </label>
 
@@ -160,15 +160,15 @@ export function MainLayout({ children }: MainLayoutProps) {
               <p className="max-w-40 truncate text-sm font-medium">
                 {user?.nombre}
               </p>
-              <p className="max-w-40 truncate text-xs text-muted-foreground">
+              <p className="max-w-40 truncate text-xs font-medium text-slate-400">
                 {user?.rol}
               </p>
             </div>
             <div className="flex items-center gap-1">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-sm font-semibold text-primary">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-500/20 text-sm font-semibold text-blue-300 ring-1 ring-blue-400/30">
                 {user?.nombre?.charAt(0).toUpperCase()}
               </div>
-              <Button variant="outline" size="sm" onClick={logout} className="gap-2">
+              <Button variant="outline" size="sm" onClick={logout} className="gap-2 border-slate-600 bg-slate-900 text-slate-100 hover:bg-slate-800 hover:text-white">
                 <LogOut size={16} />
                 Salir
               </Button>
@@ -177,9 +177,9 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 top-16 flex min-h-0 overflow-hidden bg-slate-800">
+      <div className="fixed inset-x-0 bottom-0 top-16 flex min-h-0 overflow-hidden bg-slate-950">
         <aside
-          className={`hidden h-full shrink-0 flex-col overflow-hidden bg-slate-800 transition-all duration-300 ease-in-out md:flex ${
+          className={`hidden h-full shrink-0 flex-col overflow-hidden bg-slate-950 transition-all duration-300 ease-in-out md:flex ${
             sidebarOpen ? "w-64" : "w-16"
           }`}
         >
@@ -195,8 +195,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                   title={sidebarOpen ? undefined : item.label}
                   className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                     active
-                      ? "bg-primary/15 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                      ? "bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-400/20"
+                      : "text-slate-300 hover:bg-slate-900 hover:text-white"
                   } ${sidebarOpen ? "" : "justify-center"}`}
                 >
                   <Icon size={18} />
@@ -239,8 +239,8 @@ export function MainLayout({ children }: MainLayoutProps) {
               aria-label={item.label}
               className={`flex h-full min-w-0 flex-1 items-center justify-center transition-colors ${
                 active
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "text-blue-300"
+                  : "text-slate-400 hover:text-white"
               }`}
             >
               <Icon size={20} />

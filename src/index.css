@@ -11,9 +11,9 @@
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --muted: 240 5% 16%;
-    --muted-foreground: 240 5% 65%;
-    --border: 240 4% 18%;
-    --input: 240 4% 18%;
+    --muted-foreground: 240 5% 58%;
+    --border: 240 4% 22%;
+    --input: 240 4% 22%;
     --ring: 221 83% 53%;
     --destructive: 0 63% 45%;
     --destructive-foreground: 0 0% 98%;
@@ -28,9 +28,9 @@
     --primary: 221 83% 53%;
     --primary-foreground: 0 0% 100%;
     --muted: 240 5% 16%;
-    --muted-foreground: 240 5% 65%;
-    --border: 240 4% 18%;
-    --input: 240 4% 18%;
+    --muted-foreground: 240 5% 58%;
+    --border: 240 4% 22%;
+    --input: 240 4% 22%;
     --ring: 221 83% 53%;
     --destructive: 0 63% 45%;
     --destructive-foreground: 0 0% 98%;
@@ -46,16 +46,74 @@
   }
 
   .app-surface {
-    background-color: #f4f6f4;
+    position: relative;
+    isolation: isolate;
+    overflow: hidden;
+    background-color: #edf3ee;
+    background-image:
+      radial-gradient(circle at 94% 8%, rgba(183, 220, 194, 0.3), transparent 34%),
+      radial-gradient(circle at 8% 88%, rgba(203, 213, 207, 0.28), transparent 32%),
+      linear-gradient(135deg, #fbfcfa 0%, #eef5ef 46%, #dfece3 100%);
+    background-repeat: no-repeat;
+    background-position: top left, top right, center;
+    background-size: auto, auto, 100% 100%;
+    color: #172033;
+  }
+
+  .app-surface::before {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    content: "";
     background-image: url("/farm-pattern.svg");
     background-repeat: repeat;
-    background-size: 240px 240px;
+    background-size: 260px 260px;
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .app-surface::after {
+    position: absolute;
+    top: -32%;
+    left: 28%;
+    z-index: -1;
+    width: 125%;
+    height: 82%;
+    content: "";
+    border: 56px solid rgba(126, 181, 139, 0.13);
+    border-right-color: transparent;
+    border-bottom-color: transparent;
+    border-radius: 50%;
+    box-shadow:
+      0 38px 0 rgba(151, 199, 160, 0.1),
+      0 76px 0 rgba(181, 215, 187, 0.12);
+    transform: rotate(-13deg);
+    filter: blur(1px);
+    pointer-events: none;
+  }
+
+  .app-surface > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .app-surface .text-slate-400,
+  .app-surface .text-muted-foreground {
+    color: #64748b !important;
+  }
+
+  .app-surface .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  .app-surface .text-slate-300 {
+    color: #334155 !important;
   }
 }
 
 @layer components {
   .app-card {
-    border: 2px solid #334155 !important;
+    border: 1px solid #64748b !important;
     background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
     box-shadow:
       0 2px 2px rgba(15, 23, 42, 0.1),
@@ -68,7 +126,7 @@
   }
 
   .app-card:hover {
-    border-color: #0f172a !important;
+    border-color: #334155 !important;
     box-shadow:
       0 2px 2px rgba(15, 23, 42, 0.1),
       0 14px 28px rgba(15, 23, 42, 0.22),

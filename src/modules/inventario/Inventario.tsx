@@ -417,43 +417,48 @@ function ProductoCard({ producto, onClick }: { producto: ProductoInventario; onC
   return (
     <Card
       className={cn(
-          "mb-4 overflow-hidden rounded-xl hover:-translate-y-0.5",
+          "overflow-hidden rounded-xl py-0 hover:-translate-y-0.5",
           isInteractive ? "cursor-pointer transition-all" : "cursor-default opacity-95",
       )}
       onClick={onClick}
     >
-      <CardContent className="p-3 sm:p-4 flex gap-3 sm:gap-4 items-start">
-        <div className={cn("w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center shrink-0 transition-colors", stockConfig.iconBg)}>
-            <Package className="w-4 h-4 sm:w-5 sm:h-5" />
-        </div>
-        <div className="flex-1 min-w-0">
-            <div className="flex justify-between items-start mb-1 gap-2">
-                <h3 className="text-xs sm:text-sm font-bold text-slate-900 truncate" title={producto.nombre}>{producto.nombre}</h3>
-                <Badge variant="outline" className={cn("shrink-0 text-[9px] px-1.5 py-0 uppercase font-bold tracking-wider h-fit", producto.estadoProducto === 'ACTIVO' ? "border-teal-300 text-teal-800" : "border-slate-300 text-slate-600")}>
-                    {producto.estadoProducto === 'ACTIVO' ? 'ACT' : 'INA'}
-                </Badge>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-3">
+          <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors", stockConfig.iconBg)}>
+            <Package className="h-4 w-4" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h3 className="truncate text-sm font-bold leading-5 text-slate-900" title={producto.nombre}>
+                  {producto.nombre}
+                </h3>
+                <p className="mt-0.5 truncate text-[11px] font-medium text-slate-500">
+                  {producto.codigo} <span className="text-slate-300">•</span> {producto.categoria}
+                </p>
+              </div>
+              <Badge variant="outline" className={cn("shrink-0 text-[9px] font-bold uppercase tracking-wider", producto.estadoProducto === "ACTIVO" ? "border-teal-300 text-teal-800" : "border-slate-300 text-slate-600")}>
+                {producto.estadoProducto === "ACTIVO" ? "ACT" : "INA"}
+              </Badge>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-600 mb-2 truncate">{producto.codigo} • {producto.categoria}</p>
-            <div className="flex items-end justify-between mt-2 pt-2 sm:mt-3 sm:pt-3 border-t border-slate-100">
-                <div>
-                      <p className="text-[9px] sm:text-[10px] text-slate-500 uppercase font-bold">Existencia</p>
-                      <p className="text-sm sm:text-base font-bold text-slate-900 truncate max-w-[120px]">{producto.stockTotal}</p>
-                </div>
 
-                <div>
-                    <p className="text-[9px] sm:text-[10px] text-emerald-500 uppercase font-bold">Dosis</p>
-                    <p className="text-sm sm:text-base font-bold text-slate-800 truncate max-w-[120px]">
-                      {producto.dosis_200lt ?? "N/A"}
-                    </p>
-                    <p className="text-[9px] text-slate-400 truncate max-w-[120px]" title={producto.comentarioDosis || undefined}>
-                      {producto.comentarioDosis || "Sin comentario"}
-                    </p>
-                </div>
-
-                <Badge variant="outline" className={cn("text-[9px] sm:text-[10px] border shrink-0", stockConfig.badge)}>
-                    {producto.estadoStock}
-                </Badge>
+            <div className="mt-3 grid grid-cols-[1fr_1fr_auto] items-end gap-3 border-t border-slate-200/80 pt-3">
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Existencia</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-900" title={producto.stockTotal}>{producto.stockTotal}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-600">Dosis</p>
+                <p className="mt-1 truncate text-sm font-bold text-slate-800">{producto.dosis_200lt ?? "N/A"}</p>
+                <p className="truncate text-[9px] text-slate-500" title={producto.comentarioDosis || undefined}>
+                  {producto.comentarioDosis || "Sin comentario"}
+                </p>
+              </div>
+              <Badge variant="outline" className={cn("mb-0.5 shrink-0 text-[9px] font-semibold", stockConfig.badge)}>
+                {producto.estadoStock}
+              </Badge>
             </div>
+          </div>
         </div>
       </CardContent>
     </Card>
