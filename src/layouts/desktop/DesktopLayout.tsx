@@ -111,7 +111,8 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
 
  {/* Header Logo */}
  <div className="h-16 flex items-center px-6 border-b border-white/10 shrink-0">
- <div className="font-bold text-xl tracking-wide flex items-center gap-2">
+ <div className="font-extrabold text-2xl tracking-wide flex items-center gap-2">
+ <img src="/Icono.svg" alt="DLS Web" className="h-9 w-9 rounded-lg object-cover" />
  <span className="bg-gradient-to-tr from-emerald-400 to-blue-500 bg-clip-text text-transparent">DLS Web</span>
  </div>
  </div>
@@ -177,7 +178,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  <main className="flex-1 h-full overflow-y-auto bg-slate-50 relative z-0">
  {/* Header movil opcional */}
  <header className="sticky top-0 z-30 bg-white/80 backdrop-blur-md border-b border-slate-200 px-8 py-4 flex justify-between items-center lg:hidden">
- <span className="font-bold text-slate-700">DLS Web</span>
+ <span className="flex items-center gap-2 font-extrabold text-lg text-slate-700"><img src="/Icono.svg" alt="DLS Web" className="h-7 w-7 rounded-lg object-cover" />DLS Web</span>
  </header>
 
  <div className="p-4 md:p-8 max-w-7xl mx-auto pb-24 md:pb-8">

@@ -95,7 +95,8 @@ export function MobileLayout({ children }: MobileLayoutProps) {
 
       {/* 1. Header Movil */}
       <header className="sticky top-0 z-20 bg-white/90 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex justify-between items-center shadow-sm">
-         <span className="font-bold text-xl text-slate-800 tracking-tight">
+         <span className="flex items-center gap-2 font-extrabold text-2xl text-slate-800 tracking-tight">
+            <img src="/Icono.svg" alt="DLS Web" className="h-8 w-8 rounded-lg object-cover" />
             DLS Web
          </span>
 

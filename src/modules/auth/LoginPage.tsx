@@ -2,7 +2,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { Box } from "lucide-react"; // Usamos un icono como logo provisional
 
 // 👇 CAMBIO: Usamos URLs de internet en lugar de archivos locales para evitar errores
 const bgImg = "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=2070&auto=format&fit=crop"; // Imagen de almacén/bodega
@@ -75,9 +74,7 @@ export default function LoginPage() {
           <div className="text-center">
             {/* Logo provisional con Icono */}
             <div className="flex justify-center mb-6">
-              <div className="h-14 w-14 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200">
-                <Box className="text-white w-8 h-8" />
-              </div>
+              <img src="/Icono.svg" alt="DLS Web" className="h-16 w-16 rounded-xl object-cover shadow-lg" />
             </div>
             
             <h2 className="text-2xl font-bold tracking-tight text-slate-900">

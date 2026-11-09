@@ -49,11 +49,11 @@
     position: relative;
     isolation: isolate;
     overflow: hidden;
-    background-color: #edf3ee;
+    background-color: #f1f5f9;
     background-image:
-      radial-gradient(circle at 94% 8%, rgba(183, 220, 194, 0.3), transparent 34%),
-      radial-gradient(circle at 8% 88%, rgba(203, 213, 207, 0.28), transparent 32%),
-      linear-gradient(135deg, #fbfcfa 0%, #eef5ef 46%, #dfece3 100%);
+      radial-gradient(circle at 94% 8%, rgba(203, 213, 225, 0.35), transparent 34%),
+      radial-gradient(circle at 8% 88%, rgba(226, 232, 240, 0.5), transparent 32%),
+      linear-gradient(135deg, #f8fafc 0%, #f1f5f9 46%, #e2e8f0 100%);
     background-repeat: no-repeat;
     background-position: top left, top right, center;
     background-size: auto, auto, 100% 100%;
@@ -80,13 +80,13 @@
     width: 125%;
     height: 82%;
     content: "";
-    border: 56px solid rgba(126, 181, 139, 0.13);
+    border: 56px solid rgba(100, 116, 139, 0.1);
     border-right-color: transparent;
     border-bottom-color: transparent;
     border-radius: 50%;
     box-shadow:
-      0 38px 0 rgba(151, 199, 160, 0.1),
-      0 76px 0 rgba(181, 215, 187, 0.12);
+      0 38px 0 rgba(148, 163, 184, 0.1),
+      0 76px 0 rgba(203, 213, 225, 0.14);
     transform: rotate(-13deg);
     filter: blur(1px);
     pointer-events: none;
@@ -114,7 +114,7 @@
 @layer components {
   .app-card {
     border: 1px solid #64748b !important;
-    background: linear-gradient(180deg, #ffffff 0%, #fbfdfb 100%);
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
     box-shadow:
       0 2px 2px rgba(15, 23, 42, 0.1),
       0 8px 18px rgba(15, 23, 42, 0.16),

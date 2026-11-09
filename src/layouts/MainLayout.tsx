@@ -55,8 +55,8 @@ export function MainLayout({ children }: MainLayoutProps) {
       : location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   return (
-    <div className="flex min-h-screen flex-col bg-slate-950 text-foreground">
-      <header className="fixed inset-x-0 top-0 z-30 h-16 w-full bg-slate-950 shadow-lg shadow-slate-950/20">
+    <div className="flex min-h-screen flex-col bg-[#0F172A] text-foreground">
+      <header className="fixed inset-x-0 top-0 z-30 h-16 w-full bg-[#0F172A] shadow-lg shadow-[#0F172A]/20">
         <div className="flex h-full items-center justify-between gap-4 px-4 md:px-6">
           <div className="flex min-w-0 items-center gap-2">
             <button
@@ -73,11 +73,11 @@ export function MainLayout({ children }: MainLayoutProps) {
               className="flex min-w-0 items-center gap-2"
             >
               <img
-                src="/ICONO.png"
+                src="/Icono.svg"
                 alt="DLS Web"
-                className="h-8 w-8 shrink-0 rounded-lg object-cover"
+                className="h-9 w-9 shrink-0 rounded-lg object-cover"
               />
-              <span className="truncate text-sm font-semibold tracking-wide">
+              <span className="truncate text-xl font-extrabold tracking-wide text-white">
                 DLS Web
               </span>
             </Link>
@@ -177,9 +177,9 @@ export function MainLayout({ children }: MainLayoutProps) {
         </div>
       </header>
 
-      <div className="fixed inset-x-0 bottom-0 top-16 flex min-h-0 overflow-hidden bg-slate-950">
+      <div className="fixed inset-x-0 bottom-0 top-16 flex min-h-0 overflow-hidden bg-[#0F172A]">
         <aside
-          className={`hidden h-full shrink-0 flex-col overflow-hidden bg-slate-950 transition-all duration-300 ease-in-out md:flex ${
+          className={`hidden h-full shrink-0 flex-col overflow-hidden bg-[#0F172A] transition-all duration-300 ease-in-out md:flex ${
             sidebarOpen ? "w-64" : "w-16"
           }`}
         >
