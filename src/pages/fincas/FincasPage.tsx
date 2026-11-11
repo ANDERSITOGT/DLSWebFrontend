@@ -54,7 +54,7 @@ export default function FincasPage() {
   const { token, user } = useAuth();
   
   // PERMISOS
-  const puedeEditar = ["ADMIN", "BODEGUERO", "VISOR"].includes(user?.rol || "");
+  const puedeEditar = ["ADMIN", "BODEGUERO", "VISOR", "COSECHA"].includes(user?.rol || "");
 
   // VISTAS
   const [view, setView] = useState<'DASHBOARD' | 'DETALLE'>('DASHBOARD');

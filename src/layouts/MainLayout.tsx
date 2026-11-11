@@ -12,6 +12,7 @@ import { QuickActionsModal } from "../components/ui/QuickActionsModal";
 import { Breadcrumbs } from "../components/ui/Breadcrumbs";
 import { useAuth } from "../context/AuthContext";
 import { useRefresh } from "../context/RefreshContext";
+import { useModulo } from "../context/ModuleContext";
 import { AjusteInventarioModal } from "../modules/movimientos/AjusteInventarioModal";
 import { IngresoModal } from "../modules/movimientos/IngresoModal";
 import { NuevaSolicitudModal } from "../modules/solicitudes/NuevaSolicitudModal";
@@ -33,7 +34,7 @@ export function MainLayout({ children }: MainLayoutProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
   const { triggerRefreshSolicitudes } = useRefresh();
-  const [moduloActivo, setModuloActivo] = useState("BODEGA");
+  const { modulo: activeModule, setModulo } = useModulo();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [showActions, setShowActions] = useState(false);
@@ -45,7 +46,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [showInfoProductoModal, setShowInfoProductoModal] = useState(false);
 
   const isAdmin = user?.rol === "ADMIN";
-  const activeModule = isAdmin ? moduloActivo : "BODEGA";
   const navigationItems =
     activeModule === "BODEGA" ? bodegaNavigation : cosechasNavigation;
 
@@ -107,8 +107,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                       type="button"
                       role="menuitem"
                       onClick={() => {
-                        setModuloActivo("BODEGA");
-                        navigate("/bodega");
+                        setModulo("BODEGA");
+                        navigate("/");
                         setModuleMenuOpen(false);
                       }}
                       className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
@@ -123,8 +123,8 @@ export function MainLayout({ children }: MainLayoutProps) {
                       type="button"
                       role="menuitem"
                       onClick={() => {
-                        setModuloActivo("COSECHAS");
-                        navigate("/cosechas");
+                        setModulo("COSECHAS");
+                        navigate("/");
                         setModuleMenuOpen(false);
                       }}
                       className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
@@ -140,7 +140,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               </div>
             ) : (
               <span className="rounded-full px-3 py-2 text-sm text-muted-foreground">
-                Bodega
+                {activeModule === "BODEGA" ? "Bodega" : "Cosechas"}
               </span>
             )}
           </div>
@@ -206,6 +206,7 @@ export function MainLayout({ children }: MainLayoutProps) {
             })}
           </nav>
 
+          {user?.rol !== "COSECHA" && (
           <div className="p-3">
             <button
               type="button"
@@ -219,6 +220,7 @@ export function MainLayout({ children }: MainLayoutProps) {
               {sidebarOpen && "Acciones rápidas"}
             </button>
           </div>
+          )}
         </aside>
 
         <main className="app-surface my-2 ml-2 mr-2 min-h-0 min-w-0 flex-1 overflow-y-auto rounded-tl-3xl p-6 pb-24 text-slate-900 md:p-8 md:pb-6">
@@ -249,6 +251,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         })}
       </div>
 
+      {user?.rol !== "COSECHA" && (
       <button
         type="button"
         onClick={() => setShowActions(true)}
@@ -257,6 +260,7 @@ export function MainLayout({ children }: MainLayoutProps) {
       >
         <Plus size={24} />
       </button>
+      )}
 
       {showActions && (
         <QuickActionsModal

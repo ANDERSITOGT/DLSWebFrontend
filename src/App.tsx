@@ -15,13 +15,12 @@ import ProveedoresPage from "./pages/proveedores/ProveedoresPage";
 import FincasPage from "./pages/fincas/FincasPage";
 import { EdicionCriticaPage } from './modules/configuracion/EdicionCriticaPage';
 import { CosechasPage } from "./modules/cosechas/CosechasPage";
-import { BodegaDashboard } from "./modules/bodega/BodegaDashboard";
-import { CosechasDashboard } from "./modules/cosechas/CosechasDashboard";
 
 
 // Importar los Providers
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { RefreshProvider } from "./context/RefreshContext";
+import { ModuleProvider } from "./context/ModuleContext";
 
 // Componente Guardia: Protege las rutas
 function RequireAuth({ children }: { children: ReactNode }) { 
@@ -33,6 +32,15 @@ function RequireAuth({ children }: { children: ReactNode }) {
   }
 
   return children;
+}
+
+function RequireModule({ modulo, children }: { modulo: "BODEGA" | "COSECHAS"; children: ReactNode }) {
+  const { user } = useAuth();
+  const rol = user?.rol;
+  const allowed =
+    rol === "ADMIN" || (modulo === "COSECHAS" ? rol === "COSECHA" : rol !== "COSECHA");
+
+  return allowed ? children : <Navigate to="/" replace />;
 }
 
 function AppContent() {
@@ -49,19 +57,19 @@ function AppContent() {
             <MainLayout>
               <Routes>
                 <Route path="/" element={<InicioPage />} />
-                <Route path="/bodega" element={<BodegaDashboard />} />
-                <Route path="/bodega/inventario" element={<Inventario />} />
-                <Route path="/bodega/movimientos" element={<MovimientosPage />} />
-                <Route path="/bodega/movimientos/lotes" element={<MovimientosLotesPage />} />
-                <Route path="/bodega/solicitudes" element={<SolicitudesPage />} />
-                <Route path="/bodega/configuracion" element={<ConfiguracionPage />} />
-                <Route path="/bodega/configuracion/usuarios" element={<UsuariosPage />} />
-                <Route path="/bodega/configuracion/asignacion-lotes" element={<AsignacionLotesPage />} />
-                <Route path="/bodega/proveedores" element={<ProveedoresPage />} />
-                <Route path="/bodega/configuracion/edicion-critica" element={<EdicionCriticaPage />} />
-                <Route path="/cosechas" element={<CosechasDashboard />} />
-                <Route path="/cosechas/fincas" element={<FincasPage />} />
-                <Route path="/cosechas/registro" element={<CosechasPage />} />
+                <Route path="/bodega" element={<Navigate to="/" replace />} />
+                <Route path="/bodega/inventario" element={<RequireModule modulo="BODEGA"><Inventario /></RequireModule>} />
+                <Route path="/bodega/movimientos" element={<RequireModule modulo="BODEGA"><MovimientosPage /></RequireModule>} />
+                <Route path="/bodega/movimientos/lotes" element={<RequireModule modulo="BODEGA"><MovimientosLotesPage /></RequireModule>} />
+                <Route path="/bodega/solicitudes" element={<RequireModule modulo="BODEGA"><SolicitudesPage /></RequireModule>} />
+                <Route path="/bodega/configuracion" element={<RequireModule modulo="BODEGA"><ConfiguracionPage /></RequireModule>} />
+                <Route path="/bodega/configuracion/usuarios" element={<RequireModule modulo="BODEGA"><UsuariosPage /></RequireModule>} />
+                <Route path="/bodega/configuracion/asignacion-lotes" element={<RequireModule modulo="BODEGA"><AsignacionLotesPage /></RequireModule>} />
+                <Route path="/bodega/proveedores" element={<RequireModule modulo="BODEGA"><ProveedoresPage /></RequireModule>} />
+                <Route path="/bodega/configuracion/edicion-critica" element={<RequireModule modulo="BODEGA"><EdicionCriticaPage /></RequireModule>} />
+                <Route path="/cosechas" element={<Navigate to="/" replace />} />
+                <Route path="/cosechas/fincas" element={<RequireModule modulo="COSECHAS"><FincasPage /></RequireModule>} />
+                <Route path="/cosechas/registro" element={<RequireModule modulo="COSECHAS"><CosechasPage /></RequireModule>} />
                 
               </Routes>
             </MainLayout>
@@ -77,7 +85,9 @@ function App() {
     <AuthProvider>
       {/* Envolver la APP con RefreshProvider */}
       <RefreshProvider>
-        <AppContent />
+        <ModuleProvider>
+          <AppContent />
+        </ModuleProvider>
       </RefreshProvider>
     </AuthProvider>
   );

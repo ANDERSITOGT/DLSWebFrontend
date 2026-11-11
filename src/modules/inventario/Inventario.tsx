@@ -4,6 +4,7 @@ import {
   CardContent,
 } from "../../components/ui/card";
 import { Badge } from "../../components/ui/Badge";
+import { apiFetch } from "../../services/api";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
 import { 
@@ -263,8 +264,16 @@ export function Inventario() {
       }
   };
 
-  const handleExportPdf = () => {
-    window.open(`${API_BASE}/api/inventario/pdf`, "_blank");
+  const handleExportPdf = async () => {
+    try {
+      const res = await apiFetch("/api/inventario/pdf");
+      if (!res.ok) throw new Error(`Error HTTP ${res.status}`);
+      const url = URL.createObjectURL(await res.blob());
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err) {
+      console.error("No se pudo exportar el PDF de inventario", err);
+    }
   };
 
   // 👇 Función auxiliar para abrir el modal de edición y pasarle la orden de búsqueda

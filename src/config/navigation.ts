@@ -51,6 +51,7 @@ export const bodegaNavigation: NavigationItem[] = [
 ];
 
 export const cosechasNavigation: NavigationItem[] = [
+  { label: "Inicio", to: "/", icon: Home },
   {
     label: "Fincas",
     to: "/cosechas/fincas",

@@ -11,7 +11,7 @@ type Usuario = {
   id: string;
   nombre: string;
   email: string;
-  rol: "ADMIN" | "BODEGUERO" | "SOLICITANTE";
+  rol: "ADMIN" | "BODEGUERO" | "SOLICITANTE" | "VISOR" | "COSECHA";
   activo: boolean; // 👈 Nuevo campo
   createdat: string;
 };
@@ -108,6 +108,7 @@ export function UsuariosManager() {
                     <span className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ${
                       u.rol === 'ADMIN' ? 'bg-purple-50 text-purple-700 border-purple-200' :
                       u.rol === 'BODEGUERO' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                      u.rol === 'COSECHA' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
                       'bg-slate-50 text-slate-600 border-slate-200'
                     }`}>
                       {u.rol}
@@ -234,6 +235,7 @@ function CrearUsuarioModal({ onClose, onSuccess }: { onClose: () => void, onSucc
                             <select className="w-full border rounded-xl p-2 text-sm mt-1 bg-white" value={formData.rol} onChange={e => setFormData({...formData, rol: e.target.value})}>
                                 <option value="SOLICITANTE">Solicitante</option>
                                 <option value="BODEGUERO">Bodeguero</option>
+                                <option value="COSECHA">Cosecha</option>
                                 <option value="ADMIN">Administrador</option>
                             </select>
                         </div>
