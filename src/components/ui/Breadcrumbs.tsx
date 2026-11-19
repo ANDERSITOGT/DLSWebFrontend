@@ -16,6 +16,7 @@ const breadcrumbLabels: Record<string, string> = {
   movimientos: "Movimientos",
   lotes: "Lotes",
   solicitudes: "Solicitudes",
+  nueva: "Nueva solicitud",
   proveedores: "Proveedores",
   configuracion: "Configuración",
   usuarios: "Usuarios",
@@ -34,12 +35,12 @@ function getBreadcrumbLabel(segment: string) {
   );
 }
 
-export function Breadcrumbs() {
+export function Breadcrumbs({ className }: { className?: string } = {}) {
   const { pathname } = useLocation();
   const segments = pathname.split("/").filter(Boolean);
 
   return (
-    <Breadcrumb className="mb-4">
+    <Breadcrumb className={className ?? "mb-4"}>
       <BreadcrumbList>
         <BreadcrumbItem>
           <BreadcrumbLink

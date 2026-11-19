@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -9,6 +10,8 @@ import { SectionTitle } from "../../components/ui/SectionTitle";
 import { cn } from "../../utils/cn";
 import { useRefresh } from "../../context/RefreshContext"; 
 import { useAuth } from "../../context/AuthContext"; 
+import { canCreateSolicitud } from "../../config/permissions";
+import { Button } from "../../components/ui/button";
 import { 
   CheckCircle2, 
   XCircle, 
@@ -22,8 +25,8 @@ import {
   MapPin, 
   Package,
   Calendar,
-  RotateCcw, // Icono para Devoluciones
-  AlertTriangle
+    RotateCcw, // Icono para Devoluciones
+    Plus
 } from "lucide-react";
 
 
@@ -73,7 +76,9 @@ type SolicitudDetalle = {
 // ------------------------------------
 export default function SolicitudesPage() {
   // 👇 1. OBTENEMOS EL TOKEN
-  const { token } = useAuth(); 
+    const { token, user } = useAuth(); 
+  const navigate = useNavigate();
+  const puedeCrear = canCreateSolicitud(user?.rol);
 
   const [solicitudes, setSolicitudes] = useState<SolicitudResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
@@ -181,11 +186,19 @@ export default function SolicitudesPage() {
 
   return (
     <div className="space-y-6">
-      <header className="mb-2 flex items-center justify-between gap-3">
+            <header className="mb-2 flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-slate-900 tracking-tight">Solicitudes</h1>
           <p className="text-sm text-slate-500">Gestión de pedidos y devoluciones.</p>
         </div>
+        {puedeCrear && (
+          <Button
+            onClick={() => navigate("/bodega/solicitudes/nueva")}
+            className="gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white shadow-[0_2px_6px_rgba(23,37,84,0.35)] transition-colors hover:from-[#1d4ed8] hover:to-[#1e3a8a]"
+          >
+            <Plus size={16} strokeWidth={2.5} /> Nueva solicitud
+          </Button>
+        )}
       </header>
 
       <section className="space-y-4">
@@ -433,8 +446,17 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
   }
 
   // --- B. MODAL DE CONFIRMACIÓN (PERSONALIZADO POR TIPO) ---
-  if (confirmarAccion) {
-     let config: any = {};
+    if (confirmarAccion) {
+     type AccionConfig = {
+         titulo: string;
+         desc: string;
+         btnColor: string;
+         btnText: string;
+         icon: ReactNode;
+         bgIcon: string;
+         action: () => void;
+     };
+     let config: AccionConfig | null = null;
 
      if (isDevolucion) {
          switch (confirmarAccion) {
@@ -468,7 +490,9 @@ function SolicitudDetalleModal({ detalle, loading, onClose, onExport, onAccionEx
                  config = { titulo: "¿Confirmar Entrega?", desc: "Se descontará del inventario.", btnColor: "bg-blue-600 hover:bg-blue-700", btnText: "Entregar", icon: <PackageCheck className="text-blue-600 w-10 h-10"/>, bgIcon: "bg-blue-100", action: handleEntregar };
                  break;
          }
-     }
+          }
+
+     if (!config) return null;
 
      return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in">

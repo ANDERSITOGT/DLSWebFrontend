@@ -10,6 +10,7 @@ import {
   PackageSearch
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { canCreateSolicitud } from "../../config/permissions";
 import {
   Dialog,
   DialogContent,
@@ -69,9 +70,10 @@ export function QuickActionsModal({
     onClose();
   };
 
-  // PERMISOS
+    // PERMISOS
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
   const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO";
+  const showNuevaSolicitud = canCreateSolicitud(rol);
   const canManageCatalog = rol === "ADMIN" || rol === "BODEGUERO";
   const isAdmin = rol === "ADMIN";
 
@@ -112,14 +114,16 @@ export function QuickActionsModal({
           {/* === SOLICITUDES === */}
           {showSolicitudes && (
             <div className="space-y-2">
-              <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
-              <ActionItem
-                icon={<FileText size={20} />}
-                title="Nueva Solicitud"
-                desc="Solicitar productos de bodega"
-                color="text-emerald-600 bg-emerald-50"
-                onClick={() => { onClose(); onSolicitudClick(); }}
-              />
+                            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Solicitudes</p>
+              {showNuevaSolicitud && (
+                <ActionItem
+                  icon={<FileText size={20} />}
+                  title="Nueva Solicitud"
+                  desc="Solicitar productos de bodega"
+                  color="text-emerald-600 bg-emerald-50"
+                  onClick={() => { onClose(); onSolicitudClick(); }}
+                />
+              )}
 
               <ActionItem
                 icon={<RotateCcw size={20} />}

@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
  Home,
  Boxes,
@@ -19,7 +19,6 @@ import { useRefresh } from "../../context/RefreshContext";
 // Modales
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
 import { IngresoModal } from "../../modules/movimientos/IngresoModal";
-import { NuevaSolicitudModal } from "../../modules/solicitudes/NuevaSolicitudModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
 import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
@@ -77,14 +76,14 @@ const menuItems = [
 ];
 
 export function DesktopLayout({ children }: DesktopLayoutProps) {
- const { user, logout } = useAuth();
+  const { user, logout } = useAuth();
  const location = useLocation();
+ const navigate = useNavigate();
  const { triggerRefreshSolicitudes } = useRefresh();
 
  // --- ESTADOS ---
  const [showActions, setShowActions] = useState(false);
  const [showIngresoModal, setShowIngresoModal] = useState(false);
- const [showSolicitudModal, setShowSolicitudModal] = useState(false);
  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
  const [showAjusteModal, setShowAjusteModal] = useState(false);
@@ -192,7 +191,7 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  <QuickActionsModal
  onClose={() => setShowActions(false)}
  onIngresoClick={() => setShowIngresoModal(true)}
- onSolicitudClick={() => setShowSolicitudModal(true)}
+ onSolicitudClick={() => { setShowActions(false); navigate("/bodega/solicitudes/nueva"); }}
  onAjusteClick={() => setShowAjusteModal(true)}
  onDevolucionClick={() => setShowDevolucionModal(true)}
  onCreateProductClick={() => setShowCrearProductoModal(true)}
@@ -206,16 +205,6 @@ export function DesktopLayout({ children }: DesktopLayoutProps) {
  onClose={() => setShowIngresoModal(false)}
  onSuccess={() => {
  setShowIngresoModal(false);
- triggerRefreshSolicitudes();
- }}
- />
- )}
-
- {showSolicitudModal && (
- <NuevaSolicitudModal
- onClose={() => setShowSolicitudModal(false)}
- onSuccess={() => {
- setShowSolicitudModal(false);
  triggerRefreshSolicitudes();
  }}
  />

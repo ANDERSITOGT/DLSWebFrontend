@@ -13,9 +13,9 @@ import { Breadcrumbs } from "../components/ui/Breadcrumbs";
 import { useAuth } from "../context/AuthContext";
 import { useRefresh } from "../context/RefreshContext";
 import { useModulo } from "../context/ModuleContext";
+import { allowedModules } from "../config/permissions";
 import { AjusteInventarioModal } from "../modules/movimientos/AjusteInventarioModal";
 import { IngresoModal } from "../modules/movimientos/IngresoModal";
-import { NuevaSolicitudModal } from "../modules/solicitudes/NuevaSolicitudModal";
 import { SolicitudDevolucionModal } from "../modules/solicitudes/SolicitudDevolucionModal";
 import CrearProductoModal from "../modules/inventario/components/CrearProductoModal";
 import InfoProductoModal from "../modules/inventario/components/InfoProductoModal";
@@ -38,14 +38,14 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [showActions, setShowActions] = useState(false);
-  const [showIngresoModal, setShowIngresoModal] = useState(false);
-  const [showSolicitudModal, setShowSolicitudModal] = useState(false);
+    const [showIngresoModal, setShowIngresoModal] = useState(false);
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
   const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
   const [showInfoProductoModal, setShowInfoProductoModal] = useState(false);
 
-  const isAdmin = user?.rol === "ADMIN";
+  const permittedModules = allowedModules(user?.rol);
+  const showModuleSelector = permittedModules.length > 1;
   const navigationItems =
     activeModule === "BODEGA" ? bodegaNavigation : cosechasNavigation;
 
@@ -81,7 +81,7 @@ export function MainLayout({ children }: MainLayoutProps) {
                 DLS Web
               </span>
             </Link>
-            {isAdmin ? (
+            {showModuleSelector ? (
               <div className="relative">
                 <button
                   type="button"
@@ -103,38 +103,25 @@ export function MainLayout({ children }: MainLayoutProps) {
                     role="menu"
                     className="absolute left-0 top-full z-40 mt-2 min-w-36 rounded-xl border border-slate-700 bg-slate-900 p-1 text-slate-100 shadow-xl shadow-black/40"
                   >
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setModulo("BODEGA");
-                        navigate("/");
-                        setModuleMenuOpen(false);
-                      }}
-                      className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                        activeModule === "BODEGA"
-                          ? "bg-primary/15 text-primary"
-                          : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                      }`}
-                    >
-                      Bodega
-                    </button>
-                    <button
-                      type="button"
-                      role="menuitem"
-                      onClick={() => {
-                        setModulo("COSECHAS");
-                        navigate("/");
-                        setModuleMenuOpen(false);
-                      }}
-                      className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
-                        activeModule === "COSECHAS"
-                          ? "bg-primary/15 text-primary"
-                          : "text-slate-300 hover:bg-slate-800 hover:text-white"
-                      }`}
-                    >
-                      Cosechas
-                    </button>
+                    {permittedModules.map((mod) => (
+                      <button
+                        key={mod}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => {
+                          setModulo(mod);
+                          navigate("/");
+                          setModuleMenuOpen(false);
+                        }}
+                        className={`flex w-full rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                          activeModule === mod
+                            ? "bg-primary/15 text-primary"
+                            : "text-slate-300 hover:bg-slate-800 hover:text-white"
+                        }`}
+                      >
+                        {mod === "BODEGA" ? "Bodega" : "Cosechas"}
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
@@ -221,11 +208,11 @@ export function MainLayout({ children }: MainLayoutProps) {
             </button>
           </div>
           )}
-        </aside>
+                        </aside>
 
-        <main className="app-surface my-2 ml-2 mr-2 min-h-0 min-w-0 flex-1 overflow-y-auto rounded-tl-3xl p-6 pb-24 text-slate-900 md:p-8 md:pb-6">
-          <Breadcrumbs />
-          {children}
+        <main className="app-surface my-2 ml-2 mr-2 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto rounded-tl-3xl p-6 pb-24 text-slate-900 md:p-8 md:pb-6">
+          <Breadcrumbs className="mb-3 shrink-0" />
+          <div className="flex min-h-0 flex-1 flex-col">{children}</div>
         </main>
       </div>
 
@@ -266,7 +253,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         <QuickActionsModal
           onClose={() => setShowActions(false)}
           onIngresoClick={() => setShowIngresoModal(true)}
-          onSolicitudClick={() => setShowSolicitudModal(true)}
+          onSolicitudClick={() => navigate("/bodega/solicitudes/nueva")}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
           onCreateProductClick={() => setShowCrearProductoModal(true)}
@@ -279,16 +266,6 @@ export function MainLayout({ children }: MainLayoutProps) {
           onClose={() => setShowIngresoModal(false)}
           onSuccess={() => {
             setShowIngresoModal(false);
-            triggerRefreshSolicitudes();
-          }}
-        />
-      )}
-
-      {showSolicitudModal && (
-        <NuevaSolicitudModal
-          onClose={() => setShowSolicitudModal(false)}
-          onSuccess={() => {
-            setShowSolicitudModal(false);
             triggerRefreshSolicitudes();
           }}
         />

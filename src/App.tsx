@@ -8,6 +8,7 @@ import { MovimientosPage } from "./modules/movimientos/MovimientosPage";
 import { MovimientosLotesPage } from "./modules/movimientos/MovimientosLotesPage";
 import { Inventario } from "./modules/inventario/Inventario";
 import SolicitudesPage from "./modules/solicitudes/SolicitudesPage";
+import { NuevaSolicitudPage } from "./modules/solicitudes/nueva-solicitud/NuevaSolicitudPage";
 import { ConfiguracionPage } from "./modules/configuracion/ConfiguracionPage";
 import UsuariosPage from "./modules/usuarios/UsuariosPage";
 import { AsignacionLotesPage } from "./modules/configuracion/AsignacionLotesPage";
@@ -62,6 +63,7 @@ function AppContent() {
                 <Route path="/bodega/movimientos" element={<RequireModule modulo="BODEGA"><MovimientosPage /></RequireModule>} />
                 <Route path="/bodega/movimientos/lotes" element={<RequireModule modulo="BODEGA"><MovimientosLotesPage /></RequireModule>} />
                 <Route path="/bodega/solicitudes" element={<RequireModule modulo="BODEGA"><SolicitudesPage /></RequireModule>} />
+                <Route path="/bodega/solicitudes/nueva" element={<RequireModule modulo="BODEGA"><NuevaSolicitudPage /></RequireModule>} />
                 <Route path="/bodega/configuracion" element={<RequireModule modulo="BODEGA"><ConfiguracionPage /></RequireModule>} />
                 <Route path="/bodega/configuracion/usuarios" element={<RequireModule modulo="BODEGA"><UsuariosPage /></RequireModule>} />
                 <Route path="/bodega/configuracion/asignacion-lotes" element={<RequireModule modulo="BODEGA"><AsignacionLotesPage /></RequireModule>} />
