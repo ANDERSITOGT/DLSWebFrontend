@@ -65,7 +65,7 @@ DLSWebFrontend/
     │   ├── cosechas/            # CosechasDashboard y CosechasPage
     │   │   └── components/
     │   │       └── RegistroCosechaModal.tsx
-    │   ├── inicio/              # InicioPage y paneles por rol
+    │   ├── inicio/              # InicioPage (home unificado)
     │   ├── inventario/          # Inventario
     │   │   └── components/      # CrearProductoModal, InfoProductoModal
     │   ├── movimientos/         # MovimientosPage, MovimientosLotesPage,
@@ -77,8 +77,8 @@ DLSWebFrontend/
     │   │   └── FincasPage.tsx
     │   └── proveedores/         # ProveedoresPage y componentes de edición/contactos
     ├── services/
-    │   ├── api.ts                # Cliente HTTP autenticado
-    │   ├── apiInicio.ts          # Consulta del panel del bodeguero
+    │   ├── api.ts                # Cliente HTTP con kill-switch y 403 de modulo
+    │   ├── apiError.ts           # Error HTTP tipado (FORBIDDEN_MODULE vs sesion)
     │   ├── catalogosService.ts   # Consultas de catálogos
     │   └── cosechasService.ts   # Consultas y registro de cosechas
     ├── utils/
@@ -107,7 +107,6 @@ layouts que selecciona el enrutador actual.
 | Ruta | Página | Propósito |
 |---|---|---|
 | `/login` | `LoginPage` | Inicio de sesión |
-| `/` | `InicioPage` | Inicio seleccionado según el rol |
 | `/bodega` | `BodegaDashboard` | Acceso a las funciones de Bodega |
 | `/bodega/inventario` | `Inventario` | Consulta y gestión del inventario |
 | `/bodega/movimientos` | `MovimientosPage` | Movimientos de inventario |
@@ -122,23 +121,26 @@ layouts que selecciona el enrutador actual.
 | `/cosechas/fincas` | `FincasPage` | Gestión de fincas |
 | `/cosechas/registro` | `CosechasPage` | Registro y consulta de cosechas |
 
-`InicioPage` muestra `InicioBodeguero` para el rol `BODEGUERO`, `InicioSolicitante`
-para `SOLICITANTE` y `InicioAdmin` para los demás roles. La navegación de
-`MainLayout` se define por separado en `config/navigation.ts`.
+El home (`/`) lo resuelve `InicioPage` → `Dashboard` para **todos los roles**.
+Cada rol consume `GET /api/dashboard?modulo=BODEGA|COSECHAS` y el backend recorta
+el payload (modo completo vs simple). Ver `docs/DASHBOARD_FRONTEND.md`. La navegación
+de `MainLayout` se define por separado en `config/navigation.ts`.
 
 ## Sesión y comunicación con la API
 
 - `AuthContext` restaura y mantiene el usuario y el token en `localStorage`
   (`dls_user` y `dls_token`), y expone las operaciones de login y logout.
-- `RequireAuth` redirige a `/login` si no hay un usuario autenticado.
-- `api.ts` exporta `apiFetch`, que agrega el token almacenado y, ante respuestas
-  `401` o `403`, elimina las claves de sesión y redirige a `/login`.
+- `api.ts` exporta `apiFetch`, que agrega el token almacenado. Ante `401` aplica el
+  kill-switch (limpia sesión y va a `/login`). Ante `403` **distingue**: si el mensaje
+  indica "módulo no permitido" lanza `ApiError` con `FORBIDDEN_MODULE` (la vista muestra
+  "Sin acceso" **sin** cerrar sesión); en cualquier otro 403 (cuenta desactivada / token)
+  o si no se puede diferenciar, cierra sesión por seguridad.
 - `cosechasService.ts` usa `apiFetch` para listar y registrar cosechas y cargar
   sus catálogos. `catalogosService.ts` agrupa consultas de bodegas, proveedores,
   productos, fincas y lotes.
-- `apiInicio.ts` consulta el resumen inicial del bodeguero. Algunas pantallas
-  también realizan peticiones HTTP directamente; no todas las llamadas pasan
-  por un único cliente.
+- `dashboardService.ts` consume `/api/dashboard` y propaga el `ApiError` tipado.
+  `config/permissions.ts` centraliza la matriz rol → módulos usada por `ModuleContext`,
+  `RequireModule` y el selector de `MainLayout`.
 - `RefreshContext` mantiene un contador para solicitar que las pantallas
   consumidoras actualicen solicitudes tras ciertas acciones. No obtiene datos
   por sí mismo.

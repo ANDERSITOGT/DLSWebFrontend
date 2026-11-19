@@ -1,5 +1,7 @@
 import type { DashboardResponse } from "@/services/dashboardService";
 import type { Modulo } from "@/context/ModuleContext";
+import type { Rol } from "@/config/permissions";
+import { isSimpleMode } from "@/config/permissions";
 
 const DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"];
 
@@ -7,8 +9,9 @@ function serie(dias: number, base: number, amp: number) {
   return Array.from({ length: dias }, (_, i) => Math.round(base + Math.abs(Math.sin(i * 1.7 + base)) * amp));
 }
 
-// Datos de desarrollo (VITE_DASHBOARD_MOCK=true) con la forma de docs/BACKEND_DASHBOARD.md
-export function mockDashboard(modulo: Modulo, dias: number): DashboardResponse {
+// Datos de desarrollo (VITE_DASHBOARD_MOCK=true) con la forma de docs/DASHBOARD_FRONTEND.md.
+// Es consciente del rol: en modo simple devuelve 2 KPIs, 1 gráfica y alertas vacías.
+export function mockDashboard(modulo: Modulo, dias: number, rol?: Rol): DashboardResponse {
   const etiquetas = Array.from({ length: dias }, (_, i) => `${DIAS[i % 7]} ${i + 1}`);
   const a = serie(dias, 40, 50);
   const b = serie(dias, 20, 40);
@@ -36,6 +39,24 @@ export function mockDashboard(modulo: Modulo, dias: number): DashboardResponse {
         { id: "sin-cosecha", nivel: "warning", titulo: "2 lotes sin cosecha", descripcion: "Sin registros en 7 días.", cantidad: 2, ruta: "/cosechas/registro" },
         { id: "sin-boleta", nivel: "danger", titulo: "1 cosecha sin boleta", descripcion: "Falta número de boleta.", cantidad: 1, ruta: "/cosechas/registro" },
       ],
+    };
+  }
+
+  if (modulo === "BODEGA" && isSimpleMode(rol)) {
+    return {
+      ...base,
+      kpis: [
+        { id: "solicitudes-activas", label: "Solicitudes activas", value: 5, formato: "numero", descripcion: "Pendientes o aprobadas", variacionPct: null, tendencia: b, icono: "solicitudes" },
+        { id: "solicitudes-pendientes", label: "Solicitudes pendientes", value: 3, formato: "numero", descripcion: "Por atender", variacionPct: null, tendencia: a, icono: "solicitudes" },
+      ],
+      graficas: [
+        { id: "solicitudes-por-estado", titulo: "Solicitudes por estado", tipo: "barras", series: [{ key: "cantidad", label: "Cantidad" }], datos: ["PENDIENTE", "APROBADA", "ENTREGADA", "RECHAZADA"].map((etiqueta, i) => ({ etiqueta, cantidad: [3, 2, 6, 1][i] })) },
+      ],
+      resumenDia: [
+        { id: "solicitudes-aprobadas-hoy", label: "Aprobadas hoy", value: 3, total: 5, formato: "numero" },
+        { id: "solicitudes-pendientes", label: "Solicitudes pendientes", value: 3, total: null, formato: "numero" },
+      ],
+      alertas: [],
     };
   }
 

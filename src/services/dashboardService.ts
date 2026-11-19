@@ -1,4 +1,5 @@
 import { apiFetch } from "./api";
+import { ApiError } from "./apiError";
 import type { Modulo } from "@/context/ModuleContext";
 
 export type Formato = "numero" | "moneda" | "libras" | "metros";
@@ -49,10 +50,18 @@ export type DashboardResponse = {
 };
 
 export async function fetchDashboard(modulo: Modulo, dias = 7): Promise<DashboardResponse> {
+  // apiFetch ya lanza ApiError tipado (FORBIDDEN_MODULE / UNAUTHORIZED / ACCOUNT_DISABLED / HTTP_ERROR).
   const res = await apiFetch(`/api/dashboard?modulo=${modulo}&dias=${dias}`);
+
+  // Defensa extra: si por alguna razón llega un status no-ok sin throw.
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.message || `Error HTTP ${res.status}`);
+    throw new ApiError(
+      body?.message || `Error HTTP ${res.status}`,
+      res.status,
+      res.status === 403 ? "FORBIDDEN_MODULE" : "HTTP_ERROR",
+    );
   }
+
   return res.json();
 }

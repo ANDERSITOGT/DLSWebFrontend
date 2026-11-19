@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "./AuthContext";
+import { allowedModules, canAccessModule } from "@/config/permissions";
 
 export type Modulo = "BODEGA" | "COSECHAS";
 
@@ -23,9 +24,15 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
     setStored(modulo);
   }, []);
 
-  // ADMIN elige el módulo; COSECHA solo accede a Cosechas y el resto solo a Bodega (el backend responde 403 si no).
+  // ADMIN elige el módulo entre los permitidos; el resto queda anclado a su único módulo.
+  // La matriz vive en config/permissions.ts (fuente única de verdad).
+  const permitted = allowedModules(user?.rol);
   const modulo: Modulo =
-    user?.rol === "ADMIN" ? stored : user?.rol === "COSECHA" ? "COSECHAS" : "BODEGA";
+    permitted.length === 1
+      ? permitted[0]
+      : canAccessModule(user?.rol, stored)
+        ? stored
+        : (permitted[0] ?? "BODEGA");
   const value = useMemo(() => ({ modulo, setModulo }), [modulo, setModulo]);
 
   return <ModuleContext.Provider value={value}>{children}</ModuleContext.Provider>;
