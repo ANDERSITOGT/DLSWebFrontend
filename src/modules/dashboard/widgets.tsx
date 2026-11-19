@@ -58,7 +58,10 @@ export function KpiCard({ kpi, color }: { kpi: Kpi; color: string }) {
   const variacion = kpi.variacionPct;
 
   return (
-    <Card size="sm" className="relative h-[104px] overflow-hidden py-0">
+    <Card
+      size="sm"
+      className="relative h-[92px] overflow-hidden py-0 last:odd:col-span-2 sm:h-[104px] xl:last:odd:col-span-1"
+    >
       {data.length > 0 && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-9 opacity-60">
           <ChartContainer config={config} className="aspect-auto h-9 w-full">
@@ -79,8 +82,8 @@ export function KpiCard({ kpi, color }: { kpi: Kpi; color: string }) {
         </div>
       )}
 
-      <CardContent className="relative z-10 flex h-full flex-col justify-between py-3">
-        <div className="flex items-start justify-between gap-2">
+      <CardContent className="relative z-10 flex h-full flex-col justify-between px-2.5 py-2 sm:px-3 sm:py-3">
+        <div className="flex items-start justify-between gap-1.5">
           <div className="flex min-w-0 items-center gap-2">
             <span
               className="flex size-7 shrink-0 items-center justify-center rounded-lg"
@@ -88,7 +91,7 @@ export function KpiCard({ kpi, color }: { kpi: Kpi; color: string }) {
             >
               <Icon size={15} />
             </span>
-            <p className="line-clamp-2 text-xs font-medium leading-tight text-slate-500">
+            <p className="line-clamp-2 text-[11px] font-medium leading-tight text-slate-500 sm:text-xs">
               {kpi.label}
             </p>
           </div>
@@ -116,7 +119,7 @@ export function KpiCard({ kpi, color }: { kpi: Kpi; color: string }) {
         </div>
 
         <div className="min-w-0">
-          <p className="truncate text-2xl font-bold leading-none tracking-tight text-slate-900">
+          <p className="truncate text-xl font-bold leading-none tracking-tight text-slate-900 sm:text-2xl">
             {formatValue(kpi.value, kpi.formato)}
           </p>
           <p className="line-clamp-1 text-[11px] leading-snug text-slate-400">
@@ -135,15 +138,28 @@ export function ChartCard({ grafica }: { grafica: Grafica }) {
   const axes = (
     <>
       <CartesianGrid vertical={false} />
-      <XAxis dataKey="etiqueta" tickLine={false} axisLine={false} tickMargin={6} fontSize={11} />
-      <YAxis tickLine={false} axisLine={false} width={34} fontSize={11} />
+      <XAxis
+        dataKey="etiqueta"
+        tickLine={false}
+        axisLine={false}
+        tickMargin={6}
+        fontSize={10}
+        interval="preserveStartEnd"
+      />
+      <YAxis
+        tickLine={false}
+        axisLine={false}
+        width={28}
+        fontSize={10}
+        tickFormatter={(v) => (Math.abs(v) >= 1000 ? `${v / 1000}k` : v)}
+      />
       <ChartTooltip content={<ChartTooltipContent />} />
-      <ChartLegend content={<ChartLegendContent />} />
+      <ChartLegend content={<ChartLegendContent className="flex-wrap gap-x-3 gap-y-1 text-[11px]" />} />
     </>
   );
 
   return (
-    <Card size="sm" className="h-full min-h-[180px]">
+    <Card size="sm" className="h-full min-h-[180px] lg:min-h-0">
       <CardHeader className="pb-0">
         <CardTitle className="text-sm">{grafica.titulo}</CardTitle>
       </CardHeader>
@@ -151,14 +167,14 @@ export function ChartCard({ grafica }: { grafica: Grafica }) {
         {/* h-full: la gráfica ocupa el alto que el grid le asigna, sin scroll */}
         <ChartContainer config={config} className="aspect-auto h-full min-h-32 w-full">
           {grafica.tipo === "barras" ? (
-            <BarChart data={grafica.datos} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <BarChart data={grafica.datos} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               {axes}
               {grafica.series.map((s) => (
                 <Bar key={s.key} dataKey={s.key} fill={`var(--color-${s.key})`} radius={4} />
               ))}
             </BarChart>
           ) : (
-            <LineChart data={grafica.datos} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+            <LineChart data={grafica.datos} margin={{ top: 8, right: 4, bottom: 0, left: 0 }}>
               {axes}
               {grafica.series.map((s) => (
                 <Line key={s.key} dataKey={s.key} type="monotone" stroke={`var(--color-${s.key})`} strokeWidth={2} dot={false} />
@@ -173,7 +189,7 @@ export function ChartCard({ grafica }: { grafica: Grafica }) {
 
 export function ResumenCard({ items }: { items: ResumenItem[] }) {
   return (
-    <Card size="sm" className="h-full">
+    <Card size="sm" className="lg:h-full">
       <CardHeader className="pb-1">
         <CardTitle className="text-sm">Resumen del día</CardTitle>
       </CardHeader>
@@ -222,7 +238,7 @@ export function AlertasCard({ alertas }: { alertas: Alerta[] }) {
   if (alertas.length === 0) return null;
 
   return (
-    <Card size="sm" className="h-full">
+    <Card size="sm" className="lg:h-full lg:min-h-0">
       <CardHeader className="flex-row items-center justify-between gap-2 pb-1">
         <CardTitle className="text-sm">Alertas</CardTitle>
         <Badge variant="outline">{alertas.length}</Badge>
@@ -259,13 +275,13 @@ export function AlertasCard({ alertas }: { alertas: Alerta[] }) {
 
 export function DashboardSkeleton({ kpiCount = 4 }: { kpiCount?: number }) {
   return (
-    <div className="flex h-full flex-col gap-3">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="flex flex-col gap-3 lg:h-full">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
         {Array.from({ length: kpiCount }, (_, i) => (
-          <Skeleton key={i} className="h-24 rounded-xl" />
+          <Skeleton key={i} className="h-[92px] rounded-xl last:odd:col-span-2 sm:h-24 xl:last:odd:col-span-1" />
         ))}
       </div>
-      <div className="grid min-h-48 flex-1 grid-cols-1 gap-3 lg:grid-cols-3">
+      <div className="grid min-h-48 grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 lg:grid-cols-3">
         <Skeleton className="h-full rounded-xl lg:col-span-2" />
         <Skeleton className="h-full rounded-xl" />
       </div>

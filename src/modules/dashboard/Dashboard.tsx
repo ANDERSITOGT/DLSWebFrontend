@@ -68,7 +68,7 @@ export function Dashboard() {
   const hayAside = !!data && (data.resumenDia.length > 0 || data.alertas.length > 0);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-3">
+    <div className="flex flex-col gap-3 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0 lg:h-full lg:min-h-0">
       {/* Cabecera compacta */}
       <header className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
@@ -76,12 +76,12 @@ export function Dashboard() {
           <p className="truncate text-xs text-slate-500">{subtitle}</p>
         </div>
         {showSolicitudCta && (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <div className="flex shrink-0 flex-wrap items-center gap-2 max-sm:w-full">
             <Button
               asChild
               variant="outline"
               size="sm"
-              className="group gap-2 border-slate-300 bg-white font-semibold text-[#1e293b] shadow-sm transition-colors hover:border-[#1e3a8a]/40 hover:bg-slate-50 hover:text-[#1e3a8a] focus-visible:border-[#1e3a8a]/50 focus-visible:ring-[#1e3a8a]/20"
+              className="group gap-2 border-slate-300 bg-white font-semibold text-[#1e293b] shadow-sm transition-colors hover:border-[#1e3a8a]/40 hover:bg-slate-50 hover:text-[#1e3a8a] focus-visible:border-[#1e3a8a]/50 focus-visible:ring-[#1e3a8a]/20 max-sm:flex-1"
             >
               <Link to="/bodega/solicitudes">
                 Ver mis solicitudes
@@ -95,7 +95,7 @@ export function Dashboard() {
             <Button
               size="sm"
               onClick={() => navigate("/bodega/solicitudes/nueva")}
-              className="gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white shadow-[0_2px_6px_rgba(23,37,84,0.35)] transition-colors hover:from-[#1d4ed8] hover:to-[#1e3a8a] focus-visible:border-[#172554] focus-visible:ring-[#1e3a8a]/30"
+              className="gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white shadow-[0_2px_6px_rgba(23,37,84,0.35)] transition-colors hover:from-[#1d4ed8] hover:to-[#1e3a8a] focus-visible:border-[#172554] focus-visible:ring-[#1e3a8a]/30 max-sm:flex-1"
             >
               <Plus size={15} strokeWidth={2.5} />
               Nueva solicitud
@@ -113,25 +113,25 @@ export function Dashboard() {
       )}
 
       {data && (
-        <div className="flex min-h-0 flex-1 flex-col gap-3">
-          {/* Fila 1: KPIs (altura fija compacta) */}
+        <div className="flex flex-col gap-3 lg:min-h-0 lg:flex-1">
+          {/* Fila 1: KPIs (2 columnas en móvil, altura compacta) */}
           {data.kpis.length > 0 && (
-            <div className="grid shrink-0 grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid shrink-0 grid-cols-2 gap-2 sm:gap-3 xl:grid-cols-4">
               {data.kpis.map((kpi, i) => (
                 <KpiCard key={kpi.id} kpi={kpi} color={KPI_COLORS[i % KPI_COLORS.length]} />
               ))}
             </div>
           )}
 
-          {/* Fila 2: gráficas + lateral. min-h-0 permite que el alto se reparta sin desbordar. */}
+          {/* Fila 2: gráficas + lateral. En <lg fluye (scroll); en lg se reparte sin desbordar. */}
           <div
-            className={`grid min-h-0 flex-1 grid-cols-1 gap-3 ${
+            className={`grid grid-cols-1 gap-3 lg:min-h-0 lg:flex-1 ${
               hayAside ? "lg:grid-cols-3" : ""
             }`}
           >
             {/* Columna de gráficas */}
             <div
-              className={`grid min-h-0 grid-cols-1 gap-3 ${hayAside ? "lg:col-span-2" : ""} ${
+              className={`grid grid-cols-1 gap-3 ${hayAside ? "lg:col-span-2" : ""} ${
                 data.graficas.length > 1 ? "sm:grid-cols-2" : ""
               }`}
             >
@@ -142,7 +142,7 @@ export function Dashboard() {
 
             {/* Lateral: resumen + alertas */}
             {hayAside && (
-              <aside className="grid min-h-0 grid-cols-1 gap-3 lg:col-span-1 lg:grid-rows-[auto_minmax(0,1fr)]">
+              <aside className="grid grid-cols-1 gap-3 lg:col-span-1 lg:grid-rows-[auto_minmax(0,1fr)]">
                 {data.resumenDia.length > 0 && <ResumenCard items={data.resumenDia} />}
                 <AlertasCard alertas={data.alertas} />
               </aside>
