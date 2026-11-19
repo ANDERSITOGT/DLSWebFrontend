@@ -4,6 +4,8 @@ import { cn } from "@/lib/utils"
 export type StepperStep = {
   /** Etiqueta corta visible en el paso. */
   label: string
+  /** Etiqueta aún más corta para pantallas angostas (< sm). */
+  shortLabel?: string
   /** Descripción opcional bajo la etiqueta. */
   description?: string
 }
@@ -25,7 +27,7 @@ export function Stepper({ steps, current, onStepClick, className }: StepperProps
   return (
     <ol
       className={cn(
-        "flex w-full items-center gap-2 sm:gap-3",
+        "flex w-full items-center gap-1.5 sm:gap-3",
         className
       )}
     >
@@ -35,14 +37,14 @@ export function Stepper({ steps, current, onStepClick, className }: StepperProps
         const clickable = !!onStepClick && index < current
 
         return (
-          <li key={step.label} className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <li key={step.label} className="flex min-w-0 flex-1 items-center gap-1.5 sm:gap-3">
             <button
               type="button"
               disabled={!clickable}
               onClick={() => clickable && onStepClick?.(index)}
               aria-current={isActive ? "step" : undefined}
               className={cn(
-                "group flex min-w-0 items-center gap-2 text-left transition-colors sm:gap-3",
+                "group flex min-w-0 items-center gap-1.5 text-left transition-colors sm:gap-3",
                 clickable ? "cursor-pointer" : "cursor-default"
               )}
             >
@@ -59,11 +61,19 @@ export function Stepper({ steps, current, onStepClick, className }: StepperProps
               <span className="min-w-0">
                 <span
                   className={cn(
-                    "block truncate text-xs font-bold sm:text-sm",
+                    "block truncate text-[11px] font-bold sm:text-sm",
                     isActive ? "text-slate-900" : isDone ? "text-emerald-700" : "text-slate-400"
                   )}
                 >
-                  {step.label}
+                  {/* Etiqueta corta en móvil, completa desde sm */}
+                  {step.shortLabel ? (
+                    <>
+                      <span className="sm:hidden">{step.shortLabel}</span>
+                      <span className="hidden sm:inline">{step.label}</span>
+                    </>
+                  ) : (
+                    step.label
+                  )}
                 </span>
                 {step.description && (
                   <span className="hidden truncate text-[11px] text-slate-400 sm:block">
@@ -75,7 +85,7 @@ export function Stepper({ steps, current, onStepClick, className }: StepperProps
             {index < steps.length - 1 && (
               <span
                 className={cn(
-                  "h-px min-w-4 flex-1 rounded-full transition-colors",
+                  "hidden h-px min-w-4 flex-1 rounded-full transition-colors sm:block",
                   index < current ? "bg-emerald-500" : "bg-slate-200"
                 )}
               />

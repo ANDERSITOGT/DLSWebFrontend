@@ -1,10 +1,11 @@
 import { useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
-import { ArrowLeft, ArrowRight, Loader2, Save, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, ChevronDown, Loader2, Save, Trash2 } from "lucide-react"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/Badge"
 import { ConfirmModal } from "@/components/ui/ConfirmModal"
 import { useRefresh } from "@/context/RefreshContext"
 import { Stepper } from "./SolicitudStepper"
@@ -16,9 +17,9 @@ import { SuccessPanel } from "./SuccessPanel"
 import { useNuevaSolicitud } from "./useNuevaSolicitud"
 
 const PASOS = [
-  { label: "Bodega y notas", description: "Destino y observaciones" },
-  { label: "Productos", description: "Agrega los ítems" },
-  { label: "Confirmación", description: "Revisa y envía" },
+  { label: "Bodega y notas", shortLabel: "Bodega", description: "Destino y observaciones" },
+  { label: "Productos", shortLabel: "Productos", description: "Agrega los ítems" },
+  { label: "Confirmación", shortLabel: "Confirmar", description: "Revisa y envía" },
 ] as const
 
 const SOLICITUDES_PATH = "/bodega/solicitudes"
@@ -28,8 +29,10 @@ export function NuevaSolicitudPage() {
   const { triggerRefreshSolicitudes } = useRefresh()
   const ctrl = useNuevaSolicitud()
 
-  const [paso, setPaso] = useState(0)
-  const [showConfirmClose, setShowConfirmClose] = useState(false)
+  const paso = ctrl.paso
+  const setPaso = ctrl.setPaso
+  const [showConfirmDiscard, setShowConfirmDiscard] = useState(false)
+  const [resumenAbierto, setResumenAbierto] = useState(false)
 
   const progreso = useMemo(() => ((paso + 1) / PASOS.length) * 100, [paso])
 
@@ -43,26 +46,29 @@ export function NuevaSolicitudPage() {
             triggerRefreshSolicitudes()
             navigate(SOLICITUDES_PATH)
           }}
-          onNuevaSolicitud={() => window.location.reload()}
+          onNuevaSolicitud={() => {
+            triggerRefreshSolicitudes()
+            ctrl.resetearFormulario()
+          }}
         />
       </div>
     )
   }
 
-  const handleCancelar = () => {
-    if (ctrl.hayCambios) setShowConfirmClose(true)
-    else navigate(SOLICITUDES_PATH)
+  const handleDescartarConfirmado = () => {
+    ctrl.descartarBorrador()
+    navigate(SOLICITUDES_PATH)
   }
 
   const puedeContinuar =
     paso === 0 ? ctrl.paso1Completo : paso === 1 ? ctrl.paso2Completo : false
 
   const handleContinuar = () => {
-    if (paso < PASOS.length - 1) setPaso((p) => p + 1)
+    if (paso < PASOS.length - 1) setPaso(paso + 1)
   }
 
   const handleAtras = () => {
-    if (paso > 0) setPaso((p) => p - 1)
+    if (paso > 0) setPaso(paso - 1)
   }
 
   const handleEnviar = async () => {
@@ -71,7 +77,7 @@ export function NuevaSolicitudPage() {
   }
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5 pb-[calc(7rem+env(safe-area-inset-bottom))] md:pb-0">
       {/* Header de página */}
       <header className="space-y-3">
         <Link
@@ -80,11 +86,18 @@ export function NuevaSolicitudPage() {
         >
           <ArrowLeft size={16} /> Volver a solicitudes
         </Link>
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-900">Nueva solicitud</h1>
-          <p className="text-sm text-slate-500">
-            Describe qué productos necesitas de bodega y confirma tu pedido.
-          </p>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-slate-900">Nueva solicitud</h1>
+            <p className="text-sm text-slate-500">
+              Describe qué productos necesitas de bodega y confirma tu pedido.
+            </p>
+          </div>
+          {ctrl.borradorRecuperado && (
+            <Badge variant="warning" className="gap-1.5 text-[11px]">
+              <Save size={12} /> Borrador recuperado
+            </Badge>
+          )}
         </div>
       </header>
 
@@ -132,6 +145,7 @@ export function NuevaSolicitudPage() {
                     onAgregar={ctrl.agregarItem}
                     onEditar={ctrl.actualizarItem}
                     onEliminar={ctrl.eliminarItem}
+                    onCambiarCantidad={ctrl.actualizarCantidadItem}
                   />
                 )}
 
@@ -155,22 +169,15 @@ export function NuevaSolicitudPage() {
             )}
           </CardContent>
 
-          <CardFooter className="flex items-center justify-between gap-2">
-            <Button
-              variant="ghost"
-              onClick={handleCancelar}
-              className="gap-1 text-slate-500 hover:text-rose-600"
-            >
-              <X size={16} /> Cancelar
-            </Button>
-
-            <div className="flex items-center gap-2">
+          <CardFooter className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            {/* Botón principal: arriba y full-width en móvil, a la derecha en ≥ sm */}
+            <div className="order-1 flex w-full items-center gap-2 sm:order-2 sm:w-auto">
               {paso > 0 && (
                 <Button
                   variant="outline"
                   onClick={handleAtras}
                   disabled={ctrl.guardando}
-                  className="gap-1 border-slate-300 font-bold text-slate-700"
+                  className="hidden shrink-0 gap-1 border-slate-300 font-bold text-slate-700 sm:inline-flex"
                 >
                   <ArrowLeft size={16} /> Atrás
                 </Button>
@@ -180,7 +187,7 @@ export function NuevaSolicitudPage() {
                 <Button
                   onClick={handleContinuar}
                   disabled={!puedeContinuar}
-                  className="gap-1 bg-emerald-600 font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700"
+                  className="w-full shrink-0 gap-1 bg-emerald-600 font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 sm:w-auto"
                 >
                   Continuar <ArrowRight size={16} />
                 </Button>
@@ -188,7 +195,7 @@ export function NuevaSolicitudPage() {
                 <Button
                   onClick={handleEnviar}
                   disabled={!ctrl.todoListo || ctrl.guardando}
-                  className="gap-2 bg-emerald-600 font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700"
+                  className="w-full shrink-0 gap-2 bg-emerald-600 font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-700 sm:w-auto"
                 >
                   {ctrl.guardando ? (
                     <Loader2 className="animate-spin" size={16} />
@@ -199,27 +206,73 @@ export function NuevaSolicitudPage() {
                 </Button>
               )}
             </div>
+
+            {/* Fila secundaria: Descartar (izq) + Atrás (der) en móvil */}
+            <div className="order-2 flex w-full items-center justify-between gap-2 sm:order-1 sm:w-auto sm:justify-start">
+              <Button
+                variant="outline"
+                onClick={() => setShowConfirmDiscard(true)}
+                disabled={ctrl.guardando}
+                aria-label="Descartar solicitud"
+                className="shrink-0 gap-1 whitespace-nowrap border-rose-200 bg-rose-50 px-3 text-xs font-semibold text-rose-600 hover:bg-rose-100 hover:text-rose-700 sm:px-4 sm:text-sm"
+              >
+                <Trash2 size={16} /> Descartar
+              </Button>
+
+              {paso > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={handleAtras}
+                  disabled={ctrl.guardando}
+                  className="shrink-0 gap-1 border-slate-300 font-bold text-slate-700 sm:hidden"
+                >
+                  <ArrowLeft size={16} /> Atrás
+                </Button>
+              )}
+            </div>
           </CardFooter>
         </Card>
 
-        {/* Aside de resumen en vivo */}
-        <aside className="order-first lg:order-none">
-          <SolicitudResumenPanel
-            bodega={ctrl.bodegaSeleccionada}
-            items={ctrl.items}
-            totalUnidades={ctrl.totalUnidades}
-            todoListo={ctrl.todoListo}
-          />
+        {/* Aside de resumen en vivo: debajo en móvil, columna sticky en ≥ lg */}
+        <aside className="order-last lg:order-none">
+          {/* Toggle compacto solo en móvil */}
+          <button
+            type="button"
+            onClick={() => setResumenAbierto((abierto) => !abierto)}
+            aria-expanded={resumenAbierto}
+            aria-controls="resumen-solicitud"
+            className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-50 lg:hidden"
+          >
+            <span>
+              Ver resumen ({ctrl.items.length} {ctrl.items.length === 1 ? "ítem" : "ítems"})
+            </span>
+            <ChevronDown
+              size={18}
+              className={`shrink-0 text-slate-400 transition-transform ${resumenAbierto ? "rotate-180" : ""}`}
+            />
+          </button>
+
+          <div
+            id="resumen-solicitud"
+            className={`mt-3 lg:mt-0 ${resumenAbierto ? "block" : "hidden"} lg:block`}
+          >
+            <SolicitudResumenPanel
+              bodega={ctrl.bodegaSeleccionada}
+              items={ctrl.items}
+              totalUnidades={ctrl.totalUnidades}
+              todoListo={ctrl.todoListo}
+            />
+          </div>
         </aside>
       </div>
 
       <ConfirmModal
-        isOpen={showConfirmClose}
-        onClose={() => setShowConfirmClose(false)}
-        onConfirm={() => navigate(SOLICITUDES_PATH)}
-        title="¿Cancelar solicitud?"
-        message="Tienes cambios sin guardar. Si sales ahora, perderás el progreso de tu solicitud."
-        confirmText="Sí, salir"
+        isOpen={showConfirmDiscard}
+        onClose={() => setShowConfirmDiscard(false)}
+        onConfirm={handleDescartarConfirmado}
+        title="¿Descartar solicitud?"
+        message="Se eliminará todo el borrador de esta solicitud (bodega, productos y notas). Esta acción no se puede deshacer."
+        confirmText="Sí, descartar"
         cancelText="Continuar editando"
         isDestructive
       />

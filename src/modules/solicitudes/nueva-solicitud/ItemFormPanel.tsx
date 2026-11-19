@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react"
-import { AlertCircle, CheckCircle2, Plus, Save, X } from "lucide-react"
+import { AlertCircle, CheckCircle2, PencilLine, Plus, Save, X } from "lucide-react"
 import BuscadorSelect from "@/components/ui/BuscadorSelect"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,6 +20,12 @@ type ItemFormPanelProps = {
   onAgregar: (item: ItemSolicitud) => void
   onConfirmarEdicion?: (key: string, item: ItemSolicitud) => void
   onCancel: () => void
+  /** Finca pegajosa por defecto al agregar nuevos ítems. */
+  defaultsFincaId?: string
+  /** Lote pegajoso por defecto al agregar nuevos ítems. */
+  defaultsLoteId?: string
+  /** Notifica cambios de finca/lote para persistir los defaults pegajosos. */
+  onDefaultsChange?: (fincaId: string, loteId: string) => void
 }
 
 function generarKey() {
@@ -38,13 +44,16 @@ export function ItemFormPanel({
   onAgregar,
   onConfirmarEdicion,
   onCancel,
+  defaultsFincaId = "",
+  defaultsLoteId = "",
+  onDefaultsChange,
 }: ItemFormPanelProps) {
   const isEdit = !!initialItem
 
   const [producto, setProducto] = useState<ProductoResult | null>(initialProducto)
   const [cantidad, setCantidad] = useState<number>(initialItem?.cantidad ?? 1)
-  const [fincaId, setFincaId] = useState(initialItem?.fincaId ?? "")
-  const [loteId, setLoteId] = useState(initialItem?.loteId ?? "")
+  const [fincaId, setFincaId] = useState(initialItem?.fincaId || defaultsFincaId)
+  const [loteId, setLoteId] = useState(initialItem?.loteId || defaultsLoteId)
   const [notas, setNotas] = useState(initialItem?.notas ?? "")
   const [intentoValidacion, setIntentoValidacion] = useState(false)
 
@@ -89,25 +98,68 @@ export function ItemFormPanel({
     setIntentoValidacion(true)
     if (!puedeConfirmar) return
     const item = buildItem()
-    if (isEdit && initialItem && onConfirmarEdicion) {
-      onConfirmarEdicion(initialItem.key, item)
-    } else {
-      onAgregar(item)
+
+    if (isEdit) {
+      if (initialItem && onConfirmarEdicion) {
+        onConfirmarEdicion(initialItem.key, item)
+      }
+      return
     }
+
+    onAgregar(item)
+    // Sticky defaults: se conserva finca y lote para cargar varios productos
+    // al mismo lote con rapidez. Solo se limpia producto, cantidad y notas.
+    if (onDefaultsChange) onDefaultsChange(fincaId, loteId)
+    setProducto(null)
+    setCantidad(1)
+    setNotas("")
+    setIntentoValidacion(false)
+  }
+
+  const handleCancelar = () => {
+    if (isEdit) {
+      onCancel()
+      return
+    }
+    // En modo alta, cerrar solo limpia el formulario (sigue visible).
+    setProducto(null)
+    setCantidad(1)
+    setNotas("")
+    setFincaId(defaultsFincaId)
+    setLoteId(defaultsLoteId)
+    setIntentoValidacion(false)
+  }
+
+  const handleCambiarFinca = (nuevaFinca: string) => {
+    setFincaId(nuevaFinca)
+    setLoteId("")
+    if (!isEdit && onDefaultsChange) onDefaultsChange(nuevaFinca, "")
+  }
+
+  const handleCambiarLote = (nuevoLote: string) => {
+    setLoteId(nuevoLote)
+    if (!isEdit && onDefaultsChange) onDefaultsChange(fincaId, nuevoLote)
   }
 
   return (
-    <div className="space-y-4 rounded-2xl border border-emerald-200 bg-emerald-50/40 p-4 ring-4 ring-emerald-50 sm:p-5">
+    <div
+      className={cn(
+        "space-y-4 rounded-2xl border p-4 ring-4 transition-colors sm:p-5",
+        isEdit
+          ? "border-emerald-300 bg-emerald-50/60 ring-emerald-100"
+          : "border-emerald-200 bg-emerald-50/40 ring-emerald-50"
+      )}
+    >
       <div className="flex items-center justify-between border-b border-emerald-100 pb-2">
         <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
-          {isEdit ? <Save size={16} /> : <Plus size={16} />}
+          {isEdit ? <PencilLine size={16} /> : <Plus size={16} />}
           {isEdit ? "Editar ítem" : "Agregar nuevo ítem"}
         </h3>
         <button
           type="button"
-          onClick={onCancel}
+          onClick={handleCancelar}
           className="rounded-full p-1.5 text-slate-400 transition hover:bg-white hover:text-slate-600"
-          aria-label="Cerrar formulario"
+          aria-label={isEdit ? "Cancelar edición" : "Limpiar formulario"}
         >
           <X size={18} />
         </button>
@@ -185,7 +237,9 @@ export function ItemFormPanel({
               aria-invalid={excedeStock || undefined}
               className={cn(
                 "h-11 rounded-xl pr-12 text-base sm:text-sm",
-                excedeStock && "border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-500 focus:ring-rose-500/20"
+                excedeStock
+                  ? "border-rose-300 bg-rose-50 text-rose-900 focus:border-rose-500 focus:ring-rose-500/20"
+                  : "bg-white"
               )}
             />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400">
@@ -207,10 +261,7 @@ export function ItemFormPanel({
           <BuscadorSelect<Finca>
             value={fincaSel ? { label: fincaSel.nombre, value: fincaSel.id } : null}
             options={fincas.map((f) => ({ label: f.nombre, value: f.id, data: f }))}
-            onChange={(option) => {
-              setFincaId(option?.value ?? "")
-              setLoteId("")
-            }}
+            onChange={(option) => handleCambiarFinca(option?.value ?? "")}
             placeholder="Selecciona..."
             noOptionsMessage="No se encontraron fincas"
           />
@@ -228,7 +279,7 @@ export function ItemFormPanel({
               value: l.id,
               data: l,
             }))}
-            onChange={(option) => setLoteId(option?.value ?? "")}
+            onChange={(option) => handleCambiarLote(option?.value ?? "")}
             placeholder={fincaId ? "Selecciona..." : "Elige una finca"}
             isDisabled={!fincaId}
             noOptionsMessage="No se encontraron lotes"
@@ -249,7 +300,7 @@ export function ItemFormPanel({
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             placeholder="Detalles adicionales..."
-            className="h-11 rounded-xl text-base sm:text-sm"
+            className="h-11 rounded-xl bg-white text-base sm:text-sm"
           />
         </div>
       </div>
@@ -263,14 +314,26 @@ export function ItemFormPanel({
         </Alert>
       )}
 
-      <Button
-        type="button"
-        onClick={handleConfirmar}
-        className="w-full gap-2 bg-slate-900 py-6 text-sm font-bold hover:bg-slate-800"
-      >
-        {isEdit ? <Save size={16} /> : <Plus size={16} />}
-        {isEdit ? "Guardar cambios" : "Confirmar y agregar"}
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          onClick={handleConfirmar}
+          className="flex-1 gap-2 bg-slate-900 py-6 text-sm font-bold hover:bg-slate-800"
+        >
+          {isEdit ? <Save size={16} /> : <Plus size={16} />}
+          {isEdit ? "Guardar cambios" : "Confirmar y agregar"}
+        </Button>
+        {isEdit && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancelar}
+            className="gap-1 border-slate-300 py-6 font-bold text-slate-700"
+          >
+            <X size={16} /> Cancelar
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

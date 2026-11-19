@@ -8,7 +8,7 @@ type SuccessPanelProps = {
 }
 
 export function SuccessPanel({ solicitudId, onNuevaSolicitud, onVolver }: SuccessPanelProps) {
-  const codigo = solicitudId.slice(0, 8).toUpperCase()
+  const codigo = solicitudId.toUpperCase()
 
   return (
     <div className="mx-auto flex max-w-md flex-col items-center rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xl">
@@ -21,7 +21,7 @@ export function SuccessPanel({ solicitudId, onNuevaSolicitud, onVolver }: Succes
         <br />
         Código:{" "}
         <span className="mt-3 inline-block rounded-lg border border-slate-200 bg-slate-100 px-3 py-1 font-mono text-lg font-bold text-slate-800">
-          {codigo}…
+          {codigo}
         </span>
       </p>
       <div className="flex w-full flex-col gap-2 sm:flex-row">
@@ -42,3 +42,4 @@ export function SuccessPanel({ solicitudId, onNuevaSolicitud, onVolver }: Succes
     </div>
   )
 }
+

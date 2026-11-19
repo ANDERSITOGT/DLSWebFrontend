@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { apiFetch } from "@/services/api"
 import { useAuth } from "@/context/AuthContext"
 import type {
@@ -9,9 +9,79 @@ import type {
   SolicitudPayload,
 } from "./types"
 
+/** Borrador persistido en localStorage para poder retomar la solicitud. */
+type BorradorSolicitud = {
+  selectedBodega: string
+  obsGeneral: string
+  items: ItemSolicitud[]
+  /** Índice del paso actual del wizard (0-based). */
+  paso: number
+  actualizadoEn: number
+}
+
+const DRAFT_PREFIX = "dls_draft_solicitud_"
+const LAST_BODEGA_KEY = "dls_last_bodega"
+/** Cantidad mínima aceptada por ítem (nunca <= 0). */
+const CANTIDAD_MINIMA = 0.1
+
+const draftKey = (userId?: string | null) => `${DRAFT_PREFIX}${userId ?? "anon"}`
+
+const leerBorrador = (userId?: string | null): BorradorSolicitud | null => {
+  if (typeof window === "undefined") return null
+  try {
+    const raw = window.localStorage.getItem(draftKey(userId))
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as Partial<BorradorSolicitud> | null
+    if (!parsed || !Array.isArray(parsed.items)) return null
+    return {
+      selectedBodega: parsed.selectedBodega ?? "",
+      obsGeneral: parsed.obsGeneral ?? "",
+      items: parsed.items as ItemSolicitud[],
+      paso: Number.isFinite(parsed.paso) ? Math.min(Math.max(Number(parsed.paso), 0), 2) : 0,
+      actualizadoEn: parsed.actualizadoEn ?? 0,
+    }
+  } catch (error) {
+    console.warn("No se pudo leer el borrador de solicitud:", error)
+    return null
+  }
+}
+
+const tieneDatos = (borrador: BorradorSolicitud | null): boolean =>
+  !!borrador &&
+  (borrador.items.length > 0 ||
+    borrador.selectedBodega !== "" ||
+    borrador.obsGeneral.trim() !== "")
+
+const guardarBorrador = (userId: string | null | undefined, borrador: BorradorSolicitud) => {
+  if (typeof window === "undefined") return
+  try {
+    const tieneContenido =
+      borrador.items.length > 0 ||
+      borrador.selectedBodega !== "" ||
+      borrador.obsGeneral.trim() !== ""
+    if (!tieneContenido) {
+      window.localStorage.removeItem(draftKey(userId))
+      return
+    }
+    window.localStorage.setItem(draftKey(userId), JSON.stringify(borrador))
+  } catch (error) {
+    console.warn("No se pudo guardar el borrador de solicitud:", error)
+  }
+}
+
+const eliminarBorrador = (userId: string | null | undefined) => {
+  if (typeof window === "undefined") return
+  try {
+    window.localStorage.removeItem(draftKey(userId))
+  } catch (error) {
+    console.warn("No se pudo eliminar el borrador de solicitud:", error)
+  }
+}
+
 /**
  * Hook orquestador del wizard de Nueva Solicitud.
- * Concentra catálogos, lista de ítems, validaciones derivadas y el submit.
+ * Concentra catálogos, lista de ítems, validaciones derivadas, borrador
+ * automático en localStorage y el submit.
  */
 export function useNuevaSolicitud() {
   const { user } = useAuth()
@@ -25,8 +95,16 @@ export function useNuevaSolicitud() {
   const [selectedBodega, setSelectedBodega] = useState("")
   const [obsGeneral, setObsGeneral] = useState("")
 
+  // --- Navegación del wizard (persistida en el borrador) ---
+  const [paso, setPaso] = useState(0)
+
   // --- Paso 2: lista de ítems ---
   const [items, setItems] = useState<ItemSolicitud[]>([])
+
+  // --- Borrador ---
+  const [borradorRecuperado, setBorradorRecuperado] = useState(false)
+  /** Evita que el efecto de autoguardado pise el borrador antes de restaurarlo. */
+  const restauracionLista = useRef(false)
 
   // --- Submit ---
   const [guardando, setGuardando] = useState(false)
@@ -34,7 +112,38 @@ export function useNuevaSolicitud() {
   const [solicitudCreadaId, setSolicitudCreadaId] = useState<string | null>(null)
 
   // ============================================================
-  // Carga inicial de catálogos
+  // Restauración del borrador al entrar
+  // ============================================================
+  useEffect(() => {
+    if (!user?.id) return
+    const borrador = leerBorrador(user.id)
+    restauracionLista.current = true
+    if (!tieneDatos(borrador) || !borrador) return
+    setSelectedBodega(borrador.selectedBodega)
+    setObsGeneral(borrador.obsGeneral)
+    setItems(borrador.items)
+    setPaso(borrador.paso)
+    setBorradorRecuperado(true)
+    // Solo en el primer montaje / cambio de usuario.
+  }, [user?.id])
+
+  // ============================================================
+  // Autoguardado del borrador
+  // ============================================================
+  useEffect(() => {
+    if (!user?.id) return
+    if (!restauracionLista.current) return
+    guardarBorrador(user.id, {
+      selectedBodega,
+      obsGeneral,
+      items,
+      paso,
+      actualizadoEn: Date.now(),
+    })
+  }, [user?.id, selectedBodega, obsGeneral, items, paso])
+
+  // ============================================================
+  // Carga inicial de catálogos + preselección inteligente de bodega
   // ============================================================
   useEffect(() => {
     let cancelado = false
@@ -47,8 +156,31 @@ export function useNuevaSolicitud() {
           apiFetch("/api/fincas/fincas-lotes"),
         ])
         if (cancelado) return
-        if (resBodegas.ok) setBodegas(await resBodegas.json())
+        let listadoBodegas: Bodega[] = []
+        if (resBodegas.ok) {
+          listadoBodegas = (await resBodegas.json()) as Bodega[]
+          setBodegas(listadoBodegas)
+        }
         if (resFincas.ok) setFincas(await resFincas.json())
+
+        // Preselección: solo si no hay borrador activo con bodega elegida.
+        const borradorActivo = leerBorrador(user?.id)
+        const hayBodegaEnBorrador =
+          tieneDatos(borradorActivo) && !!borradorActivo?.selectedBodega
+        if (!hayBodegaEnBorrador) {
+          const ultimaBodega =
+            typeof window !== "undefined"
+              ? window.localStorage.getItem(LAST_BODEGA_KEY)
+              : null
+          const coincidencia = ultimaBodega
+            ? listadoBodegas.find((b) => b.id === ultimaBodega)
+            : undefined
+          if (coincidencia) {
+            setSelectedBodega(coincidencia.id)
+          } else if (listadoBodegas.length === 1) {
+            setSelectedBodega(listadoBodegas[0].id)
+          }
+        }
       } catch (error) {
         if (!cancelado) console.error("💥 Error cargando catálogos:", error)
       } finally {
@@ -60,7 +192,13 @@ export function useNuevaSolicitud() {
     return () => {
       cancelado = true
     }
-  }, [])
+  }, [user?.id])
+
+  // Marca el autoguardado como listo cuando los catálogos terminan de cargar
+  // (para que la preselección de bodega también quede persistida).
+  useEffect(() => {
+    if (!loadingCatalogos) restauracionLista.current = true
+  }, [loadingCatalogos])
 
   // ============================================================
   // Búsqueda async de productos (con token vía apiFetch)
@@ -136,6 +274,33 @@ export function useNuevaSolicitud() {
     setItems((prev) => prev.filter((i) => i.key !== key))
   }, [])
 
+  /** Edición rápida de cantidad desde la lista (nunca <= 0). */
+  const actualizarCantidadItem = useCallback((key: string, nuevaCantidad: number) => {
+    const cantidad = Number.isFinite(nuevaCantidad)
+      ? Math.max(CANTIDAD_MINIMA, nuevaCantidad)
+      : CANTIDAD_MINIMA
+    setItems((prev) => prev.map((i) => (i.key === key ? { ...i, cantidad } : i)))
+  }, [])
+
+  // ============================================================
+  // Reset / borrador
+  // ============================================================
+  const resetearFormulario = useCallback(() => {
+    eliminarBorrador(user?.id)
+    setSelectedBodega("")
+    setObsGeneral("")
+    setItems([])
+    setPaso(0)
+    setErrorEnvio(null)
+    setSolicitudCreadaId(null)
+    setBorradorRecuperado(false)
+  }, [user?.id])
+
+  /** Descarta el borrador completo (localStorage + estado). */
+  const descartarBorrador = useCallback(() => {
+    resetearFormulario()
+  }, [resetearFormulario])
+
   // ============================================================
   // Submit
   // ============================================================
@@ -174,6 +339,13 @@ export function useNuevaSolicitud() {
       const id = data?.solicitud?.id ?? data?.id ?? null
       if (!id) throw new Error("La respuesta del servidor no incluyó el id de la solicitud.")
 
+      // Recordar la última bodega usada para futuras solicitudes.
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(LAST_BODEGA_KEY, selectedBodega)
+      }
+      // Éxito: el borrador ya no es necesario.
+      eliminarBorrador(user.id)
+
       setSolicitudCreadaId(id)
       return id
     } catch (error) {
@@ -197,11 +369,15 @@ export function useNuevaSolicitud() {
     setSelectedBodega,
     obsGeneral,
     setObsGeneral,
+    // Navegación del wizard
+    paso,
+    setPaso,
     // Ítems
     items,
     agregarItem,
     actualizarItem,
     eliminarItem,
+    actualizarCantidadItem,
     buscarProductos,
     cantidadEnListaPorProducto,
     // Derivados
@@ -212,6 +388,10 @@ export function useNuevaSolicitud() {
     paso1Completo,
     paso2Completo,
     todoListo,
+    // Borrador
+    borradorRecuperado,
+    descartarBorrador,
+    resetearFormulario,
     // Submit
     guardando,
     errorEnvio,

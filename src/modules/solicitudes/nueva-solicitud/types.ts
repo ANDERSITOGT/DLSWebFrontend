@@ -1,5 +1,6 @@
 // Tipos compartidos del flujo de "Nueva Solicitud".
 
+
 export type Bodega = { id: string; nombre: string };
 
 export type Lote = {
