@@ -40,3 +40,12 @@ export const SOLICITUD_CREATE_ROLES: Rol[] = ["SOLICITANTE", "ADMIN", "BODEGUERO
 export function canCreateSolicitud(rol: Rol | undefined): boolean {
   return !!rol && SOLICITUD_CREATE_ROLES.includes(rol);
 }
+
+/** Roles que pueden gestionar (crear/editar) proveedores y sus contactos. */
+export const PROVEEDORES_MANAGE_ROLES: Rol[] = ["ADMIN", "BODEGUERO"];
+
+/** ¿El rol puede crear/editar proveedores y sus contactos? */
+export function canManageProveedores(rol: Rol | undefined): boolean {
+  return !!rol && PROVEEDORES_MANAGE_ROLES.includes(rol);
+}
+
