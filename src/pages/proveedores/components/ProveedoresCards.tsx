@@ -60,7 +60,7 @@ export function ProveedoresCards({
                 <Button
                   variant="outline"
                   onClick={() => onEdit(p)}
-                  className="h-10 flex-1 gap-1.5 border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+                  className="h-10 flex-1 gap-1.5 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   <Pencil size={16} /> Editar
                 </Button>
@@ -68,7 +68,7 @@ export function ProveedoresCards({
               <Button
                 variant="outline"
                 onClick={() => onContacts(p)}
-                className="h-10 flex-1 gap-1.5 border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+                className="h-10 flex-1 gap-1.5 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
               >
                 <Users size={16} /> Contactos
               </Button>
@@ -79,3 +79,4 @@ export function ProveedoresCards({
     </div>
   )
 }
+

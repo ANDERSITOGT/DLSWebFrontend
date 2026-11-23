@@ -38,6 +38,7 @@ const EMPTY_FORM: ContactoPayload = {
 export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: ContactosTabProps) {
   const [form, setForm] = useState<ContactoPayload>(EMPTY_FORM)
   const [touched, setTouched] = useState(false)
+  const [submitted, setSubmitted] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<ApiError | null>(null)
   const [contactoAEliminar, setContactoAEliminar] = useState<string | null>(null)
@@ -50,7 +51,7 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
 
   const handleAdd = async (e: FormEvent) => {
     e.preventDefault()
-    setTouched(true)
+    setSubmitted(true)
     if (nombreInvalido || submitting) return
 
     setSubmitting(true)
@@ -65,6 +66,7 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
       })
       setForm(EMPTY_FORM)
       setTouched(false)
+      setSubmitted(false)
     } catch (err) {
       setError(err as ApiError)
     } finally {
@@ -116,9 +118,9 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
                 value={form.nombre}
                 onChange={(e) => update({ nombre: e.target.value })}
                 onBlur={() => setTouched(true)}
-                aria-invalid={touched && nombreInvalido}
+                aria-invalid={(touched || submitted) && nombreInvalido}
                 placeholder="Nombre del contacto"
-                className="h-9 border-slate-200 bg-white text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+                className="h-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
               />
             </div>
             <div className="space-y-1">
@@ -130,7 +132,7 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
                 value={form.puesto}
                 onChange={(e) => update({ puesto: e.target.value })}
                 placeholder="Ej: Ventas"
-                className="h-9 border-slate-200 bg-white text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+                className="h-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
               />
             </div>
             <div className="space-y-1">
@@ -143,7 +145,7 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
                 onChange={(e) => update({ telefono: e.target.value })}
                 inputMode="tel"
                 placeholder="Opcional"
-                className="h-9 border-slate-200 bg-white text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+                className="h-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
               />
             </div>
             <div className="space-y-1">
@@ -156,7 +158,7 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
                 value={form.email}
                 onChange={(e) => update({ email: e.target.value })}
                 placeholder="Opcional"
-                className="h-9 border-slate-200 bg-white text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+                className="h-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
               />
             </div>
           </div>
@@ -172,15 +174,15 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
               className="min-h-16"
             />
           </div>
-          {touched && nombreInvalido && (
+          {(touched || submitted) && nombreInvalido && (
             <p className="flex items-center gap-1 text-xs font-medium text-rose-600">
               <AlertCircle size={12} /> El nombre es obligatorio.
             </p>
           )}
           <Button
             type="submit"
-            disabled={submitting || (touched && nombreInvalido)}
-            className="w-full gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white hover:from-[#1d4ed8] hover:to-[#1e3a8a]"
+            disabled={submitting}
+            className="w-full gap-1.5 bg-emerald-600 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
           >
             {submitting ? <Loader2 size={15} className="animate-spin" /> : <Plus size={15} />}
             Agregar contacto

@@ -86,7 +86,7 @@ export function ProveedorForm({ proveedor, onSubmit, onCancel, showCancel = true
           placeholder="Ej: Distribuidora Agrícola, S.A."
           aria-invalid={touched && nombreInvalido}
           autoFocus
-          className="h-9 border-slate-200 bg-white text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+          className="h-9 border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
         />
         {touched && nombreInvalido && (
           <p className="flex items-center gap-1 text-xs font-medium text-rose-600">
@@ -104,7 +104,7 @@ export function ProveedorForm({ proveedor, onSubmit, onCancel, showCancel = true
           value={form.nit}
           onChange={(e) => setForm((f) => ({ ...f, nit: e.target.value }))}
           placeholder="Opcional"
-          className="h-9 border-slate-200 bg-white font-mono text-slate-900 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+          className="h-9 border-slate-300 bg-white font-mono text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
         />
       </div>
 
@@ -128,7 +128,7 @@ export function ProveedorForm({ proveedor, onSubmit, onCancel, showCancel = true
             variant="outline"
             onClick={onCancel}
             disabled={submitting}
-            className="border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+            className="border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
           >
             Cancelar
           </Button>
@@ -136,7 +136,7 @@ export function ProveedorForm({ proveedor, onSubmit, onCancel, showCancel = true
         <Button
           type="submit"
           disabled={submitting || (touched && nombreInvalido)}
-          className="gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white hover:from-[#1d4ed8] hover:to-[#1e3a8a]"
+          className="gap-1.5 bg-emerald-600 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
         >
           {submitting ? <Loader2 size={15} className="animate-spin" /> : <Save size={15} />}
           {isEdit ? "Guardar cambios" : "Crear proveedor"}
@@ -145,3 +145,4 @@ export function ProveedorForm({ proveedor, onSubmit, onCancel, showCancel = true
     </form>
   )
 }
+

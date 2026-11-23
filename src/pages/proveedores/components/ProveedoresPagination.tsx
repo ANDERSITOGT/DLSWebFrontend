@@ -68,7 +68,7 @@ export function ProveedoresPagination({
             size="sm"
             onClick={onPrev}
             disabled={!hasPrev || disabled}
-            className="gap-1 border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+            className="gap-1 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
           >
             <ChevronLeft size={16} /> Anterior
           </Button>
@@ -77,7 +77,7 @@ export function ProveedoresPagination({
             size="sm"
             onClick={onNext}
             disabled={!hasNext || disabled}
-            className="gap-1 border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+            className="gap-1 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
           >
             Siguiente <ChevronRight size={16} />
           </Button>

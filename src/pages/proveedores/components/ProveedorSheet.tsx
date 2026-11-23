@@ -54,7 +54,7 @@ export function ProveedorSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="p-0">
-        <SheetHeader>
+        <SheetHeader className="px-6 py-5">
           <div className="flex items-center gap-2">
             <span className="flex size-8 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
               {isEdit ? <Pencil size={16} /> : <Building2 size={16} />}
@@ -66,7 +66,7 @@ export function ProveedorSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-5 py-4">
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 py-5">
           {isEdit ? (
             <Tabs
               value={tab}

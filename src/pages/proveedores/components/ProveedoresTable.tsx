@@ -25,7 +25,7 @@ export function ProveedoresTable({
   onContacts,
 }: ProveedoresTableProps) {
   return (
-    <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm md:block">
+    <div className="hidden overflow-hidden rounded-xl border border-slate-200 bg-white md:block">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-slate-50">
@@ -40,7 +40,7 @@ export function ProveedoresTable({
           {items.map((p) => {
             const contactos = p.proveedor_contacto?.length ?? 0
             return (
-              <TableRow key={p.id}>
+              <TableRow key={p.id} className="hover:bg-slate-50/80">
                 <TableCell>
                   <div className="flex items-center gap-2">
                     <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-500">
@@ -62,7 +62,11 @@ export function ProveedoresTable({
                     type="button"
                     onClick={() => onContacts(p)}
                     aria-label={`Ver ${contactos} contactos de ${p.nombre}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-600 transition-colors hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                    className={
+                      contactos >= 1
+                        ? "inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 transition-colors hover:bg-emerald-100"
+                        : "inline-flex items-center gap-1.5 rounded-full border border-transparent bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-200"
+                    }
                   >
                     <Users size={13} />
                     {contactos}
@@ -75,19 +79,19 @@ export function ProveedoresTable({
                         variant="outline"
                         size="sm"
                         onClick={() => onEdit(p)}
-                        className="gap-1 border-slate-300 bg-white font-semibold text-slate-700 hover:bg-slate-50"
+                        className="gap-1 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
                       >
                         <Pencil size={14} /> Editar
                       </Button>
                     )}
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => onContacts(p)}
                       aria-label={`Abrir contactos de ${p.nombre}`}
-                      className="text-slate-500 hover:bg-slate-100 hover:text-slate-800"
+                      className="gap-1 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
                     >
-                      <Users size={16} />
+                      <Users size={14} /> Contactos
                     </Button>
                   </div>
                 </TableCell>

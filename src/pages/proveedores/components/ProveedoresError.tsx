@@ -31,7 +31,7 @@ export function ProveedoresError({ error, onRetry }: ProveedoresErrorProps) {
             Tu rol no tiene permisos para ver los proveedores. Contacta a un administrador si
             crees que es un error.
           </p>
-          <Button asChild variant="outline" size="sm" className="border-slate-300">
+          <Button asChild variant="outline" size="sm" className="border-slate-200 bg-white text-slate-700 hover:bg-slate-50">
             <Link to="/">Volver al inicio</Link>
           </Button>
         </CardContent>
@@ -50,7 +50,7 @@ export function ProveedoresError({ error, onRetry }: ProveedoresErrorProps) {
         <Button
           onClick={onRetry}
           size="sm"
-          className="gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white hover:from-[#1d4ed8] hover:to-[#1e3a8a]"
+          className="gap-1.5 bg-emerald-600 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
         >
           <RefreshCw size={15} /> Reintentar
         </Button>

@@ -35,7 +35,7 @@ export function ProveedoresToolbar({
           onChange={(e) => onQueryChange(e.target.value)}
           placeholder="Buscar por nombre o NIT..."
           aria-label="Buscar proveedores por nombre o NIT"
-          className="h-9 border-slate-200 bg-white pl-9 pr-9 text-slate-900 placeholder:text-slate-400 focus-visible:border-slate-300 focus-visible:ring-slate-200"
+          className="h-9 border-slate-300 bg-white pl-9 pr-9 text-slate-900 placeholder:text-slate-400 focus-visible:border-emerald-500 focus-visible:ring-emerald-500/20"
         />
         <span className="absolute right-2 top-1/2 -translate-y-1/2">
           {fetching ? (
@@ -56,7 +56,7 @@ export function ProveedoresToolbar({
       {canManage && (
         <Button
           onClick={onNew}
-          className="h-9 shrink-0 gap-1.5 border border-[#172554] bg-gradient-to-b from-[#1e3a8a] to-[#172554] font-semibold text-white shadow-[0_2px_6px_rgba(23,37,84,0.35)] transition-colors hover:from-[#1d4ed8] hover:to-[#1e3a8a]"
+          className="h-9 shrink-0 gap-1.5 bg-emerald-600 font-semibold text-white shadow-sm transition-colors hover:bg-emerald-700"
         >
           <Plus size={16} strokeWidth={2.5} />
           Nuevo proveedor
@@ -65,3 +65,5 @@ export function ProveedoresToolbar({
     </div>
   )
 }
+
+
