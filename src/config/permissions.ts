@@ -41,6 +41,14 @@ export function canCreateSolicitud(rol: Rol | undefined): boolean {
   return !!rol && SOLICITUD_CREATE_ROLES.includes(rol);
 }
 
+/** Roles que pueden registrar ingresos de mercadería (ADMIN | BODEGUERO). */
+export const INGRESO_CREATE_ROLES: Rol[] = ["ADMIN", "BODEGUERO"];
+
+/** ¿El rol puede registrar ingresos (CTA "Registrar Ingreso")? */
+export function canCreateIngreso(rol: Rol | undefined): boolean {
+  return !!rol && INGRESO_CREATE_ROLES.includes(rol);
+}
+
 /** Roles que pueden gestionar (crear/editar) proveedores y sus contactos. */
 export const PROVEEDORES_MANAGE_ROLES: Rol[] = ["ADMIN", "BODEGUERO"];
 

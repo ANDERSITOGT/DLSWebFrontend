@@ -16,7 +16,6 @@ import { useRefresh } from "../../context/RefreshContext";
 
 // Modales
 import { QuickActionsModal } from "../../components/ui/QuickActionsModal";
-import { IngresoModal } from "../../modules/movimientos/IngresoModal";
 import { AjusteInventarioModal } from "../../modules/movimientos/AjusteInventarioModal";
 import { SolicitudDevolucionModal } from "../../modules/solicitudes/SolicitudDevolucionModal";
 import CrearProductoModal from "../../modules/inventario/components/CrearProductoModal";
@@ -33,8 +32,7 @@ export function MobileLayout({ children }: MobileLayoutProps) {
   const { triggerRefreshSolicitudes } = useRefresh();
 
   // --- ESTADOS ---
-  const [showActions, setShowActions] = useState(false);
-  const [showIngresoModal, setShowIngresoModal] = useState(false);
+    const [showActions, setShowActions] = useState(false);
 
   // --- NUEVOS ESTADOS FASE 2 ---
   const [showAjusteModal, setShowAjusteModal] = useState(false);
@@ -145,22 +143,12 @@ export function MobileLayout({ children }: MobileLayoutProps) {
       {showActions && (
         <QuickActionsModal
           onClose={() => setShowActions(false)}
-          onIngresoClick={() => setShowIngresoModal(true)}
+                    onIngresoClick={() => navigate("/bodega/movimientos/ingreso")}
           onSolicitudClick={() => { setShowActions(false); navigate("/bodega/solicitudes/nueva"); }}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
           onCreateProductClick={() => setShowCrearProductoModal(true)}
           onInfoProductoClick={() => setShowInfoProductoModal(true)}
-        />
-      )}
-
-      {showIngresoModal && (
-        <IngresoModal
-          onClose={() => setShowIngresoModal(false)}
-          onSuccess={() => {
-            setShowIngresoModal(false);
-            triggerRefreshSolicitudes();
-          }}
         />
       )}
 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -21,10 +21,12 @@ import {
   MapPin,
   User,
   Truck,
-  Loader2,
-  Clock 
+    Loader2,
+  Clock,
+  Plus
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { canCreateIngreso } from "../../config/permissions";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -80,10 +82,14 @@ type MovimientoDetalle = {
 // ------------------------------------
 export function MovimientosPage() {
   const { token, user } = useAuth(); // Traemos 'user' para verificar el rol
+  const navigate = useNavigate();
 
   // 🛡️ LÓGICA DE PERMISOS PARA VER LA PESTAÑA DE LOTES
   // El Solicitante NO puede ver lotes. Admin, Bodeguero y Visor SÍ.
   const puedeVerLotes = ["ADMIN", "BODEGUERO", "VISOR", "SOLICITANTE"].includes(user?.rol || "");
+
+  // Solo Admin/Bodeguero pueden registrar ingresos.
+  const puedeRegistrarIngreso = canCreateIngreso(user?.rol);
 
   const [movimientos, setMovimientos] = useState<MovimientoResumen[]>([]);
   const [loadingLista, setLoadingLista] = useState(true);
@@ -186,12 +192,22 @@ export function MovimientosPage() {
           </h1>
           <p className="text-sm text-slate-500">Historial de entradas y salidas.</p>
         </div>
-        <button
-          onClick={handleExportListado}
-          className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
-        >
-          <FileText size={16}/> Exportar Listado
-        </button>
+                <div className="flex items-center gap-2">
+          {puedeRegistrarIngreso && (
+            <button
+              onClick={() => navigate("/bodega/movimientos/ingreso")}
+              className="flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-md shadow-emerald-200 hover:bg-emerald-700 transition-all active:scale-95"
+            >
+              <Plus size={16}/> Registrar Ingreso
+            </button>
+          )}
+          <button
+            onClick={handleExportListado}
+            className="flex items-center gap-2 rounded-xl bg-slate-800 px-4 py-2 text-xs font-bold text-white shadow-md shadow-slate-200 hover:bg-slate-700 transition-all active:scale-95"
+          >
+            <FileText size={16}/> Exportar Listado
+          </button>
+        </div>
       </header>
 
       <section className="space-y-4">

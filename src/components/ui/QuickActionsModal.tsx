@@ -10,7 +10,7 @@ import {
   PackageSearch
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { canCreateSolicitud } from "../../config/permissions";
+import { canCreateIngreso, canCreateSolicitud } from "../../config/permissions";
 import {
   Dialog,
   DialogContent,
@@ -74,6 +74,7 @@ export function QuickActionsModal({
   const showMovimientos = rol === "ADMIN" || rol === "BODEGUERO";
   const showSolicitudes = rol === "ADMIN" || rol === "SOLICITANTE" || rol === "BODEGUERO";
   const showNuevaSolicitud = canCreateSolicitud(rol);
+  const showRegistrarIngreso = canCreateIngreso(rol);
   const canManageCatalog = rol === "ADMIN" || rol === "BODEGUERO";
   const isAdmin = rol === "ADMIN";
 
@@ -94,12 +95,14 @@ export function QuickActionsModal({
             <div className="space-y-2">
               <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Movimientos</p>
 
-              <ActionItem
-                icon={<ArrowDownToLine size={20} />}
-                title="Registrar Ingreso"
-                desc="Registrar entrada de productos"
-                onClick={() => { onClose(); onIngresoClick(); }}
-              />
+                            {showRegistrarIngreso && (
+                <ActionItem
+                  icon={<ArrowDownToLine size={20} />}
+                  title="Registrar Ingreso"
+                  desc="Registrar entrada de productos"
+                  onClick={() => { onClose(); onIngresoClick(); }}
+                />
+              )}
 
               <ActionItem
                 icon={<ClipboardList size={20} />}

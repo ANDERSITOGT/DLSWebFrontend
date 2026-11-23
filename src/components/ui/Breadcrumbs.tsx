@@ -14,6 +14,7 @@ const breadcrumbLabels: Record<string, string> = {
   bodega: "Bodega",
   inventario: "Inventario",
   movimientos: "Movimientos",
+  ingreso: "Nuevo ingreso",
   lotes: "Lotes",
   solicitudes: "Solicitudes",
   nueva: "Nueva solicitud",

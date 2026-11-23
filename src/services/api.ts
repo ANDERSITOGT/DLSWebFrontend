@@ -64,9 +64,12 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
   // 1. Token con la clave correcta definida en AuthContext
   const token = localStorage.getItem("dls_token");
 
-  // 2. Preparar Headers
+    // 2. Preparar Headers
+  // Si el body es FormData (multipart), NO fijamos Content-Type: el navegador
+  // debe agregar el boundary correcto. Cualquier otra petición envía JSON.
+  const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...((options.headers as Record<string, string>) ?? {}),
   };
 

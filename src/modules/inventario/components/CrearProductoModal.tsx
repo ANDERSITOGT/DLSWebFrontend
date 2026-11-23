@@ -3,10 +3,23 @@ import { X, Save, AlertCircle, FlaskConical, Check } from "lucide-react";
 import { apiFetch } from "../../../services/api";
 import BuscadorSelect from "../../../components/ui/BuscadorSelect";
 
+/** Producto creado, en la forma mínima que consumen los autoselects. */
+export type ProductoCreadoResult = {
+  id: string;
+  nombre: string;
+  codigo: string;
+  precioref?: number;
+  unidad: { id?: string; abreviatura: string };
+};
+
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+    /**
+   * Se invoca al confirmar la pantalla de éxito. Recibe el producto creado
+   * (si la respuesta lo incluye) para permitir su autoselección en el caller.
+   */
+  onSuccess?: (producto?: ProductoCreadoResult) => void;
 }
 
 interface ItemCatalogo {
@@ -27,8 +40,10 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
-  // Estado para la confirmación de éxito
+    // Estado para la confirmación de éxito
   const [showSuccess, setShowSuccess] = useState(false);
+  // Producto recién creado (se devuelve en onSuccess para autoselección)
+  const [productoCreado, setProductoCreado] = useState<ProductoCreadoResult | null>(null);
   
   // Listas
   const [unidades, setUnidades] = useState<ItemCatalogo[]>([]);
@@ -44,9 +59,9 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
 
   const cargarCatalogos = async () => {
     try {
-      const [resUnidades, resCats] = await Promise.all([
-        apiFetch("/api/catalogos/unidades"),
-        apiFetch("/api/catalogos/categorias")
+            const [resUnidades, resCats] = await Promise.all([
+        apiFetch("/api/productos/unidades"),
+        apiFetch("/api/productos/categorias"),
       ]);
 
       if (resUnidades.ok) setUnidades(await resUnidades.json());
@@ -85,13 +100,59 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
 
       const data = await res.json();
 
-      if (!res.ok) {
+            if (!res.ok) {
         throw new Error(data.message || "Error al crear producto");
       }
 
-      // ⚠️ CORRECCIÓN CLAVE AQUÍ:
-      // No llamamos a onSuccess() ni onClose() todavía.
-      // Solo activamos la vista de éxito para que el usuario la vea.
+      // El backend (201) devuelve el producto creado, normalmente en `data.producto`
+      // o en la raíz. Si no viene completo, se intenta recuperar por nombre.
+      const creado = (data?.producto ?? data?.product ?? data) as
+        | { id?: string; nombre?: string; codigo?: string; precioref?: number; unidad?: { id?: string; abreviatura?: string } }
+        | undefined;
+
+      let resultado: ProductoCreadoResult | null = null;
+      if (creado?.id && creado?.nombre) {
+        resultado = {
+          id: creado.id,
+          nombre: creado.nombre,
+          codigo: creado.codigo ?? "",
+          precioref: creado.precioref,
+          unidad: { id: creado.unidad?.id, abreviatura: creado.unidad?.abreviatura ?? "UND" },
+        };
+      } else {
+        // Fallback: buscar por el nombre recién creado.
+        try {
+          const busq = await apiFetch(
+            `/api/productos/productos-busqueda?q=${encodeURIComponent(nombre)}`,
+          );
+          if (busq.ok) {
+            const lista = (await busq.json()) as Array<{
+              id: string;
+              nombre: string;
+              codigo: string;
+              precioref?: number;
+              unidad?: { id?: string; abreviatura?: string };
+            }>;
+            const match = lista.find(
+              (p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase(),
+            );
+            if (match) {
+              resultado = {
+                id: match.id,
+                nombre: match.nombre,
+                codigo: match.codigo,
+                precioref: match.precioref,
+                unidad: { id: match.unidad?.id, abreviatura: match.unidad?.abreviatura ?? "UND" },
+              };
+            }
+          }
+        } catch {
+          // Si el fallback falla, no bloqueamos: se muestra igual la pantalla de éxito.
+        }
+      }
+
+      setProductoCreado(resultado);
+      // No llamamos a onSuccess() todavía: primero mostramos la pantalla de éxito.
       setShowSuccess(true); 
 
     } catch (err: any) {
@@ -102,8 +163,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   };
 
   // Esta función se ejecuta cuando el usuario da clic en "Aceptar" en la pantalla verde
-  const handleFinalize = () => {
-    onSuccess(); // Ahora sí avisamos al padre para que cierre/refresque
+    const handleFinalize = () => {
+    onSuccess?.(productoCreado ?? undefined); // Devolvemos el producto para autoselección
     onClose();
   };
 
@@ -112,9 +173,10 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
     setIngredienteActivo("");
     setDosis200Lt("");
     setComentarioDosis("");
-    setUnidadId("");
+        setUnidadId("");
     setCategoriaId("");
     setError(null);
+    setProductoCreado(null);
   };
 
   if (!isOpen) return null;

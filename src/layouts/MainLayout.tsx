@@ -15,7 +15,6 @@ import { useRefresh } from "../context/RefreshContext";
 import { useModulo } from "../context/ModuleContext";
 import { allowedModules } from "../config/permissions";
 import { AjusteInventarioModal } from "../modules/movimientos/AjusteInventarioModal";
-import { IngresoModal } from "../modules/movimientos/IngresoModal";
 import { SolicitudDevolucionModal } from "../modules/solicitudes/SolicitudDevolucionModal";
 import CrearProductoModal from "../modules/inventario/components/CrearProductoModal";
 import InfoProductoModal from "../modules/inventario/components/InfoProductoModal";
@@ -38,7 +37,6 @@ export function MainLayout({ children }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [moduleMenuOpen, setModuleMenuOpen] = useState(false);
   const [showActions, setShowActions] = useState(false);
-    const [showIngresoModal, setShowIngresoModal] = useState(false);
   const [showAjusteModal, setShowAjusteModal] = useState(false);
   const [showDevolucionModal, setShowDevolucionModal] = useState(false);
   const [showCrearProductoModal, setShowCrearProductoModal] = useState(false);
@@ -252,22 +250,12 @@ export function MainLayout({ children }: MainLayoutProps) {
       {showActions && (
         <QuickActionsModal
           onClose={() => setShowActions(false)}
-          onIngresoClick={() => setShowIngresoModal(true)}
+          onIngresoClick={() => navigate("/bodega/movimientos/ingreso")}
           onSolicitudClick={() => navigate("/bodega/solicitudes/nueva")}
           onAjusteClick={() => setShowAjusteModal(true)}
           onDevolucionClick={() => setShowDevolucionModal(true)}
           onCreateProductClick={() => setShowCrearProductoModal(true)}
           onInfoProductoClick={() => setShowInfoProductoModal(true)}
-        />
-      )}
-
-      {showIngresoModal && (
-        <IngresoModal
-          onClose={() => setShowIngresoModal(false)}
-          onSuccess={() => {
-            setShowIngresoModal(false);
-            triggerRefreshSolicitudes();
-          }}
         />
       )}
 
