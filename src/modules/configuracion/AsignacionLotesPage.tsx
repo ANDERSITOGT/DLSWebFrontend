@@ -1,22 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  Lock, 
-  ShieldCheck, 
-  Search, 
-  X, 
-  Save, 
-  Loader2, 
-  Check, 
-  MapPin, 
-  ChevronDown,
-  ChevronRight,
-  Archive,
-  Layers,
-  Sprout,
-  User
-} from "lucide-react";
+import { ArrowLeft, Lock, ShieldCheck, Search, X, Save, Loader2, Check, MapPin, ChevronDown, ChevronRight, Archive, Layers, Sprout } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -82,7 +66,7 @@ export function AsignacionLotesPage() {
           } else {
               setErrorAuth("Contraseña incorrecta.");
           }
-      } catch (err) {
+      } catch {
           setErrorAuth("Error de conexión.");
       } finally {
           setVerificando(false);

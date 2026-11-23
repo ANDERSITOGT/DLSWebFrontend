@@ -161,9 +161,28 @@ de `MainLayout` se define por separado en `config/navigation.ts`.
   consumidoras actualicen solicitudes tras ciertas acciones. No obtiene datos
   por sÃ­ mismo.
 
-La URL base de la API se configura con `VITE_API_URL`. `api.ts` incluye el
-alternativo `http://localhost:4000`; algunos servicios y pantallas usan la
-variable directamente.
+La URL base de la API se configura con `VITE_API_URL`. `api.ts` normaliza el
+valor (recorta barras finales) y usa `http://localhost:4000` cuando la variable
+no esta definida. Todos los servicios pasan por `apiFetch`, por lo que el token
+(`dls_token`), el kill-switch de 401 y el 403 de modulo se aplican de forma
+uniforme. Para el entorno local, copia `.env.example` a `.env.local`.
+
+## Portabilidad de nombres de archivo (Windows -> Linux)
+
+El proyecto debe funcionar tanto en Windows (filesystem case-insensitive) como
+en Linux/macOS (case-sensitive):
+
+- Los imports deben coincidir EXACTAMENTE con el case del archivo en disco:
+  `@/components/ui/card` solo resuelve si el archivo es `card.tsx`, no `Card.tsx`.
+- `tsconfig.app.json` activa `forceConsistentCasingInFileNames`, de modo que
+  `tsc` falla ante un import con case incorrecto incluso en Windows.
+- Para renombrar un archivo cambiando solo mayusculas/minusculas en Windows hay
+  que usar el doble `git mv` (un `mv` directo no lo detecta el filesystem):
+
+```bash
+git mv src/components/ui/Card.tsx src/components/ui/card.tmp.tsx
+git mv src/components/ui/card.tmp.tsx src/components/ui/card.tsx
+```
 
 ## MÃ³dulo Proveedores
 

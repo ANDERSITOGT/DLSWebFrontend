@@ -36,7 +36,7 @@ export default function UsuariosPage() {
           } else {
               setError("Contraseña incorrecta.");
           }
-      } catch (err) {
+      } catch {
           setError("Error de conexión.");
       } finally {
           setVerificando(false);

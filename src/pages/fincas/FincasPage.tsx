@@ -184,7 +184,7 @@ export default function FincasPage() {
           } else {
               setErrorCrearLote(data.message || "Error al crear el lote.");
           }
-      } catch (error) { 
+      } catch { 
           setErrorCrearLote("Error de conexión con el servidor.");
       }
   };

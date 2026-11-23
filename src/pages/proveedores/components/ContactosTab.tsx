@@ -81,6 +81,8 @@ export function ContactosTab({ proveedor, canManage, onAdd, onDelete }: Contacto
       setContactoAEliminar(null)
     } catch (err) {
       setError(err as ApiError)
+      // Se re-lanza para que ConfirmModal no se cierre y el usuario vea el error.
+      throw err
     } finally {
       setDeleting(false)
     }

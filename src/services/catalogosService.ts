@@ -1,59 +1,67 @@
-const API_URL = import.meta.env.VITE_API_URL + "/api";
+// src/services/catalogosService.ts
+import { apiFetch } from "./api"
 
-// 1. Función para obtener el token del usuario logueado
-const getHeaders = () => {
-  const token = localStorage.getItem("token");
-  return {
-    "Content-Type": "application/json",
-    // 👇 Si hay token, lo pegamos aquí. Si no, va vacío.
-    "Authorization": token ? `Bearer ${token}` : "", 
-  };
-};
+/**
+ * Catálogos de apoyo (bodegas, proveedores, productos, fincas/lotes).
+ *
+ * Todas las llamadas pasan por `apiFetch`, lo que garantiza:
+ * - Token correcto (`dls_token`, igual que AuthContext).
+ * - Kill-switch consistente ante 401 y distinción de 403 de módulo.
+ * - Errores tipados (`ApiError`) en lugar de `Error` genéricos.
+ */
+
+async function parseJson<T>(res: Response): Promise<T> {
+  try {
+    return (await res.json()) as T
+  } catch {
+    throw new Error("Respuesta inválida del servidor.")
+  }
+}
+/** Bodega mínima para selectores. */
+export type BodegaCatalogo = { id: string; nombre: string }
+
+/** Proveedor mínimo para selectores (incluye `nit` según el contrato actual). */
+export type ProveedorCatalogo = { id: string; nombre: string; nit: string }
+
+/** Producto devuelto por la búsqueda de autocompletado. */
+export type ProductoCatalogo = {
+  id: string
+  nombre: string
+  codigo: string
+  precioref?: number
+  unidad: { abreviatura: string }
+}
 
 export const catalogosService = {
-  
-  // Obtener Bodegas (Pública)
+  /** Bodegas disponibles para el selector. */
   async getBodegas() {
-    const res = await fetch(`${API_URL}/inventario/bodegas`);
-    if (!res.ok) throw new Error("Error al cargar bodegas");
-    return res.json();
+    const res = await apiFetch("/api/inventario/bodegas")
+    return parseJson<BodegaCatalogo[]>(res)
   },
 
-  // Obtener Proveedores (Pública)
+  /** Proveedores para el selector de ingreso de mercancía. */
   async getProveedores() {
-    const res = await fetch(`${API_URL}/proveedores/catalogo`);
-    if (!res.ok) throw new Error("Error al cargar proveedores");
-    return res.json();
+    const res = await apiFetch("/api/proveedores/catalogo")
+    return parseJson<ProveedorCatalogo[]>(res)
   },
 
-  // Buscar Productos (Pública)
+  /** Búsqueda de productos por texto (autocompletado). */
   async buscarProductos(termino: string) {
-    const query = termino ? `?q=${encodeURIComponent(termino)}` : "";
-    const res = await fetch(`${API_URL}/productos/productos-busqueda${query}`);
-    if (!res.ok) throw new Error("Error al buscar productos");
-    return res.json();
+    const query = termino ? `?q=${encodeURIComponent(termino)}` : ""
+    const res = await apiFetch(`/api/productos/productos-busqueda${query}`)
+    return parseJson<ProductoCatalogo[]>(res)
   },
 
-// 👇 ESTA ES LA QUE ARREGLA TU PROBLEMA
-// Al agregar 'headers: getHeaders()', el backend te dejará pasar.
+  /** Fincas con sus lotes asociados. */
 async getFincasLotes() {
-  const res = await fetch(`${API_URL}/fincas/fincas-lotes`, {
-      headers: getHeaders() // ✅ Esto envía el token correctamente
-  });
+    const res = await apiFetch("/api/fincas/fincas-lotes")
+    return parseJson<unknown[]>(res)
+  },
   
-  // Si el token expiró o es inválido, lanzamos error
-  if (res.status === 401) throw new Error("Sesión expirada o no autorizada");
-  if (!res.ok) throw new Error("Error al cargar fincas");
-  
-  return res.json();
-},
-
-  // Para el módulo de configuración
+  /** Catálogo de lotes para el módulo de configuración. */
   async getLotes() {
-      const res = await fetch(`${API_URL}/lotes/catalogo`, {
-          headers: getHeaders()
-      });
-      if (!res.ok) throw new Error("Error al cargar lotes");
-      return res.json();
+    const res = await apiFetch("/api/lotes/catalogo")
+    return parseJson<unknown[]>(res)
+  },
   }
-};
+

@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import {
   Sprout,
   MapPin,
-  ChevronRight,
   ChevronDown,
   Calendar,
   DollarSign,
@@ -13,12 +12,6 @@ import {
   Loader2,
   Tractor,
   Layers,
-  ArrowDownLeft,
-  ArrowUpRight,
-  ArrowRightLeft,
-  RefreshCw,
-  CornerDownLeft,
-  Truck,
   Droplets // 👈 Nuevo icono para aplicaciones
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";

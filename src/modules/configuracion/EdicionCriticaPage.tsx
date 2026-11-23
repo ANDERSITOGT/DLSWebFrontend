@@ -131,7 +131,7 @@ export function EdicionCriticaPage() {
           } else {
               setErrorAuth("Contraseña incorrecta. Intento registrado.");
           }
-      } catch (err) { setErrorAuth("Error de conexión."); } 
+      } catch { setErrorAuth("Error de conexión."); } 
       finally { setVerificando(false); }
   };
 

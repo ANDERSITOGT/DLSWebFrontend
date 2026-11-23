@@ -7,9 +7,9 @@ import { XIcon } from "lucide-react"
  * Sheet: panel deslizable construido sobre el primitivo Dialog de radix-ui.
  *
  * Nota de tema: en este proyecto `:root` define variables oscuras, por lo que
- * el Sheet fija explícitamente estilos claros (bg-white / text-slate-900) para
+ * el Sheet fija explÃ­citamente estilos claros (bg-white / text-slate-900) para
  * integrarse con el resto de pantallas. `z-[60]` lo mantiene por encima del
- * FAB móvil (z-50) y de la nav inferior (z-30).
+ * FAB mÃ³vil (z-50) y de la nav inferior (z-30).
  */
 
 function Sheet({ ...props }: React.ComponentProps<typeof DialogPrimitive.Root>) {
@@ -36,7 +36,7 @@ function SheetOverlay({
     <DialogPrimitive.Overlay
       data-slot="sheet-overlay"
       className={cn(
-        "fixed inset-0 z-[60] isolate bg-slate-900/40 supports-backdrop-filter:backdrop-blur-sm data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-[60] isolate bg-slate-900/40 supports-backdrop-filter:backdrop-blur-sm data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
         className
       )}
       {...props}
@@ -48,9 +48,9 @@ type SheetSide = "right" | "left"
 
 const sideClasses: Record<SheetSide, string> = {
   right:
-    "inset-y-0 right-0 h-full w-full border-l sm:max-w-md data-open:slide-in-from-right data-closed:slide-out-to-right",
+    "inset-y-0 right-0 h-full w-full border-l sm:max-w-md data-[state=open]:slide-in-from-right data-[state=closed]:slide-out-to-right",
   left:
-    "inset-y-0 left-0 h-full w-full border-r sm:max-w-md data-open:slide-in-from-left data-closed:slide-out-to-left",
+    "inset-y-0 left-0 h-full w-full border-r sm:max-w-md data-[state=open]:slide-in-from-left data-[state=closed]:slide-out-to-left",
 }
 
 function SheetContent({
@@ -69,7 +69,7 @@ function SheetContent({
       <DialogPrimitive.Content
         data-slot="sheet-content"
         className={cn(
-          "fixed z-[60] flex flex-col gap-0 overflow-hidden border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/20 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+          "fixed z-[60] flex flex-col gap-0 overflow-hidden border-slate-200 bg-white text-slate-900 shadow-2xl shadow-slate-900/20 outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0",
           sideClasses[side],
           className
         )}

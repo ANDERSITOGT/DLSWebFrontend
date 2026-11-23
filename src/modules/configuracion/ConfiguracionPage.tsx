@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { User, Mail, Shield, LogOut, Users, ChevronRight, Sprout, AlertTriangle } from "lucide-react"; // 👈 Agregamos el icono Sprout
+import { Mail, Shield, LogOut, Users, ChevronRight, Sprout, AlertTriangle } from "lucide-react"; // 👈 Agregamos el icono Sprout
 
 export function ConfiguracionPage() {
   const { user, logout } = useAuth();

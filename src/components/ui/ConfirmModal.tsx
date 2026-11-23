@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import {
   Dialog,
@@ -10,7 +11,8 @@ import {
 interface ConfirmModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: () => void;
+  /** Puede ser async: el modal espera a que termine antes de cerrarse. */
+  onConfirm: () => void | Promise<void>;
   title: string;
   message: string;
   confirmText?: string;
@@ -28,8 +30,23 @@ export function ConfirmModal({
   cancelText = "Cancelar",
   isDestructive = false,
 }: ConfirmModalProps) {
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleConfirm = async () => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      // Espera la promesa del consumidor: si falla, el modal permanece abierto
+      // (el caller muestra el error) en lugar de cerrarse a medias.
+      await onConfirm();
+              onClose();
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+    <Dialog open={isOpen} onOpenChange={(open) => !open && !submitting && onClose()}>
       <DialogContent className="bg-white sm:max-w-sm">
         <DialogHeader className="items-center text-center">
           <div className={`flex h-14 w-14 items-center justify-center rounded-full ${isDestructive ? "bg-rose-100 text-rose-600" : "bg-amber-100 text-amber-600"}`}>
@@ -46,21 +63,21 @@ export function ConfirmModal({
         <div className="flex gap-3">
           <button
             onClick={onClose}
-            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 active:scale-95"
+            disabled={submitting}
+            className="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 text-sm font-bold text-slate-700 transition hover:bg-slate-50 active:scale-95 disabled:opacity-50"
           >
             {cancelText}
           </button>
           <button
-            onClick={() => {
-              onConfirm();
-              onClose();
-            }}
-            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white shadow-lg transition active:scale-95 ${
+            onClick={handleConfirm}
+            disabled={submitting}
+            className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white shadow-lg transition active:scale-95 disabled:opacity-70 ${
                 isDestructive
                   ? "bg-rose-600 shadow-rose-200 hover:bg-rose-700"
                   : "bg-emerald-600 shadow-emerald-200 hover:bg-emerald-700"
             }`}
           >
+            {submitting && <span className="size-3.5 animate-spin rounded-full border-2 border-white/40 border-t-white" />}
             {confirmText}
           </button>
         </div>

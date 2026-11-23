@@ -54,8 +54,8 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
         value: producto.id,
         data: producto
       }));
-    } catch (e) {
-      console.error(e);
+    } catch (error) {
+      console.error(error);
       return [];
     }
   };
@@ -118,7 +118,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
         const errData = await res.json();
         setError(errData.message || "Error al actualizar el producto");
       }
-    } catch (e) {
+    } catch {
       setError("Error de conexion al guardar");
     } finally {
       setLoading(false);

@@ -8,6 +8,10 @@
     "types": ["vite/client"],
     "skipLibCheck": true,
 
+    /* Case-sensitivity: falla si un import no coincide EXACTAMENTE con el caso
+       del archivo. Evita que Windows "esconda" errores que sí rompen Linux. */
+    "forceConsistentCasingInFileNames": true,
+
     /* Bundler mode */
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,

@@ -1,8 +1,5 @@
 import { useState, useEffect } from "react";
-import { 
-  User, Mail, Plus, Key, 
-  Loader2, X, AlertTriangle, Power, Shield 
-} from "lucide-react";
+import { Plus, Key, Loader2, X, Power, Shield } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
 const API_BASE = import.meta.env.VITE_API_URL;
@@ -266,7 +263,7 @@ function ResetPasswordModal({ usuario, onClose }: { usuario: Usuario, onClose: (
             if(!res.ok) throw new Error("Error");
             alert("Contraseña actualizada con éxito.");
             onClose();
-        } catch(e) { alert("Error al actualizar contraseña"); }
+        } catch { alert("Error al actualizar contraseña"); }
         finally { setEnviando(false); }
     };
 

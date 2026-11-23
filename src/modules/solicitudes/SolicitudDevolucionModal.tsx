@@ -8,7 +8,6 @@ import {
   Truck, 
   Calendar, 
   Package, 
-  ArrowRight, 
   Trash2, 
   Sprout, 
   ChevronLeft, 

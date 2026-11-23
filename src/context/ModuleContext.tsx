@@ -38,7 +38,7 @@ export function ModuleProvider({ children }: { children: ReactNode }) {
   return <ModuleContext.Provider value={value}>{children}</ModuleContext.Provider>;
 }
 
-// eslint-disable-next-line react-refresh/only-export-components
+ 
 export function useModulo() {
   const ctx = useContext(ModuleContext);
   if (!ctx) throw new Error("useModulo debe usarse dentro de ModuleProvider");
