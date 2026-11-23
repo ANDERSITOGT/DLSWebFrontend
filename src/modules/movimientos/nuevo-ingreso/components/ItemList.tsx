@@ -8,6 +8,7 @@ type ItemListProps = {
   onEditar: (item: ItemIngreso) => void
   onEliminar: (key: string) => void
   onCambiarCantidad: (key: string, nuevaCantidad: number) => void
+  onCambiarCosto: (key: string, nuevoCostoTotal: number) => void
   onVincular: (item: ItemIngreso) => void
   /** Vincula el ítem a un candidato sugerido por el OCR en 1 clic. */
   onVincularCandidato: (key: string, candidato: CandidatoProducto) => void
@@ -22,6 +23,7 @@ export function ItemList({
   onEditar,
   onEliminar,
   onCambiarCantidad,
+  onCambiarCosto,
   onVincular,
   onVincularCandidato,
   editandoKey = null,
@@ -68,7 +70,14 @@ export function ItemList({
               </div>
 
               <div className="mt-1.5 flex items-center gap-3 text-xs">
-                <span className="font-bold text-slate-800">{money(item.costoTotal)}</span>
+                {!sinVincular ? (
+                  <CostoInline
+                    item={item}
+                    onChange={(nuevo) => onCambiarCosto(item.key, nuevo)}
+                  />
+                ) : (
+                  <span className="font-bold text-slate-800">{money(item.costoTotal)}</span>
+                )}
                 {item.cantidad > 0 && (
                   <span className="text-slate-400">
                     ({money(item.costoUnitario)} c/u)
@@ -179,6 +188,33 @@ function CantidadInline({
         aria-label={`Cantidad de ${item.nombre}`}
       />
       <span className="px-1.5 text-[10px] font-bold text-slate-400">{item.unidad}</span>
+    </span>
+  )
+}
+
+/** Costo total (Q) editable inline; recalcula el costo unitario en el hook. */
+function CostoInline({
+  item,
+  onChange,
+}: {
+  item: ItemIngreso
+  onChange: (nuevoCostoTotal: number) => void
+}) {
+  return (
+    <span className="inline-flex items-center overflow-hidden rounded-lg border border-slate-200 bg-white">
+      <span className="px-2 text-[11px] font-bold text-slate-500">Q</span>
+      <input
+        type="number"
+        min={0}
+        step="any"
+        value={Number.isFinite(item.costoTotal) ? item.costoTotal : ""}
+        onChange={(e) => {
+          const parsed = parseFloat(e.target.value)
+          onChange(Number.isFinite(parsed) ? parsed : 0)
+        }}
+        className="h-8 w-24 border-x border-slate-200 bg-transparent px-1 text-right text-base font-bold text-slate-700 outline-none focus:bg-white sm:text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        aria-label={`Costo total de ${item.nombre}`}
+      />
     </span>
   )
 }

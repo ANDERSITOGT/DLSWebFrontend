@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AlertCircle, CheckCircle2, PencilLine, Plus, Save, Sparkles, X } from "lucide-react"
 import BuscadorSelect from "@/components/ui/BuscadorSelect"
 import { Button } from "@/components/ui/button"
@@ -53,11 +53,36 @@ export function ItemFormPanel({
   const [costoTotal, setCostoTotal] = useState<number>(initialItem?.costoTotal ?? 0)
   const [intentoValidacion, setIntentoValidacion] = useState(false)
 
+  // Precarga el formulario cuando se entra/sale del modo edición o cambia el ítem.
+  useEffect(() => {
+    setProducto(
+      initialItem && initialItem.productoId
+        ? {
+            id: initialItem.productoId,
+            nombre: initialItem.nombre,
+            codigo: initialItem.codigo,
+            unidad: { abreviatura: initialItem.unidad },
+          }
+        : preselectedProduct
+    )
+    setCantidad(initialItem?.cantidad ?? 1)
+    setCostoTotal(initialItem?.costoTotal ?? 0)
+    setIntentoValidacion(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialItem?.key, preselectedProduct])
+
   const costoUnitario = cantidad > 0 ? costoTotal / cantidad : 0
 
   const camposIncompletos = !producto || cantidad <= 0
   const puedeConfirmar = !camposIncompletos
   const mostrarErrorCampos = intentoValidacion && camposIncompletos
+
+  const limpiarFormulario = () => {
+    setProducto(null)
+    setCantidad(1)
+    setCostoTotal(0)
+    setIntentoValidacion(false)
+  }
 
   const buildItem = (): ItemIngreso => ({
     key: initialItem?.key ?? generarKey(),
@@ -79,25 +104,23 @@ export function ItemFormPanel({
 
     if (isEdit) {
       if (initialItem && onConfirmarEdicion) onConfirmarEdicion(initialItem.key, item)
+      // Tras guardar, limpia el formulario y sale del modo edición.
+      limpiarFormulario()
+      onCancel()
       return
     }
 
     onAgregar(item)
-    setProducto(null)
-    setCantidad(1)
-    setCostoTotal(0)
-    setIntentoValidacion(false)
+    limpiarFormulario()
   }
 
   const handleCancelar = () => {
     if (isEdit) {
+      limpiarFormulario()
       onCancel()
       return
     }
-    setProducto(null)
-    setCantidad(1)
-    setCostoTotal(0)
-    setIntentoValidacion(false)
+    limpiarFormulario()
   }
 
   return (
@@ -241,7 +264,7 @@ export function ItemFormPanel({
         <Button
           type="button"
           onClick={handleConfirmar}
-          className="flex-1 gap-2 bg-slate-900 py-6 text-sm font-bold hover:bg-slate-800"
+          className="flex-1 gap-2 bg-emerald-600 py-6 text-sm font-bold text-white hover:bg-emerald-700"
         >
           {isEdit ? <Save size={16} /> : <Plus size={16} />}
           {isEdit ? "Guardar cambios" : "Confirmar y agregar"}

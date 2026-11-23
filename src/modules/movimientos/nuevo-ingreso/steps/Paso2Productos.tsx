@@ -17,6 +17,7 @@ export function Paso2Productos({ ctrl }: { ctrl: NuevoIngresoController }) {
     actualizarItem,
     eliminarItem,
     actualizarCantidadItem,
+    actualizarCostoItem,
     vincularItem,
     vincularCandidato,
     tieneItemsSinVincular,
@@ -82,6 +83,7 @@ export function Paso2Productos({ ctrl }: { ctrl: NuevoIngresoController }) {
             onEditar={(item) => setItemEnEdicion(item)}
             onEliminar={eliminarItem}
             onCambiarCantidad={actualizarCantidadItem}
+            onCambiarCosto={actualizarCostoItem}
             onVincular={(item) => setItemAVincular(item)}
             onVincularCandidato={vincularCandidato}
             editandoKey={itemEnEdicion?.key ?? null}
