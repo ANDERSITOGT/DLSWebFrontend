@@ -19,6 +19,8 @@ import { Badge } from "../../components/ui/Badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 import { exportMovimientoDetalle } from "./utils/descargas";
+import { getMovimiento } from "./services/movimientosListService";
+import { formatCantidad } from "./utils/format";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -67,7 +69,8 @@ type ProductoEnMovimiento = {
   id: string;
   productoNombre: string;
   productoCodigo: string;
-  cantidad: string;
+  /** Normalizada por el servicio (`getMovimiento`) a número. */
+  cantidad: number;
   unidad: string;
   loteCodigo: string | null;
   loteId: string | null;
@@ -482,21 +485,25 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
 }
 
 function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; onClose: () => void }) {
-    const { token } = useAuth();
     const [detalle, setDetalle] = useState<MovimientoDetalle | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let cancelado = false;
         const fetchMovimiento = async () => {
             try {
-                const res = await fetch(`${API_BASE}/api/movimientos/${movimientoId}`, {
-                    headers: { "Authorization": `Bearer ${token}` }
-                });
-                if(res.ok) setDetalle(await res.json());
-            } catch (e) { console.error(e); }
-            finally { setLoading(false); }
+                // Servicio tipado: normaliza `cantidad`/costos y usa apiFetch (token + 401/403).
+                const data = await getMovimiento(movimientoId);
+                if (!cancelado) setDetalle(data as unknown as MovimientoDetalle);
+            } catch (e) {
+                if (!cancelado) console.error(e);
+            } finally {
+                if (!cancelado) setLoading(false);
+            }
         };
+        setLoading(true);
         fetchMovimiento();
+        return () => { cancelado = true; };
     }, [movimientoId]);
 
     // Descarga autenticada (la ruta /export ahora exige Bearer token).
@@ -573,7 +580,7 @@ function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; 
                                             <p className="text-[10px] text-slate-400">{p.productoCodigo}</p>
                                         </div>
                                     </div>
-                                    <span className="text-xs font-bold text-slate-800">{p.cantidad} <span className="text-slate-500 font-normal">{p.unidad}</span></span>
+                                    <span className="text-xs font-bold text-slate-800">{formatCantidad(p.cantidad)} <span className="text-slate-500 font-normal">{p.unidad}</span></span>
                                 </div>
                             ))}
                         </div>
