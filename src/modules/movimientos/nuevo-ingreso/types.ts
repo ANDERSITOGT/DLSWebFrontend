@@ -67,6 +67,11 @@ export type IngresoPayload = {
   items: Array<{
     productoId: string
     cantidad: number
+    /**
+     * Costo UNITARIO de la línea. El backend lo guarda tal cual en
+     * `documento_item.costounit` y calcula el subtotal como `cantidad * costo`.
+     * (No enviar el total de la línea: se multiplicaría dos veces.)
+     */
     costo: number
   }>
 }

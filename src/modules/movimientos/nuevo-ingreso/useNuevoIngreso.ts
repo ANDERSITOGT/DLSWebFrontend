@@ -507,10 +507,16 @@ export function useNuevoIngreso() {
         serie: serie.trim(),
         uuid: esFactura ? uuid.trim() : "",
         observaciones: observaciones.trim(),
+        // El backend guarda `costo` directamente en documento_item.costounit
+        // (costo UNITARIO) y multiplica por cantidad al calcular el subtotal.
+        // Por eso se envía el costo unitario, nunca el total de la línea.
         items: items.map((i) => ({
           productoId: i.productoId as string,
           cantidad: i.cantidad,
-          costo: i.costoTotal,
+          costo:
+            i.cantidad > 0
+              ? Number((i.costoTotal / i.cantidad).toFixed(4))
+              : 0,
         })),
       }
 
