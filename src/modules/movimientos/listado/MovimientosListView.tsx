@@ -166,19 +166,11 @@ export function MovimientosListView() {
       ) : (
         <>
           {view === "table" ? (
-            <>
-              <div className="hidden md:block">
-                <MovimientosTable
-                  movimientos={ctrl.items}
-                  onSelect={(m) => setDetalleId(m.id)}
-                  onExportPdf={handleExportPdf}
-                />
-              </div>
-              {/* En móvil (< md) siempre tarjetas, sin importar la preferencia. */}
-              <div className="md:hidden">
-                <MovimientosCards movimientos={ctrl.items} onSelect={(m) => setDetalleId(m.id)} />
-              </div>
-            </>
+            <MovimientosTable
+              movimientos={ctrl.items}
+              onSelect={(m) => setDetalleId(m.id)}
+              onExportPdf={handleExportPdf}
+            />
           ) : (
             <MovimientosCards movimientos={ctrl.items} onSelect={(m) => setDetalleId(m.id)} />
           )}

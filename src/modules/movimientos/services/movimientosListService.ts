@@ -90,17 +90,35 @@ export async function listMovimientos(params: ListMovimientosParams): Promise<Mo
 /**
  * Normaliza una línea de producto del detalle.
  *
- * - `cantidad` SIEMPRE numérica (acepta string/numeric y aliases como
- *   `cantidadEntregada`). Si no se puede resolver, cae a `0` en lugar de `NaN`.
+ * - `cantidad` SIEMPRE numérica (acepta string/numeric, objetos anidados y
+ *   aliases como `cantidadEntregada`). Si el backend la envía como `0` pero el
+ *   subtotal y el costo unitario permiten derivarla (`subtotal / costounit`),
+ *   se usa ese valor como respaldo seguro.
  * - `costounit` / `subtotal`: número o `null` (sin permiso de importes).
  * - Completa `id`, `productoNombre`, `productoCodigo`, `unidad` y `loteCodigo`
  *   con aliases tolerantes para no romper la UI si el backend cambia nombres.
  */
 function normalizarProducto(raw: unknown, index: number): MovimientoProducto {
   const p = (raw ?? {}) as Record<string, unknown>
-  const cantidad = extraerCantidad(p) ?? 0
-  const costo = toNumberOrNull(p.costounit ?? p.costoUnitario ?? p.costo)
-  const subtotalLeido = toNumberOrNull(p.subtotal ?? p.costoTotal)
+  const cantidadLeida = extraerCantidad(p)
+  const costo =
+    toNumberOrNull(p.costounit) ??
+    toNumberOrNull(p.costoUnitario) ??
+    toNumberOrNull(p.costo_unit) ??
+    toNumberOrNull(p.costoUnit) ??
+    toNumberOrNull(p.precioUnitario) ??
+    toNumberOrNull(p.costo)
+  const subtotalLeido = toNumberOrNull(p.subtotal) ?? toNumberOrNull(p.costoTotal)
+
+  // Respaldo: si la cantidad llega ausente o en 0 pero hay costo unitario y
+  // subtotal válidos (> 0), se deriva `subtotal / costounit`. Cubre los casos
+  // en que el backend omite el campo o lo serializa como 0 (ej. ING-2026-0151).
+  let cantidad = cantidadLeida ?? 0
+  if (cantidad <= 0 && costo !== null && costo > 0 && subtotalLeido !== null && subtotalLeido > 0) {
+    const derivada = subtotalLeido / costo
+    if (Number.isFinite(derivada) && derivada > 0) cantidad = Math.round(derivada * 100) / 100
+  }
+
   const subtotal = subtotalLeido !== null ? subtotalLeido : costo !== null ? cantidad * costo : null
   const unidad = p.unidad
   const unidadTexto =
@@ -124,17 +142,24 @@ function normalizarProducto(raw: unknown, index: number): MovimientoProducto {
   }
 }
 
-/** Normaliza el detalle completo (productos y montoTotal) antes de la UI. */
+/**
+ * Normaliza el detalle completo (productos y montoTotal) antes de la UI.
+ *
+ * Tolera que las líneas lleguen bajo otros nombres (`items`, `detalle`,
+ * `lineas`) además de `productos`, y si `montoTotal` no viene (o viene en 0
+ * teniendo subtotales válidos) lo deriva de la suma de subtotales.
+ */
 function normalizarDetalle(raw: MovimientoDetalle): MovimientoDetalle {
-  const productos = Array.isArray(raw.productos)
-    ? raw.productos.map((p, i) => normalizarProducto(p, i))
-    : []
-  const montoTotal =
-    toNumberOrNull(raw.montoTotal) ??
-    (productos.some((p) => p.subtotal !== null)
-      ? productos.reduce((acc, p) => acc + (p.subtotal ?? 0), 0)
-      : null)
-  return { ...raw, productos, montoTotal }
+  const cuerpo = (raw ?? {}) as MovimientoDetalle & Record<string, unknown>
+  const candidatas = [cuerpo.productos, cuerpo.items, cuerpo.detalle, cuerpo.lineas]
+  const lineasRaw = candidatas.find((c): c is unknown[] => Array.isArray(c)) ?? []
+  const productos = lineasRaw.map((p, i) => normalizarProducto(p, i))
+  const sumaSubtotales = productos.some((p) => p.subtotal !== null)
+    ? productos.reduce((acc, p) => acc + (p.subtotal ?? 0), 0)
+    : null
+  const montoLeido = toNumberOrNull(cuerpo.montoTotal)
+  const montoTotal = montoLeido !== null && montoLeido !== 0 ? montoLeido : sumaSubtotales
+  return { ...cuerpo, productos, montoTotal }
 }
 
 /**

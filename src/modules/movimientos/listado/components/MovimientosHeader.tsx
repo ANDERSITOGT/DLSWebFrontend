@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { FileText, Loader2, Plus, Sprout } from "lucide-react"
+import { Download, Loader2, Plus, Sprout } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type Props = {
@@ -37,17 +37,22 @@ export function MovimientosHeader({
             variant="outline"
             onClick={onExport}
             disabled={exporting}
+            aria-label="Exportar listado"
             className="gap-1.5 border-slate-200 bg-white font-semibold text-slate-700 hover:bg-slate-50"
           >
-            {exporting ? <Loader2 size={16} className="animate-spin" /> : <FileText size={16} />}
-            Exportar listado
+            {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            {/* Solo icono en < sm; texto desde sm en adelante. */}
+            <span className="hidden sm:inline">Exportar listado</span>
           </Button>
           {puedeRegistrarIngreso && (
             <Button
               onClick={onNewIngreso}
+              aria-label="Registrar ingreso"
               className="gap-1.5 bg-emerald-600 font-semibold text-white shadow-sm hover:bg-emerald-700"
             >
-              <Plus size={16} strokeWidth={2.5} /> Registrar ingreso
+              <Plus size={16} strokeWidth={2.5} />
+              <span className="hidden sm:inline">Registrar ingreso</span>
+              <span className="sm:hidden">Ingreso</span>
             </Button>
           )}
         </div>

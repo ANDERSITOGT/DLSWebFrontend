@@ -88,15 +88,23 @@ export function extraerCantidad(linea: unknown): number | null {
   if (isRecord(linea)) {
     const directa =
       toNumberOrNull(linea.cantidad) ??
+      toNumberOrNull(linea.cant) ??
+      toNumberOrNull(linea.qty) ??
       toNumberOrNull(linea.cantidadEntregada) ??
       toNumberOrNull(linea.cantidadRecibida) ??
       toNumberOrNull(linea.cantidadAjuste) ??
       toNumberOrNull(linea.cantidadSolicitada) ??
       toNumberOrNull(linea.cantidadDevolver) ??
-      toNumberOrNull(linea.qty)
+      toNumberOrNull(linea.cantidad_unidad)
     if (directa !== null) return directa
-    if (isRecord(linea.cantidad)) {
-      return toNumberOrNull(linea.cantidad.n) ?? toNumberOrNull(linea.cantidad.valor)
+    const anidada = linea.cantidad ?? linea.cant
+    if (isRecord(anidada)) {
+      return (
+        toNumberOrNull(anidada.n) ??
+        toNumberOrNull(anidada.valor) ??
+        toNumberOrNull(anidada.value) ??
+        toNumberOrNull(anidada.cantidad)
+      )
     }
   }
   return toNumberOrNull(linea)
@@ -138,6 +146,24 @@ export const TIPO_STYLES: Record<
     icon: "bg-sky-100 text-sky-600",
     label: "Transferencia",
   },
+}
+
+/**
+ * Acento lateral (border-l-4) por tipo para filas de tabla. Se aplica en la
+ * primera celda de cada fila para no romper el `border-collapse`.
+ */
+export const TIPO_ACCENT: Record<MovimientoTipo, string> = {
+  INGRESO: "border-l-4 border-l-emerald-500",
+  SALIDA: "border-l-4 border-l-rose-500",
+  AJUSTE: "border-l-4 border-l-amber-500",
+  DEVOLUCION: "border-l-4 border-l-violet-500",
+  TRANSFERENCIA: "border-l-4 border-l-sky-500",
+}
+
+/** Color del monto según tipo (destacado en ingresos, neutro en el resto). */
+export function montoStyle(tipo: MovimientoTipo): { text: string; bg: string } {
+  if (tipo === "INGRESO") return { text: "text-emerald-700", bg: "bg-emerald-50/40" }
+  return { text: "text-slate-800", bg: "" }
 }
 
 /** Color del badge por estado. */

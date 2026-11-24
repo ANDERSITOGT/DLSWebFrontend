@@ -19,9 +19,9 @@ function leerPreferencia(): MovimientoViewMode {
 /**
  * Preferencia de vista (tarjetas / tabla) persistida en `localStorage`.
  *
- * En pantallas < md el listado SIEMPRE se renderiza en tarjetas (lo decide
- * el componente de vista con clases responsivas), pero la preferencia se
- * conserva para cuando el usuario vuelva a un viewport de escritorio.
+ * Ambas vistas están disponibles en todos los tamaños de pantalla: la tabla es
+ * responsiva nativa (3 columnas en móvil, 6 en escritorio), por lo que ya no se
+ * fuerza el modo tarjetas en pantallas pequeñas.
  */
 export function useMovimientosView() {
   const [view, setView] = useState<MovimientoViewMode>(leerPreferencia)
