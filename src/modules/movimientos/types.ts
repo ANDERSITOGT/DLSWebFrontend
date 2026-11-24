@@ -56,6 +56,10 @@ export type MovimientoProducto = {
   id: string
   productoNombre: string
   productoCodigo: string
+  /**
+   * Cantidad de la línea. El servicio la normaliza a número (el backend puede
+   * enviarla como `string`/`numeric` o con aliases tipo `cantidadEntregada`).
+   */
   cantidad: number
   unidad: string
   loteCodigo: string | null

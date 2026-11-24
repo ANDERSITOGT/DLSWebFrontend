@@ -1,8 +1,10 @@
 import { apiFetch } from "@/services/api"
 import { ApiError } from "@/services/apiError"
+import { extraerCantidad, toNumberOrNull } from "../utils/format"
 import type {
   ListMovimientosParams,
   MovimientoDetalle,
+  MovimientoProducto,
   MovimientoResumen,
   MovimientosMeta,
   MovimientosPage,
@@ -79,7 +81,60 @@ export async function listMovimientos(params: ListMovimientosParams): Promise<Mo
       ? (obj.movimientos as MovimientoResumen[])
       : []
 
-  return { data, meta: obj.meta ?? fallbackMeta(data) }
+  // `montoTotal` puede llegar como string (numeric) → se normaliza a número|null.
+  const normalized = data.map((m) => ({ ...m, montoTotal: toNumberOrNull(m.montoTotal) }))
+
+  return { data: normalized, meta: obj.meta ?? fallbackMeta(normalized) }
+}
+
+/**
+ * Normaliza una línea de producto del detalle.
+ *
+ * - `cantidad` SIEMPRE numérica (acepta string/numeric y aliases como
+ *   `cantidadEntregada`). Si no se puede resolver, cae a `0` en lugar de `NaN`.
+ * - `costounit` / `subtotal`: número o `null` (sin permiso de importes).
+ * - Completa `id`, `productoNombre`, `productoCodigo`, `unidad` y `loteCodigo`
+ *   con aliases tolerantes para no romper la UI si el backend cambia nombres.
+ */
+function normalizarProducto(raw: unknown, index: number): MovimientoProducto {
+  const p = (raw ?? {}) as Record<string, unknown>
+  const cantidad = extraerCantidad(p) ?? 0
+  const costo = toNumberOrNull(p.costounit ?? p.costoUnitario ?? p.costo)
+  const subtotalLeido = toNumberOrNull(p.subtotal ?? p.costoTotal)
+  const subtotal = subtotalLeido !== null ? subtotalLeido : costo !== null ? cantidad * costo : null
+  const unidad = p.unidad
+  const unidadTexto =
+    typeof unidad === "string"
+      ? unidad
+      : unidad && typeof unidad === "object" && "abreviatura" in unidad
+        ? String((unidad as { abreviatura?: unknown }).abreviatura ?? "")
+        : ""
+
+  return {
+    id: String(p.id ?? `linea-${index}`),
+    productoNombre: String(p.productoNombre ?? p.nombre ?? "Producto"),
+    productoCodigo: String(p.productoCodigo ?? p.codigo ?? ""),
+    cantidad,
+    unidad: unidadTexto,
+    loteCodigo: (p.loteCodigo as string | null | undefined) ?? null,
+    loteId: (p.loteId as string | null | undefined) ?? null,
+    fincaNombre: (p.fincaNombre as string | null | undefined) ?? null,
+    costounit: costo,
+    subtotal,
+  }
+}
+
+/** Normaliza el detalle completo (productos y montoTotal) antes de la UI. */
+function normalizarDetalle(raw: MovimientoDetalle): MovimientoDetalle {
+  const productos = Array.isArray(raw.productos)
+    ? raw.productos.map((p, i) => normalizarProducto(p, i))
+    : []
+  const montoTotal =
+    toNumberOrNull(raw.montoTotal) ??
+    (productos.some((p) => p.subtotal !== null)
+      ? productos.reduce((acc, p) => acc + (p.subtotal ?? 0), 0)
+      : null)
+  return { ...raw, productos, montoTotal }
 }
 
 /**
@@ -89,7 +144,7 @@ export async function listMovimientos(params: ListMovimientosParams): Promise<Mo
  */
 export async function getMovimiento(id: string): Promise<MovimientoDetalle> {
   const res = await apiFetch(`/api/movimientos/${encodeURIComponent(id)}`)
-  return parseJson<MovimientoDetalle>(res)
+  return normalizarDetalle(await parseJson<MovimientoDetalle>(res))
 }
 
 /** Dispara la descarga autenticada del PDF de un movimiento (por id). */
@@ -107,3 +162,4 @@ export function toApiError(error: unknown): ApiError {
     "HTTP_ERROR",
   )
 }
+
