@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom"
 import { FileText, Loader2, Plus, Sprout } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs"
 
 type Props = {
   puedeVerLotes: boolean
@@ -12,9 +11,9 @@ type Props = {
 }
 
 /**
- * Cabecera del módulo Movimientos: breadcrumbs, título, navegación entre
- * Movimientos / Lotes Agrícolas (según rol) y acciones de exportación y alta
- * de ingreso.
+ * Cabecera del módulo Movimientos: título, navegación entre Movimientos /
+ * Lotes Agrícolas (según rol) y acciones de exportación y alta de ingreso.
+ * Las migas de pan las renderiza `MainLayout`, por eso aquí no se repiten.
  */
 export function MovimientosHeader({
   puedeVerLotes,
@@ -25,8 +24,6 @@ export function MovimientosHeader({
 }: Props) {
   return (
     <header className="space-y-3">
-      <Breadcrumbs className="mb-0" />
-
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="text-xl font-bold tracking-tight text-slate-900">Movimientos</h1>
@@ -73,3 +70,4 @@ export function MovimientosHeader({
     </header>
   )
 }
+
