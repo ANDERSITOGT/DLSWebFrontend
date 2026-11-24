@@ -18,6 +18,7 @@ import { useAuth } from "../../context/AuthContext";
 import { Badge } from "../../components/ui/Badge";
 import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
+import { exportMovimientoDetalle } from "./utils/descargas";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -366,7 +367,6 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
 
   if (!data) return null;
 
-  // Formatear fecha para el detalle
   const fechaSiembraVisual = data.info.fechaSiembra ? new Date(data.info.fechaSiembra).toLocaleDateString() : "-";
 
   return (
@@ -499,8 +499,13 @@ function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; 
         fetchMovimiento();
     }, [movimientoId]);
 
-    const handleExport = () => {
-        window.open(`${API_BASE}/api/movimientos/${movimientoId}/export`, "_blank");
+    // Descarga autenticada (la ruta /export ahora exige Bearer token).
+    const handleExport = async () => {
+        try {
+            await exportMovimientoDetalle(movimientoId, `movimiento-${detalle?.consecutivo ?? movimientoId}.pdf`);
+        } catch (e) {
+            console.error("Error al descargar PDF:", e);
+        }
     };
 
     if(!detalle && loading) return (

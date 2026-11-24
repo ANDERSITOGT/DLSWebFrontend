@@ -1,8 +1,9 @@
-import { CheckCircle2, FileDown, ListOrdered, PlusCircle } from "lucide-react"
+import { useState } from "react"
+import { CheckCircle2, FileDown, ListOrdered, Loader2, PlusCircle } from "lucide-react"
 import { Link } from "react-router-dom"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/Badge"
-import { movimientosService } from "./services/movimientosService"
+import { exportMovimientoDetalle } from "../utils/descargas"
 import type { IngresoCreado } from "./services/movimientosService"
 
 type SuccessPanelProps = {
@@ -18,9 +19,20 @@ type SuccessPanelProps = {
  */
 export function SuccessPanel({ resultado, onCrearOtro }: SuccessPanelProps) {
   const codigo = resultado?.consecutivo ?? resultado?.documentoId ?? "Registrado"
-  const pdfUrl = resultado?.documentoId
-    ? movimientosService.exportUrl(resultado.documentoId)
-    : null
+  const documentoId = resultado?.documentoId ?? null
+  const [descargando, setDescargando] = useState(false)
+
+  const handleDescargar = async () => {
+    if (!documentoId) return
+    try {
+      setDescargando(true)
+      await exportMovimientoDetalle(documentoId, `ingreso-${codigo}.pdf`)
+    } catch (err) {
+      console.error("No se pudo descargar el comprobante:", err)
+    } finally {
+      setDescargando(false)
+    }
+  }
 
   return (
     <div className="mx-auto max-w-lg space-y-6 py-6">
@@ -38,14 +50,15 @@ export function SuccessPanel({ resultado, onCrearOtro }: SuccessPanelProps) {
       </div>
 
       <div className="grid gap-2 sm:grid-cols-2">
-        {pdfUrl && (
+        {documentoId && (
           <Button
-            asChild
+            type="button"
+            onClick={handleDescargar}
+            disabled={descargando}
             className="gap-2 bg-slate-900 py-6 text-sm font-bold hover:bg-slate-800 sm:col-span-2"
           >
-            <a href={pdfUrl} target="_blank" rel="noopener noreferrer">
-              <FileDown size={16} /> Ver / descargar comprobante PDF
-            </a>
+            {descargando ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+            Ver / descargar comprobante PDF
           </Button>
         )}
         <Button

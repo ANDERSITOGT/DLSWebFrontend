@@ -127,9 +127,4 @@ export const movimientosService = {
       mapIngresoError(error)
     }
   },
-
-  /** URL del comprobante PDF del ingreso (ruta pública según contrato). */
-  exportUrl(documentoId: string): string {
-    return `/api/movimientos/${documentoId}/export`
-  },
 }

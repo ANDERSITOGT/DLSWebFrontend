@@ -70,8 +70,8 @@ DLSWebFrontend/
     â”‚   â”œâ”€â”€ inicio/              # InicioPage (home unificado)
     â”‚   â”œâ”€â”€ inventario/          # Inventario
     â”‚   â”‚   â””â”€â”€ components/      # CrearProductoModal, InfoProductoModal
-    â”‚   â”œâ”€â”€ movimientos/         # MovimientosPage, MovimientosLotesPage,
-    â”‚   â”‚                        # IngresoModal, AjusteInventarioModal
+    â”‚       â”œâ”€â”€ movimientos/         # MovimientosPage (+ listado/), MovimientosLotesPage,
+    â”‚   â”‚                        # nuevo-ingreso/ (wizard OCR), AjusteInventarioModal
     â”‚   â”œâ”€â”€ solicitudes/         # SolicitudesPage y modales de solicitud/devoluciÃ³n
     â”‚   â””â”€â”€ usuarios/            # UsuariosPage y UsuariosManager
     â”œâ”€â”€ pages/
@@ -210,6 +210,91 @@ PatrÃ³n de referencia (mismo estilo que `modules/solicitudes/nueva-solicitud` 
 - **Tema**: `sheet.tsx`, `table.tsx` y `tabs.tsx` fijan estilos claros
   (`bg-white text-slate-900 border-slate-200`) porque `:root` en `index.css` es
   oscuro; no dependen de `--muted` ni de `--foreground`.
+
+## Módulo Movimientos
+
+`MovimientosPage` es la bitácora paginada de documentos (`documento`), con el
+mismo patrón que Proveedores: página de composición + hook orquestador +
+servicio sobre `apiFetch` + componentes de vista.
+
+- **Contrato consumido**: `GET /api/movimientos` devuelve `{ data, meta }` con
+  `{ page, limit, total, totalPages }`. Cada registro (`MovimientoResumen`)
+  trae enriquecido `bodegaOrigen`, `bodegaDestino`, `proveedor`, `solicitante`,
+  `creador`, `comprobante`, `totalProductos`, `resumenProductos` y `montoTotal`.
+- **Paginación real**: el hook (`useMovimientos`) mantiene `page`, `limit`
+  (15/25/50/100) y los filtros `tipo | estado | proveedorId | solicitanteId |
+  bodegaId | fechaInicio | fechaFin | q`. Todo cambio en `(page, limit, filtros,
+  q)` dispara un `GET /api/movimientos` con query params; las respuestas fuera
+  de orden se descartan (`requestId`). `q` va con `useDebounce` (350 ms).
+- **Export autenticado**: `/api/movimientos/export` y `/api/movimientos/:id/export`
+  exigen `Bearer`, por lo que **no** se abren con `window.open` ni `<a href>`;
+  `utils/descargas.ts` pide el PDF por `apiFetch`, recibe un `Blob` y lo
+  descarga con un enlace temporal. La exportación del listado reutiliza
+  EXACTAMENTE `queryKey` (los filtros aplicados).
+- **Detalle**: `MovimientoDetalleModal` carga `GET /api/movimientos/:id`
+  (acepta id o consecutivo) y muestra las líneas con `costounit`/`subtotal`.
+- **Sin permisos de importes**: `montoTotal`, `costounit` y `subtotal` llegan
+  `null` para SOLICITANTE/VISOR/COSECHA; la UI muestra "—" y oculta el total.
+- **Permisos**: `canCreateIngreso` habilita el CTA "Registrar ingreso"
+  (ADMIN/BODEGUERO). Un `403 FORBIDDEN_MODULE` se muestra como "Sin acceso"
+  sin cerrar sesión (lo resuelve `apiFetch`/`ApiError`).
+
+Archivos:
+
+```text
+src/modules/movimientos/
+├── MovimientosPage.tsx              # Composición: cabecera, toolbar, vistas, paginación, export
+├── useMovimientos.ts                # Hook: paginación, filtros, debounce, errores, queryKey
+├── types.ts                         # MovimientoResumen/Detalle, filtros, límites
+├── services/movimientosListService.ts # GET /api/movimientos y /:id
+├── utils/descargas.ts               # Export autenticado (Blob)
+├── utils/format.ts                  # Fechas (America/Guatemala), montos GTQ, estilos tipo/estado
+└── components/
+    ├── MovimientosToolbar.tsx       # Búsqueda q + filtros + CTA
+    ├── MovimientosTable.tsx         # Vista md+
+    ├── MovimientosCards.tsx         # Vista < md
+    ├── MovimientosPagination.tsx    # Rango, límite nativo, prev/next
+    ├── MovimientosSkeleton.tsx      # Cargadores por vista
+    ├── MovimientosError.tsx         # Error recuperable / "Sin acceso"
+    └── MovimientoDetalleModal.tsx   # Detalle con líneas y PDF
+```
+
+El flujo de **registro** sigue viviendo en
+`modules/movimientos/nuevo-ingreso/` (wizard con OCR) y se abre desde el CTA.
+
+## Frontera con el backend
+
+Este repositorio no implementa el servidor, sus controladores ni su base de
+datos. El flujo de datos principal es:
+
+```text
+Navegador
+  â””â”€â”€ React y Vite (este repositorio)
+       â””â”€â”€ fetch / apiFetch â”€â”€ HTTP â”€â”€> API externa
+                                      â”œâ”€â”€ autenticaciÃ³n
+                                      â”œâ”€â”€ Bodega e inventario
+                                      â”œâ”€â”€ movimientos y solicitudes
+                                      â”œâ”€â”€ usuarios y catÃ¡logos
+                                      â””â”€â”€ cosechas y fincas
+```
+
+Para consultar los endpoints concretos, revisar los servicios en `src/services/`
+y las llamadas directas de cada pÃ¡gina o mÃ³dulo.
+
+## Comandos principales
+
+```bash
+npm run dev       # Servidor local con recarga en caliente
+npm run build     # Verifica TypeScript y genera el build de producciÃ³n
+npm run lint      # RevisiÃ³n estÃ¡tica con ESLint
+npm run preview   # Sirve localmente el build generado
+```
+        ├── MovimientosSkeleton.tsx    # Cargadores por vista
+        └── MovimientoDetailSheet.tsx  # Detalle en Sheet con líneas y PDF
+```
+
+El flujo de **registro** sigue viviendo en
+`modules/movimientos/nuevo-ingreso/` (wizard con OCR) y se abre desde el CTA.
 
 ## Frontera con el backend
 
