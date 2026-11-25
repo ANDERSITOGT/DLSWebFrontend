@@ -123,37 +123,77 @@ export function toNumberOrNull(value: unknown): number | null {
 }
 
 /**
+ * Extrae la parte numérica de un string que puede llevar unidad u otro texto
+ * (p.ej. `"75 cc"`, `"12.5 L"`, `"1,5 KG"`, `"+12.5"`, `"-3"`).
+ *
+ * A diferencia de `toNumberOrNull` (que exige un string 100% numérico), aquí
+ * se toma el primer número encontrado y se ignora el resto. Devuelve `null` si
+ * no hay ningún número.
+ */
+export function parseNumeroDesdeTexto(value: string): number | null {
+  const limpio = value.trim()
+  if (limpio === "") return null
+  // Primer número: signo opcional + dígitos con coma/punto decimal opcional.
+  const match = limpio.match(/[+-]?\d+(?:[.,]\d+)?/)
+  if (!match) return null
+  const num = Number(match[0].replace(",", "."))
+  return Number.isFinite(num) ? num : null
+}
+
+/** Número a partir de un valor por número o por texto con unidad ("75 cc"). */
+function candidatoNumero(value: unknown): number | null {
+  const directo = toNumberOrNull(value)
+  if (directo !== null) return directo
+  if (typeof value === "string") return parseNumeroDesdeTexto(value)
+  return null
+}
+
+/**
  * Extrae la cantidad de una línea de producto del detalle.
  *
- * El contrato nominal usa `cantidad`, pero según el tipo de documento el
- * backend puede exponerla con otros nombres (`cantidadEntregada`,
- * `cantidadRecibida`, `cantidadAjuste`) o anidada (`{ n: "1.5" }`). Se prueban
- * todas las variantes y se normaliza a número.
+ * Prioridad:
+ * 1. `cantidadNumero`: número puro que manda el backend de movimientos.
+ *    (`cantidad` viene como texto con unidad, p.ej. `"75 cc"`, que `Number()`
+ *    no parsea). Se lee PRIMERO para no caer en `0` en roles sin importes
+ *    (VISOR / SOLICITANTE / COSECHA), que además no traen costo ni subtotal.
+ * 2. `cantidad` y aliases conocidos (`cantidadEntregada`, `cantidadRecibida`,
+ *    `cantidadAjuste`, `cantidadDevolver`, etc.): si llegan como texto con
+ *    unidad se les extrae la parte numérica.
+ * 3. Variantes anidadas (`{ n: "1.5" }` / `{ valor }` / `{ value }`).
  */
 export function extraerCantidad(linea: unknown): number | null {
   if (isRecord(linea)) {
-    const directa =
-      toNumberOrNull(linea.cantidad) ??
-      toNumberOrNull(linea.cant) ??
-      toNumberOrNull(linea.qty) ??
-      toNumberOrNull(linea.cantidadEntregada) ??
-      toNumberOrNull(linea.cantidadRecibida) ??
-      toNumberOrNull(linea.cantidadAjuste) ??
-      toNumberOrNull(linea.cantidadSolicitada) ??
-      toNumberOrNull(linea.cantidadDevolver) ??
-      toNumberOrNull(linea.cantidad_unidad)
-    if (directa !== null) return directa
+    // 1) Número puro explícito del backend (contrato de movimientos).
+    const numeroExplicito = toNumberOrNull(linea.cantidadNumero)
+    if (numeroExplicito !== null) return numeroExplicito
+
+    // 2) Campos directos (acepta número o string con unidad).
+    const candidatos: unknown[] = [
+      linea.cantidad,
+      linea.cant,
+      linea.qty,
+      linea.cantidadEntregada,
+      linea.cantidadRecibida,
+      linea.cantidadAjuste,
+      linea.cantidadSolicitada,
+      linea.cantidadDevolver,
+      linea.cantidad_unidad,
+    ]
+    for (const candidato of candidatos) {
+      const num = candidatoNumero(candidato)
+      if (num !== null) return num
+    }
+
+    // 3) Anidada: { n: "1.5" } / { valor } / { value }.
     const anidada = linea.cantidad ?? linea.cant
     if (isRecord(anidada)) {
-      return (
-        toNumberOrNull(anidada.n) ??
-        toNumberOrNull(anidada.valor) ??
-        toNumberOrNull(anidada.value) ??
-        toNumberOrNull(anidada.cantidad)
-      )
+      for (const candidato of [anidada.n, anidada.valor, anidada.value, anidada.cantidad]) {
+        const num = candidatoNumero(candidato)
+        if (num !== null) return num
+      }
     }
   }
-  return toNumberOrNull(linea)
+  return candidatoNumero(linea)
 }
 
 /** Formatea una cantidad numérica (hasta 2 decimales, sin ceros sobrantes). */
