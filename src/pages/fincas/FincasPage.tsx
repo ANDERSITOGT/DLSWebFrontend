@@ -12,6 +12,8 @@ import {
   AlertOctagon 
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "@/services/api";
+import { aFechaInputGT, fechaDiaAISO } from "@/modules/movimientos/utils/format";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -102,7 +104,8 @@ export default function FincasPage() {
 
   const cargarCultivos = async () => {
       try {
-          const res = await fetch(`${API_BASE}/api/catalogos/cultivos`, { headers: { "Authorization": `Bearer ${token}` } });
+          // Ruta vigente: /api/catalogos/cultivos fue eliminada.
+          const res = await apiFetch("/api/cosechas/cultivos");
           if (res.ok) setCultivos(await res.json());
       } catch (e) { console.error(e); }
   }
@@ -211,10 +214,16 @@ export default function FincasPage() {
 
     // Enviar al Backend (El backend también recalcula por seguridad)
     try {
+      // Los inputs type="date" entregan "YYYY-MM-DD"; se envían como ISO con
+      // offset de Guatemala para no desplazar el día.
+      const valorAEnviar =
+        field === "fechasiembra" || field === "fechacierre"
+          ? fechaDiaAISO(String(value))
+          : value;
       await fetch(`${API_BASE}/api/fincas/lotes/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-        body: JSON.stringify({ [field]: value })
+        body: JSON.stringify({ [field]: valorAEnviar })
       });
     } catch (e) { console.error("Error guardando", e); }
   };
@@ -389,14 +398,14 @@ export default function FincasPage() {
                                 <input 
                                    disabled={!puedeEditar}
                                    type="date" className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-500 outline-none transition-colors text-xs text-slate-500"
-                                   value={lote.fechasiembra ? lote.fechasiembra.split('T')[0] : ""}
+                                   value={aFechaInputGT(lote.fechasiembra)}
                                    onChange={(e) => handleUpdateLote(lote.id, 'fechasiembra', e.target.value)}
                                 />
                              </td>
                              <td className="px-4 py-3">
                                 <input 
                                    type="date" className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-emerald-500 outline-none transition-colors text-xs text-slate-500"
-                                   value={lote.fechacierre ? lote.fechacierre.split('T')[0] : ""}
+                                   value={aFechaInputGT(lote.fechacierre)}
                                    onChange={(e) => handleUpdateLote(lote.id, 'fechacierre', e.target.value)}
                                    disabled={!puedeEditar || lote.estado === 'ABIERTO'} 
                                 />

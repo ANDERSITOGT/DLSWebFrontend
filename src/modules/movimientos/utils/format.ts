@@ -3,6 +3,52 @@ import type { MovimientoEstado, MovimientoTipo } from "../types"
 /** Zona horaria de negocio. */
 export const TZ = "America/Guatemala"
 
+/**
+ * Devuelve "hoy" como `YYYY-MM-DD` calculado explícitamente en America/Guatemala.
+ *
+ * `new Date().toISOString().slice(0, 10)` devuelve el día en UTC, por lo que en
+ * Guatemala (UTC-6) saltaba al día siguiente después de las 18:00 locales. Este
+ * helper calcula el día real de negocio con `Intl.DateTimeFormat` (locale
+ * `en-CA`, que produce directamente el formato `YYYY-MM-DD`).
+ */
+export function hoyGuatemalaISO(): string {
+  // en-CA formatea como `YYYY-MM-DD` por defecto.
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
+}
+
+/**
+ * Convierte un timestamp ISO del backend a `YYYY-MM-DD` en America/Guatemala,
+ * para rellenar `<input type="date">` sin depender de `.split("T")[0]` (que
+ * trunca en UTC y puede desplazar el día).
+ */
+export function aFechaInputGT(iso?: string | null): string {
+  if (!iso) return ""
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ""
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: TZ,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(d)
+}
+
+/**
+ * Convierte el valor de un `<input type="date">` (`YYYY-MM-DD`) a ISO con el
+ * offset de Guatemala (`T12:00:00-06:00`) antes de enviarlo al backend. El
+ * mediodía local evita que cualquier conversión posterior a UTC desplace el
+ * día. Si el valor no tiene el formato esperado, se devuelve tal cual.
+ */
+export function fechaDiaAISO(yyyyMmDd: string): string {
+  if (!yyyyMmDd || !/^\d{4}-\d{2}-\d{2}$/.test(yyyyMmDd)) return yyyyMmDd
+  return `${yyyyMmDd}T12:00:00-06:00`
+}
+
 /** Formatea un ISO a fecha + hora legible en la zona de negocio. */
 export function formatFechaHora(iso: string | null | undefined): string {
   if (!iso) return "—"

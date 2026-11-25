@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Calendar, Loader2, Save, X } from "lucide-react";
 import { BuscadorSelect, type BuscadorSelectOption } from "../../../components/ui/BuscadorSelect";
 import { cosechasService, type CatalogoOption, type CosechaPayload } from "../../../services/cosechasService";
+import { hoyGuatemalaISO, fechaDiaAISO } from "@/modules/movimientos/utils/format";
 
 type RegistroCosechaModalProps = {
   onClose: () => void;
@@ -15,7 +16,7 @@ export function RegistroCosechaModal({ onClose, onSuccess }: RegistroCosechaModa
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<CosechaPayload>({
-    loteId: "", empacadoraId: "", fecha: new Date().toISOString().slice(0, 10),
+    loteId: "", empacadoraId: "", fecha: hoyGuatemalaISO(),
     libras_campo: 0, libras_rechazo: 0, libras_vendidas: 0,
     numero_boleta: "", observaciones: "",
   });
@@ -49,7 +50,8 @@ export function RegistroCosechaModal({ onClose, onSuccess }: RegistroCosechaModa
     setGuardando(true);
     setError(null);
     try {
-      await cosechasService.crearCosecha(form);
+      // El input entrega "YYYY-MM-DD"; se envía con offset de Guatemala.
+      await cosechasService.crearCosecha({ ...form, fecha: fechaDiaAISO(form.fecha) });
       onSuccess();
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "No se pudo registrar la cosecha.");

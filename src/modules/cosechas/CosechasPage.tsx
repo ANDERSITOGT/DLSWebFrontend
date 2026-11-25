@@ -4,6 +4,7 @@ import { Badge } from "../../components/ui/Badge";
 import { SectionTitle } from "../../components/ui/SectionTitle";
 import { StatCard } from "../../components/ui/StatCard";
 import { cosechasService, type Cosecha } from "../../services/cosechasService";
+import { formatFecha } from "@/modules/movimientos/utils/format";
 import { RegistroCosechaModal } from "./components/RegistroCosechaModal";
 
 export function CosechasPage() {
@@ -20,7 +21,7 @@ export function CosechasPage() {
     finally { setLoading(false); }
   }, []);
   useEffect(() => { cargar(); }, [cargar]);
-  const formatDate = (date: string | null) => date ? new Date(date).toLocaleDateString("es-GT") : "Sin fecha";
+  const formatDate = (date: string | null) => date ? formatFecha(date) : "Sin fecha";
   const formatLibras = (value: number | null | undefined) => `${Number(value ?? 0).toLocaleString("es-GT")} lb`;
   const getStatus = (cosecha: Cosecha) => {
     const tieneBoletas = Boolean(cosecha.boleta_cosecha?.length || cosecha.boletas?.length);

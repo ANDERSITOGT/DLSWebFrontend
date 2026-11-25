@@ -17,6 +17,7 @@ import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "@/services/api";
 import { catalogosService } from "@/services/catalogosService";
 import AsyncBuscadorSelect, { type BuscadorOption } from "../../components/ui/BuscadorSelect";
+import { formatFecha } from "@/modules/movimientos/utils/format";
 
 // --- TIPOS ---
 type SolicitudHistorial = {
@@ -411,7 +412,7 @@ export function SolicitudDevolucionModal({ onClose, onSuccess }: Props) {
                             <div>
                               <p className="font-bold text-slate-800 text-base">{sol.codigo}</p>
                               <p className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">
-                                <Calendar size={12} /> {new Date(sol.fecha).toLocaleDateString()}
+                                <Calendar size={12} /> {formatFecha(sol.fecha)}
                               </p>
                             </div>
                           </div>

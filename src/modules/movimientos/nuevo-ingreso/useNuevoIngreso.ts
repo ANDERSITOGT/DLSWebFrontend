@@ -4,6 +4,7 @@ import { ApiError } from "@/services/apiError"
 import { useAuth } from "@/context/AuthContext"
 import { movimientosService, FacturaDuplicadaError, type IngresoCreado } from "./services/movimientosService"
 import { parseOcrResponse, type OcrParseResult } from "./utils/ocrParser"
+import { hoyGuatemalaISO, fechaDiaAISO } from "@/modules/movimientos/utils/format"
 import type {
   Bodega,
   CandidatoProducto,
@@ -35,7 +36,7 @@ type BorradorIngreso = {
 
 const draftKey = (userId?: string | null) => `${DRAFT_PREFIX}${userId ?? "anon"}`
 
-const hoyISO = () => new Date().toISOString().slice(0, 10)
+const hoyISO = () => hoyGuatemalaISO()
 
 function generarKey() {
   if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
@@ -501,7 +502,8 @@ export function useNuevoIngreso() {
       const payload: IngresoPayload = {
         bodegaId,
         proveedorId: proveedorId || null,
-        fecha,
+        // El input entrega "YYYY-MM-DD"; se envía con offset de Guatemala.
+        fecha: fechaDiaAISO(fecha),
         tipoComprobante,
         factura: factura.trim(),
         serie: serie.trim(),

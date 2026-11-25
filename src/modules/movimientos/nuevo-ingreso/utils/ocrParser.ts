@@ -1,4 +1,5 @@
 import type { CandidatoProducto, ProductoResult, Proveedor } from "../types"
+import { aFechaInputGT } from "@/modules/movimientos/utils/format"
 
 /**
  * Parser puro del resultado del OCR (`POST /api/movimientos/escanear`).
@@ -104,10 +105,10 @@ function normalizarNit(value: string): string {
 function normalizarFecha(value: unknown): string | undefined {
   const raw = toStringOrEmpty(value)
   if (!raw) return undefined
-  // Intento directo ISO.
+  // Intento directo ISO: convertir al día de Guatemala (no truncar en UTC).
   const parsed = new Date(raw)
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toISOString().slice(0, 10)
+    return aFechaInputGT(parsed.toISOString()) || undefined
   }
   // Formato dd/mm/yyyy frecuente en facturas.
   const match = raw.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$/)

@@ -20,7 +20,7 @@ import { Card, CardContent } from "../../components/ui/card";
 import { cn } from "../../utils/cn";
 import { exportMovimientoDetalle } from "./utils/descargas";
 import { getMovimiento } from "./services/movimientosListService";
-import { formatCantidad } from "./utils/format";
+import { formatCantidad, formatFecha } from "./utils/format";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -240,7 +240,7 @@ function FincaSection({ finca, onSelectLote }: { finca: FincaGroup; onSelectLote
 // ==========================================
 function LoteCard({ lote, onClick }: { lote: LoteBasic; onClick: () => void }) {
   const isActivo = lote.estado === "ACTIVO";
-  const fechaVisual = lote.fechaSiembra ? new Date(lote.fechaSiembra).toLocaleDateString() : "-";
+  const fechaVisual = lote.fechaSiembra ? formatFecha(lote.fechaSiembra) : "-";
 
   return (
     <Card
@@ -370,7 +370,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
 
   if (!data) return null;
 
-  const fechaSiembraVisual = data.info.fechaSiembra ? new Date(data.info.fechaSiembra).toLocaleDateString() : "-";
+  const fechaSiembraVisual = data.info.fechaSiembra ? formatFecha(data.info.fechaSiembra) : "-";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
@@ -451,7 +451,7 @@ function LoteDetalleModal({ loteId, onClose }: { loteId: string; onClose: () => 
                             </div>
                             <p className="text-xs text-slate-500 flex items-center gap-2">
                                <Calendar size={12} className="text-emerald-500"/>
-                               <span className="font-medium text-slate-600">{new Date(item.fecha).toLocaleDateString()}</span>
+                               <span className="font-medium text-slate-600">{formatFecha(item.fecha)}</span>
                                <span className="text-slate-300">•</span>
                                {item.tipo}
                             </p>
@@ -523,7 +523,7 @@ function MovimientoFullModal({ movimientoId, onClose }: { movimientoId: string; 
 
     if(!detalle) return null;
 
-    const fechaTexto = detalle.fecha ? new Date(detalle.fecha).toLocaleDateString() : "-";
+    const fechaTexto = detalle.fecha ? formatFecha(detalle.fecha) : "-";
     const codigoTitulo = detalle.consecutivo || detalle.codigo;
 
     return (
