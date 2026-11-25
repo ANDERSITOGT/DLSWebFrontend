@@ -10,7 +10,13 @@ import type { Formato } from "@/services/dashboardService";
 export function formatValue(value: number, formato: Formato) {
   switch (formato) {
     case "moneda":
-      return `Q${value.toLocaleString("es-GT", { maximumFractionDigits: 0 })}`;
+      // Siempre 2 decimales para no desfasar los totales frente a Movimientos
+      // y Solicitudes (que usan 2 decimales). Un redondeo al entero hacía que
+      // p. ej. Q1,234.56 se viera como "Q1,235".
+      return `Q${value.toLocaleString("es-GT", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`;
     case "libras":
       return `${value.toLocaleString("es-GT", { maximumFractionDigits: 0 })} lb`;
     case "metros":

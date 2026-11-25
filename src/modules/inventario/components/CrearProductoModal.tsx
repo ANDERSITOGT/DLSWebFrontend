@@ -1,7 +1,11 @@
 import { useState, useEffect, type FormEvent } from "react";
-import { X, Save, AlertCircle, FlaskConical, Check } from "lucide-react"; 
+import { X, Save, AlertCircle, FlaskConical, Check } from "lucide-react";
 import { apiFetch } from "../../../services/api";
+import { useAuth } from "../../../context/AuthContext";
 import BuscadorSelect from "../../../components/ui/BuscadorSelect";
+
+/** Roles que pueden fijar el Precio de referencia / CPP. */
+const ROLES_PRECIO = ["ADMIN", "BODEGUERO"];
 
 /** Producto creado, en la forma mínima que consumen los autoselects. */
 export type ProductoCreadoResult = {
@@ -15,7 +19,7 @@ export type ProductoCreadoResult = {
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-    /**
+  /**
    * Se invoca al confirmar la pantalla de éxito. Recibe el producto creado
    * (si la respuesta lo incluye) para permitir su autoselección en el caller.
    */
@@ -29,37 +33,42 @@ interface ItemCatalogo {
 }
 
 export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props) {
+  const { user } = useAuth();
+  // Solo ADMIN/BODEGUERO pueden fijar el Precio de referencia (CPP) inicial.
+  const puedeEditarPrecio = ROLES_PRECIO.includes(user?.rol ?? "");
+
   // Estados del Formulario
   const [nombre, setNombre] = useState("");
-  const [ingredienteActivo, setIngredienteActivo] = useState(""); 
+  const [ingredienteActivo, setIngredienteActivo] = useState("");
   const [dosis200Lt, setDosis200Lt] = useState("");
   const [comentarioDosis, setComentarioDosis] = useState("");
   const [unidadId, setUnidadId] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
+  const [precioref, setPrecioref] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-    // Estado para la confirmación de éxito
+
+  // Estado para la confirmación de éxito
   const [showSuccess, setShowSuccess] = useState(false);
   // Producto recién creado (se devuelve en onSuccess para autoselección)
   const [productoCreado, setProductoCreado] = useState<ProductoCreadoResult | null>(null);
-  
+
   // Listas
   const [unidades, setUnidades] = useState<ItemCatalogo[]>([]);
   const [categorias, setCategorias] = useState<ItemCatalogo[]>([]);
 
   useEffect(() => {
     if (isOpen) {
-      setShowSuccess(false); 
-      limpiarFormulario();   
+      setShowSuccess(false);
+      limpiarFormulario();
       cargarCatalogos();
     }
   }, [isOpen]);
 
   const cargarCatalogos = async () => {
     try {
-            const [resUnidades, resCats] = await Promise.all([
+      const [resUnidades, resCats] = await Promise.all([
         apiFetch("/api/productos/unidades"),
         apiFetch("/api/productos/categorias"),
       ]);
@@ -75,6 +84,18 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setError(null);
+
+    // Precio de referencia (CPP) opcional: si se ingresa, debe ser >= 0.
+    let preciorefFinal: number | null = null;
+    if (puedeEditarPrecio && precioref.trim() !== "") {
+      const num = Number(precioref);
+      if (!Number.isFinite(num) || num < 0) {
+        setError("El Precio de referencia debe ser un número mayor o igual a 0.");
+        return;
+      }
+      preciorefFinal = num;
+    }
+
     setLoading(true);
 
     try {
@@ -93,14 +114,19 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
         payload.comentarioDosis = comentarioDosis.trim();
       }
 
+      // Solo se envía el precio si el rol puede fijarlo y se ingresó un valor.
+      if (puedeEditarPrecio && preciorefFinal != null) {
+        payload.precioref = preciorefFinal;
+      }
+
       const res = await apiFetch("/api/productos", {
         method: "POST",
-        body: JSON.stringify(payload)
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
 
-            if (!res.ok) {
+      if (!res.ok) {
         throw new Error(data.message || "Error al crear producto");
       }
 
@@ -153,8 +179,7 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
 
       setProductoCreado(resultado);
       // No llamamos a onSuccess() todavía: primero mostramos la pantalla de éxito.
-      setShowSuccess(true); 
-
+      setShowSuccess(true);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -163,7 +188,7 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
   };
 
   // Esta función se ejecuta cuando el usuario da clic en "Aceptar" en la pantalla verde
-    const handleFinalize = () => {
+  const handleFinalize = () => {
     onSuccess?.(productoCreado ?? undefined); // Devolvemos el producto para autoselección
     onClose();
   };
@@ -173,8 +198,9 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
     setIngredienteActivo("");
     setDosis200Lt("");
     setComentarioDosis("");
-        setUnidadId("");
+    setUnidadId("");
     setCategoriaId("");
+    setPrecioref("");
     setError(null);
     setProductoCreado(null);
   };
@@ -183,37 +209,34 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      
       {showSuccess ? (
         /* --- VISTA DE ÉXITO --- */
         <div className="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-8 text-center animate-in zoom-in-95 flex flex-col items-center">
-            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                <Check className="text-green-600 w-8 h-8" strokeWidth={3} />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">¡Producto Creado!</h3>
-            <p className="text-sm text-gray-500 mb-6">
-                El producto <span className="font-semibold text-gray-700">"{nombre}"</span> se ha agregado correctamente.
-            </p>
-            <button 
-                onClick={handleFinalize} // 👈 Llama a la función de cierre final
-                className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-green-600/20 transition-all active:scale-95"
-            >
-                Aceptar
-            </button>
+          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4 shadow-sm">
+            <Check className="text-green-600 w-8 h-8" strokeWidth={3} />
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">¡Producto Creado!</h3>
+          <p className="text-sm text-gray-500 mb-6">
+            El producto <span className="font-semibold text-gray-700">"{nombre}"</span> se ha agregado correctamente.
+          </p>
+          <button
+            onClick={handleFinalize}
+            className="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-2.5 rounded-xl shadow-lg shadow-green-600/20 transition-all active:scale-95"
+          >
+            Aceptar
+          </button>
         </div>
       ) : (
-        
         /* --- FORMULARIO NORMAL --- */
         <div className="bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-          
           {/* HEADER */}
           <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
             <div>
               <h3 className="text-lg font-bold text-gray-800">Nuevo Producto</h3>
               <p className="text-xs text-gray-500">El código se generará automáticamente</p>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-2 text-gray-400 hover:bg-white hover:text-gray-600 rounded-full transition-all"
             >
               <X size={20} />
@@ -222,7 +245,6 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
 
           {/* BODY */}
           <form onSubmit={handleSubmit} className="p-6 space-y-5 overflow-y-auto">
-            
             {error && (
               <div className="p-3 bg-red-50 border border-red-100 rounded-lg flex items-center gap-3 text-red-700 text-sm">
                 <AlertCircle size={18} />
@@ -233,8 +255,8 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
             {/* NOMBRE */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-gray-600 uppercase">Nombre Comercial</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 required
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
@@ -246,10 +268,10 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
             {/* INGREDIENTE ACTIVO */}
             <div className="space-y-1">
               <label className="text-xs font-semibold text-gray-600 uppercase flex items-center gap-1">
-                 <FlaskConical size={14} /> Ingrediente Activo
+                <FlaskConical size={14} /> Ingrediente Activo
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 value={ingredienteActivo}
                 onChange={(e) => setIngredienteActivo(e.target.value)}
                 placeholder="Ej: Sal Isopropilamina"
@@ -312,18 +334,38 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
               </div>
             </div>
 
+            {/* PRECIO DE REFERENCIA (CPP): solo ADMIN/BODEGUERO. Opcional. */}
+            {puedeEditarPrecio && (
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-600 uppercase">
+                  Precio de referencia / CPP (Q)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={precioref}
+                  onChange={(e) => setPrecioref(e.target.value)}
+                  placeholder="Opcional, p. ej. 125.50"
+                  className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+                />
+                <p className="text-[10px] text-gray-400">
+                  Si lo dejas vacío, el producto queda sin costo hasta registrar un ingreso o editarlo.
+                </p>
+              </div>
+            )}
           </form>
 
           {/* FOOTER */}
           <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-white hover:shadow-sm rounded-lg border border-transparent hover:border-gray-200 transition-all"
             >
               Cancelar
             </button>
-            <button 
+            <button
               onClick={handleSubmit}
               disabled={loading}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-md shadow-blue-600/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
@@ -338,7 +380,6 @@ export default function CrearProductoModal({ isOpen, onClose, onSuccess }: Props
               )}
             </button>
           </div>
-
         </div>
       )}
     </div>

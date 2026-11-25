@@ -92,14 +92,17 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
       return response;
     }
 
-    // Leemos el body una sola vez para inspeccionar el mensaje.
+        // Leemos el body una sola vez para inspeccionar el mensaje y el código de negocio.
     let message = "";
+    let codigo = "";
     try {
       const parsed = await response.clone().json();
       message = typeof parsed?.message === "string" ? parsed.message : "";
+      codigo = typeof parsed?.codigo === "string" ? parsed.codigo : "";
     } catch {
       // Sin body JSON: seguimos con message vacío.
     }
+    const businessCode = codigo || undefined;
 
     // --- 401: siempre kill-switch (token expirado / inválido) ---
     if (response.status === 401) {
@@ -109,6 +112,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
         message || "Sesión expirada. Vuelve a iniciar sesión.",
         401,
         "UNAUTHORIZED",
+        businessCode,
       );
     }
 
@@ -120,6 +124,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
           message || "No tiene permisos para ver este módulo",
           403,
           "FORBIDDEN_MODULE",
+          businessCode,
         );
       }
 
@@ -130,11 +135,17 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
         message || "Sesión finalizada por seguridad.",
         403,
         "ACCOUNT_DISABLED",
+        businessCode,
       );
     }
 
     // Otros errores HTTP: no cerramos sesión, devolvemos ApiError genérico.
-    throw new ApiError(message || `Error HTTP ${response.status}`, response.status, "HTTP_ERROR");
+    throw new ApiError(
+      message || `Error HTTP ${response.status}`,
+      response.status,
+      "HTTP_ERROR",
+      businessCode,
+    );
   } catch (error) {
     // Si es un ApiError ya tipado, lo dejamos pasar sin re-loguear ruido.
     if (error instanceof ApiError) {

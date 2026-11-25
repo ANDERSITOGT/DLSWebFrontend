@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Lock, ShieldCheck, Search, X, Save, Loader2, Check, MapPin, ChevronDown, ChevronRight, Archive, Layers, Sprout } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "@/services/api";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -81,7 +82,8 @@ export function AsignacionLotesPage() {
 
       const [resUsuarios, resLotes] = await Promise.all([
         fetch(`${API_BASE}/api/usuarios/solicitantes-asignacion`, { headers }),
-        fetch(`${API_BASE}/api/catalogos/lotes`, { headers })
+        // Ruta vigente: /api/catalogos/lotes fue eliminada.
+        apiFetch("/api/lotes/catalogo"),
       ]);
 
       if(resUsuarios.ok) setSolicitantes(await resUsuarios.json());

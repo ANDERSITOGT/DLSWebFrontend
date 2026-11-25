@@ -6,6 +6,8 @@ import {
   ChevronLeft, ChevronRight, Filter
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { apiFetch } from "@/services/api";
+import { aFechaInputGT, fechaDiaAISO, formatFecha } from "@/modules/movimientos/utils/format";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -27,9 +29,8 @@ function ProductSearchInput({ token, value, initialName, onChange }: any) {
         const timer = setTimeout(async () => {
             setLoading(true);
             try {
-                const res = await fetch(`${API_BASE}/api/catalogos/productos/buscar?q=${query}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                // Ruta vigente: /api/catalogos/productos/buscar fue eliminada.
+                const res = await apiFetch(`/api/productos/productos/buscar?q=${encodeURIComponent(query)}`);
                 if (res.ok) {
                     const data = await res.json();
                     setOptions(data);
@@ -137,10 +138,9 @@ export function EdicionCriticaPage() {
 
   const cargarCatalogos = async () => {
       try {
-          const headers = { Authorization: `Bearer ${token}` };
           const [resProd, resFincas] = await Promise.all([
-              fetch(`${API_BASE}/api/catalogos/productos/buscar`, { headers }), 
-              fetch(`${API_BASE}/api/catalogos/fincas-lotes`, { headers })
+              apiFetch("/api/productos/productos/buscar"),
+              apiFetch("/api/fincas/fincas-lotes")
           ]);
           setCatalogos({
               productos: resProd.ok ? await resProd.json() : [],
@@ -174,7 +174,7 @@ export function EdicionCriticaPage() {
 
   const abrirModal = (doc: any) => {
       const copiaDoc = JSON.parse(JSON.stringify(doc));
-      if (copiaDoc.fecha) copiaDoc.fecha = new Date(copiaDoc.fecha).toISOString().split('T')[0];
+      if (copiaDoc.fecha) copiaDoc.fecha = aFechaInputGT(copiaDoc.fecha);
       
       const prodsActuales = [...catalogos.productos];
       
@@ -218,10 +218,9 @@ export function EdicionCriticaPage() {
 
       setSaving(true);
       try {
-          // 👇 LA MAGIA DE LA ZONA HORARIA ESTÁ AQUÍ
-          // Forzamos la fecha a las 12:00 UTC. Así, sin importar tu zona horaria local, 
-          // la resta de horas no te enviará al día anterior.
-          const fechaAjustada = new Date(`${docSeleccionado.fecha}T12:00:00.000Z`).toISOString();
+          // El input entrega "YYYY-MM-DD"; se envía como ISO con offset de Guatemala
+          // (mediodía local) para que ninguna conversión posterior desplace el día.
+          const fechaAjustada = fechaDiaAISO(docSeleccionado.fecha);
 
           const payload = {
               justificacion,
@@ -372,7 +371,7 @@ export function EdicionCriticaPage() {
                                               </span>
                                           </td>
                                           <td className="px-4 py-3 font-bold text-rose-700">{doc.consecutivo || doc.id.substring(0,8)}</td>
-                                          <td className="px-4 py-3 text-slate-600">{new Date(doc.fecha).toLocaleDateString()}</td>
+                                          <td className="px-4 py-3 text-slate-600">{formatFecha(doc.fecha)}</td>
                                           <td className="px-4 py-3 text-xs text-slate-500 truncate max-w-[200px]" colSpan={2}>{doc.observacion || "Sin observaciones"}</td>
                                           <td className="px-4 py-3"></td>
                                           <td className="px-4 py-3 text-xs text-slate-500">{doc.usuario_documento_creadoridTousuario?.nombre}</td>

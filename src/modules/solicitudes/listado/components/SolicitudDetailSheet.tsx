@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react"
 import {
+  AlertTriangle,
   Calendar,
   CheckCircle2,
   FileDown,
@@ -35,6 +36,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { useAuth } from "@/context/AuthContext"
 import type { ApiError } from "@/services/apiError"
+import { esProductoSinCosto, mensajeDeApiError } from "@/services/apiErrorMessage"
 import {
   cambiarEstadoSolicitud,
   entregarSolicitud,
@@ -86,6 +88,8 @@ export function SolicitudDetailSheet({ solicitudId, onClose, onMutated }: Props)
   const [motivo, setMotivo] = useState("")
   const [procesando, setProcesando] = useState(false)
   const [exito, setExito] = useState<{ titulo: string; msg: string } | null>(null)
+  // Alerta amigable de negocio (p. ej. PRODUCTO_SIN_COSTO al entregar).
+  const [alerta, setAlerta] = useState<{ titulo: string; msg: string } | null>(null)
 
   // Carga del detalle al abrir / cambiar de solicitud.
   useEffect(() => {
@@ -93,6 +97,7 @@ export function SolicitudDetailSheet({ solicitudId, onClose, onMutated }: Props)
       setDetalle(null)
       setError(null)
       setExito(null)
+      setAlerta(null)
       setConfirmar(null)
       setMotivo("")
       return
@@ -102,6 +107,7 @@ export function SolicitudDetailSheet({ solicitudId, onClose, onMutated }: Props)
     setError(null)
     setDetalle(null)
     setExito(null)
+    setAlerta(null)
     setConfirmar(null)
     setMotivo("")
     getSolicitud(solicitudId)
@@ -177,7 +183,16 @@ export function SolicitudDetailSheet({ solicitudId, onClose, onMutated }: Props)
       })
       onMutated()
     } catch (err) {
-      setError(toApiError(err))
+      // PRODUCTO_SIN_COSTO (400): alerta amigable con instrucciones accionables.
+      if (esProductoSinCosto(err)) {
+        setConfirmar(null)
+        setAlerta({
+          titulo: "Producto sin costo configurado",
+          msg: mensajeDeApiError(err, null),
+        })
+      } else {
+        setError(toApiError(err))
+      }
     } finally {
       setProcesando(false)
     }
@@ -403,6 +418,17 @@ export function SolicitudDetailSheet({ solicitudId, onClose, onMutated }: Props)
           </div>
         )}
 
+        {/* Alerta amigable de negocio (p. ej. PRODUCTO_SIN_COSTO al entregar) */}
+        {alerta && (
+          <ConfirmacionOverlay
+            titulo={alerta.titulo}
+            mensaje={alerta.msg}
+            tono="warning"
+            onClose={() => setAlerta(null)}
+            single
+          />
+        )}
+
         {/* Modal de confirmación / éxito */}
         {exito && (
           <ConfirmacionOverlay
@@ -520,7 +546,7 @@ function Meta({ label, icon, value }: { label: string; icon: ReactNode; value: s
 type ConfirmacionProps = {
   titulo: string
   mensaje: string
-  tono?: "emerald" | "danger"
+  tono?: "emerald" | "danger" | "warning"
   confirmText?: string
   procesando?: boolean
   single?: boolean
@@ -530,7 +556,7 @@ type ConfirmacionProps = {
   motivo?: { value: string; onChange: (v: string) => void; disabled?: boolean }
 }
 
-/** Overlay de confirmación / éxito por encima del Sheet (z-[70]). */
+/** Overlay de confirmación / éxito / alerta por encima del Sheet (z-[70]). */
 function ConfirmacionOverlay({
   titulo,
   mensaje,
@@ -543,9 +569,19 @@ function ConfirmacionOverlay({
   onConfirm,
   motivo,
 }: ConfirmacionProps) {
-  const accent = tono === "danger" ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200" : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
-  const circle = tono === "danger" ? "bg-rose-100 text-rose-600" : "bg-emerald-100 text-emerald-600"
-  const Icon = tono === "danger" ? CheckCircle2 : CheckCircle2
+  const accent =
+    tono === "danger"
+      ? "bg-rose-600 hover:bg-rose-700 shadow-rose-200"
+      : tono === "warning"
+        ? "bg-amber-500 hover:bg-amber-600 shadow-amber-200"
+        : "bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200"
+  const circle =
+    tono === "danger"
+      ? "bg-rose-100 text-rose-600"
+      : tono === "warning"
+        ? "bg-amber-100 text-amber-600"
+        : "bg-emerald-100 text-emerald-600"
+  const Icon = tono === "emerald" ? CheckCircle2 : AlertTriangle
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm">

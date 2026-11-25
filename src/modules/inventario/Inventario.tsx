@@ -24,9 +24,15 @@ import {
   Edit2 // IMPORTAMOS EL ICONO DE EDITAR
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
+import { formatFecha } from "@/modules/movimientos/utils/format";
 
 // 👇 IMPORTAMOS EL MODAL QUE ACABAMOS DE CREAR
 import InfoProductoModal from "../../modules/inventario/components/InfoProductoModal";
+// 👇 Reutilizamos el Sheet de detalle del módulo Movimientos: ya normaliza la
+//    respuesta de GET /api/movimientos/:id (vía apiFetch + normalizarDetalle) y
+//    es defensivo ante cambios de contrato. Reimplementarlo aquí provocaba el
+//    crash (shape obsoleto → .map()/length sobre `productos` undefined).
+import { MovimientoDetailSheet } from "../../modules/movimientos/listado/components/MovimientoDetailSheet";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
@@ -84,36 +90,6 @@ type CategoriaFiltro = {
   nombre: string;
 };
 
-type MovimientoTipo = "INGRESO" | "SALIDA" | "TRANSFERENCIA" | "AJUSTE" | "DEVOLUCION";
-type MovimientoEstado = "BORRADOR" | "APROBADO" | "ANULADO" | "CARGANDO..."; 
-
-type ProductoEnMovimiento = {
-  id: string;
-  productoNombre: string;
-  productoCodigo: string;
-  cantidad: string; 
-  unidad: string;
-  loteCodigo: string | null;
-  loteId: string | null;
-  fincaNombre: string | null;
-};
-
-type MovimientoFullDetalle = {
-  id: string;
-  codigo: string;
-  tipo: MovimientoTipo | string;
-  estado: MovimientoEstado;
-  fecha: string | null;
-  origen: string | null;
-  destino: string | null;
-  proveedor: string | null;
-  solicitante: string | null;
-  creador: string | null;
-  productos: ProductoEnMovimiento[];
-  observacion: string | null;
-  cargandoCompleto?: boolean; 
-};
-
 // -----------------------------
 // Componente Inventario
 // -----------------------------
@@ -137,7 +113,8 @@ export function Inventario() {
   // Modales
   const [detalleProducto, setDetalleProducto] = useState<DetalleProducto | null>(null);
   const [cargandoDetalleProd, setCargandoDetalleProd] = useState(false);
-  const [movimientoSeleccionado, setMovimientoSeleccionado] = useState<MovimientoFullDetalle | null>(null);
+  // Id (o consecutivo) del movimiento abierto en el Sheet de detalle.
+  const [movimientoId, setMovimientoId] = useState<string | null>(null);
   
   // 👇 NUEVO ESTADO PARA EL MODAL DE EDICIÓN DE PRODUCTO
   const [showEditModal, setShowEditModal] = useState(false);
@@ -237,31 +214,14 @@ export function Inventario() {
       finally { setCargandoDetalleProd(false); }
   };
 
-  const handleOpenMovimiento = async (itemResumen: MovimientoResumenItem) => {
-      const esqueleto: MovimientoFullDetalle = {
-          id: itemResumen.documentoUuid || itemResumen.documentoId, 
-          codigo: itemResumen.documentoId,
-          tipo: itemResumen.tipo,
-          estado: "CARGANDO...", 
-          fecha: itemResumen.fecha,
-          origen: null, destino: null, proveedor: null, solicitante: null, creador: null,
-          productos: [], observacion: null, cargandoCompleto: true 
-      };
-      setMovimientoSeleccionado(esqueleto);
-      
-      try {
-          const idParaFetch = itemResumen.documentoUuid || itemResumen.documentoId;
-          const res = await fetch(`${API_BASE}/api/movimientos/${idParaFetch}`, {
-            headers: { "Authorization": `Bearer ${token}` }
-          });
-          if (!res.ok) throw new Error("Error al cargar movimiento");
-          const data = (await res.json()) as MovimientoFullDetalle;
-          setMovimientoSeleccionado({ ...data, cargandoCompleto: false });
-      } catch (error) {
-          console.error(error);
-          setMovimientoSeleccionado(prev => prev ? { ...prev, estado: "ANULADO", cargandoCompleto: false } : null);
-          alert("No se pudo cargar el detalle.");
-      }
+  // Abre el Sheet de detalle reutilizable del módulo Movimientos.
+  // El backend resuelve id o consecutivo, y `MovimientoDetailSheet` carga y
+  // normaliza la respuesta por sí solo (apiFetch + normalizarDetalle), por lo
+  // que NO normalizamos ni hacemos fetch aquí: eso causaba el crash anterior.
+  const handleOpenMovimiento = (itemResumen: MovimientoResumenItem) => {
+      const idParaDetalle = itemResumen.documentoUuid || itemResumen.documentoId;
+      if (!idParaDetalle) return;
+      setMovimientoId(idParaDetalle);
   };
 
   const handleExportPdf = async () => {
@@ -384,12 +344,10 @@ export function Inventario() {
           />
       )}
 
-      {movimientoSeleccionado && (
-          <MovimientoDetalleModal
-             detalle={movimientoSeleccionado}
-             onClose={() => setMovimientoSeleccionado(null)}
-          />
-      )}
+      <MovimientoDetailSheet
+         movimientoId={movimientoId}
+         onClose={() => setMovimientoId(null)}
+      />
 
       {/* 👇 EL MODAL DE EDICIÓN SE RENDERIZA AQUÍ */}
       {showEditModal && (
@@ -581,7 +539,7 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento, can
                             </div>
                             <div className="text-right">
                                 <p className={cn("text-xs font-bold", esIngreso ? "text-emerald-600" : "text-rose-600")}>{m.cantidadConSigno} {m.unidad}</p>
-                                <p className="text-[9px] text-slate-400">{m.fecha ? new Date(m.fecha).toLocaleDateString() : ""}</p>
+                                <p className="text-[9px] text-slate-400">{m.fecha ? formatFecha(m.fecha) : ""}</p>
                             </div>
                         </div>
                     );
@@ -597,75 +555,4 @@ function DetalleProductoModal({ detalle, loading, onClose, onOpenMovimiento, can
       </div>
     </div>
   );
-}
-
-function MovimientoDetalleModal({ detalle, onClose }: { detalle: MovimientoFullDetalle; onClose: () => void; }) {
-    const handleExportDocumento = () => {
-        window.open(`${API_BASE}/api/movimientos/${detalle.id}/export`, "_blank");
-    };
-
-    const isLoading = detalle.cargandoCompleto;
-
-    return (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 backdrop-blur-sm px-4 animate-in fade-in zoom-in-95">
-            <div className="max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col">
-                <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 bg-slate-50">
-                    <div>
-                        <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                             {detalle.codigo}
-                             {isLoading && <Loader2 size={14} className="animate-spin text-slate-400"/>}
-                        </h2>
-                        <div className="flex gap-2 mt-1">
-                            <Badge variant="outline" className="text-[10px] bg-white">{detalle.tipo}</Badge>
-                            <Badge variant="outline" className="text-[10px] bg-white">{detalle.estado}</Badge>
-                        </div>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={handleExportDocumento} className="rounded-full bg-emerald-600 p-2 text-white hover:bg-emerald-700 transition"><FileText size={16}/></button>
-                        <button onClick={onClose} className="rounded-full bg-white border border-slate-200 p-2 text-slate-500 hover:bg-slate-100 transition"><X size={16}/></button>
-                    </div>
-                </div>
-                
-                <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 text-xs">
-                    <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100">
-                        <div><p className="text-slate-500">Fecha</p><p className="font-bold text-slate-700">{detalle.fecha ? new Date(detalle.fecha).toLocaleDateString() : "-"}</p></div>
-                        {detalle.origen ? (
-                             <div><p className="text-slate-500">Origen</p><p className="font-bold text-slate-700">{detalle.origen}</p></div>
-                        ) : isLoading ? (
-                             <div className="animate-pulse h-8 bg-slate-200 rounded w-20"></div>
-                        ) : null}
-                        
-                        {detalle.destino && <div><p className="text-slate-500">Destino</p><p className="font-bold text-slate-700">{detalle.destino}</p></div>}
-                        {detalle.creador && <div><p className="text-slate-500">Registrado por</p><p className="font-bold text-slate-700">{detalle.creador}</p></div>}
-                    </div>
-
-                    <div>
-                        <h3 className="font-bold text-slate-800 mb-2">Productos ({isLoading ? '...' : detalle.productos.length})</h3>
-                        
-                        {isLoading && detalle.productos.length === 0 ? (
-                             <div className="space-y-2">
-                                  <div className="h-12 bg-slate-50 rounded-lg animate-pulse w-full"></div>
-                                  <div className="h-12 bg-slate-50 rounded-lg animate-pulse w-full"></div>
-                             </div>
-                        ) : (
-                             <div className="space-y-2">
-                                {detalle.productos.map((p) => (
-                                    <div key={p.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 bg-white">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"><Package size={16}/></div>
-                                            <div>
-                                                <p className="font-bold text-slate-700">{p.productoNombre}</p>
-                                                <p className="text-[10px] text-slate-400">{p.productoCodigo} {p.loteCodigo && `• ${p.loteCodigo}`}</p>
-                                            </div>
-                                        </div>
-                                        <span className="font-bold text-slate-800">{p.cantidad} {p.unidad}</span>
-                                    </div>
-                                ))}
-                             </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
 }

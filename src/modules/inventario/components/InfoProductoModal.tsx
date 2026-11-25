@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Loader2, Edit2, Save, AlertTriangle, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
+import { apiFetch } from "@/services/api";
 import BuscadorSelect, { type BuscadorOption } from "../../../components/ui/BuscadorSelect";
-
-const API_BASE = import.meta.env.VITE_API_URL;
 
 interface Props {
   isOpen: boolean;
@@ -12,8 +11,13 @@ interface Props {
   onSuccess: () => void;
 }
 
+/** Roles que pueden ver y editar el Precio de referencia / CPP. */
+const ROLES_PRECIO = ["ADMIN", "BODEGUERO"];
+
 export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSuccess }: Props) {
-  const { token } = useAuth();
+  const { user } = useAuth();
+  // Solo ADMIN y BODEGUERO pueden ver/editar el precio de referencia (CPP).
+  const puedeEditarPrecio = ROLES_PRECIO.includes(user?.rol ?? "");
   
   // Estados de flujo: 'search' | 'view' | 'edit'
   const [step, setStep] = useState<'search' | 'view' | 'edit'>('search');
@@ -43,9 +47,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
 
   const buscarOpcionesProducto = async (termino: string): Promise<BuscadorOption[]> => {
     try {
-      const res = await fetch(`${API_BASE}/api/catalogos/productos/buscar?q=${encodeURIComponent(termino)}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await apiFetch(`/api/productos/productos/buscar?q=${encodeURIComponent(termino)}`);
       if (!res.ok) return [];
       const data = await res.json();
       const productos = Array.isArray(data) ? data : data.productos ?? [];
@@ -68,7 +70,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
       categoriaid: product.categoriaid,
       unidadid: product.unidadid,
       ingredienteactivo: product.ingredienteactivo || "",
-      precioref: product.precioref || "",
+      precioref: product.precioref ?? "",
       dosis_200lt: product.dosis_200lt ?? "",
       comentarioDosis: product.comentarioDosis || "",
       activo: product.activo
@@ -78,11 +80,13 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
 
   const enterEditMode = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Cargamos categorias y unidades solo si entramos a edicion
+      // Cargamos categorias y unidades solo si entramos a edicion.
+      // Rutas vigentes: las /api/catalogos/* fueron eliminadas.
       const [resCat, resUni] = await Promise.all([
-        fetch(`${API_BASE}/api/catalogos/categorias`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API_BASE}/api/catalogos/unidades`, { headers: { Authorization: `Bearer ${token}` } })
+        apiFetch("/api/productos/categorias"),
+        apiFetch("/api/productos/unidades")
       ]);
       
       setCatalogos({
@@ -93,6 +97,7 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
       setStep('edit');
     } catch (e) {
       console.error(e);
+      setError("No se pudieron cargar los catálogos para edición.");
     } finally {
       setLoading(false);
     }
@@ -100,22 +105,41 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
 
   const handleSave = async () => {
     setError(null);
+
+    // Validación del precio de referencia (CPP): si se ingresa, debe ser >= 0.
+    let preciorefFinal: number | null = null;
+    if (puedeEditarPrecio) {
+      const raw = String(formData.precioref ?? "").trim();
+      if (raw !== "") {
+        const num = Number(raw);
+        if (!Number.isFinite(num) || num < 0) {
+          setError("El Precio de referencia debe ser un número mayor o igual a 0.");
+          return;
+        }
+        preciorefFinal = num;
+      }
+    }
+
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/api/productos/${selectedProduct.id}`, {
+      // Se envía el formulario; `precioref` solo si el rol puede editarlo.
+      const payload: Record<string, unknown> = { ...formData };
+      if (puedeEditarPrecio) {
+        payload.precioref = preciorefFinal;
+      } else {
+        delete payload.precioref;
+      }
+
+      const res = await apiFetch(`/api/productos/${selectedProduct.id}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         onSuccess(); // Refresca tablas si es necesario
         onClose();   // Cerramos el modal tras guardar exitosamente
       } else {
-        const errData = await res.json();
+        const errData = await res.json().catch(() => ({}));
         setError(errData.message || "Error al actualizar el producto");
       }
     } catch {
@@ -194,10 +218,17 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Ingrediente Activo</p>
                   <p className="text-sm font-medium text-slate-800">{selectedProduct.ingredienteactivo || "Ninguno"}</p>
                 </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase">Precio Ref.</p>
-                  <p className="text-sm font-medium text-slate-800">{selectedProduct.precioref ? `Q ${selectedProduct.precioref}` : "N/A"}</p>
-                </div>
+                {/* El precio de referencia (CPP) solo es visible para ADMIN/BODEGUERO. */}
+                {puedeEditarPrecio && (
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Precio Ref. (CPP)</p>
+                    <p className="text-sm font-medium text-slate-800">
+                      {selectedProduct.precioref != null && Number(selectedProduct.precioref) > 0
+                        ? `Q ${Number(selectedProduct.precioref).toFixed(2)}`
+                        : "No configurado"}
+                    </p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Dosis</p>
                   <p className="text-sm font-medium text-slate-800">{selectedProduct.dosis_200lt ?? "N/A"}</p>
@@ -235,10 +266,24 @@ export default function InfoProductoModal({ isOpen, initialSearch, onClose, onSu
                   <label className="text-xs font-bold text-slate-500 uppercase">Codigo</label>
                   <input type="text" className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={formData.codigo} onChange={e => setFormData({...formData, codigo: e.target.value})} />
                 </div>
-                <div>
-                  <label className="text-xs font-bold text-slate-500 uppercase">Precio Ref. (Q)</label>
-                  <input type="number" className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" value={formData.precioref} onChange={e => setFormData({...formData, precioref: e.target.value})} />
-                </div>
+                {/* Campo Precio de referencia / CPP: editable solo para ADMIN/BODEGUERO. */}
+                {puedeEditarPrecio && (
+                  <div>
+                    <label className="text-xs font-bold text-slate-500 uppercase">Precio de referencia / CPP (Q)</label>
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0.00"
+                      className="w-full mt-1 p-2.5 border border-slate-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                      value={formData.precioref}
+                      onChange={e => setFormData({...formData, precioref: e.target.value})}
+                    />
+                    <p className="text-[10px] text-slate-400 mt-1 leading-tight">
+                      Requerido para valuar salidas y ajustes. Debe ser ≥ 0.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

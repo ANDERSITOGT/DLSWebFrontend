@@ -22,16 +22,29 @@ export type ApiErrorCode =
 export class ApiError extends Error {
   readonly status: number;
   readonly code: ApiErrorCode;
+  /**
+   * Código de negocio devuelto por el backend (`body.codigo`), p. ej.
+   * `PRODUCTO_SIN_COSTO`, `STOCK_INSUFICIENTE`, `TRANSICION_INVALIDA`.
+   * Es independiente de `code` (que clasifica el tipo de fallo HTTP).
+   */
+  readonly businessCode?: string;
 
-  constructor(message: string, status: number, code: ApiErrorCode) {
+  constructor(message: string, status: number, code: ApiErrorCode, businessCode?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.businessCode = businessCode;
   }
 
   /** true si es un bloqueo de permisos recortable en la UI (no sesión). */
   get isModuleForbidden() {
     return this.code === "FORBIDDEN_MODULE";
   }
+
+  /** true si el backend bloqueó la operación por falta de precio de referencia. */
+  get isProductoSinCosto() {
+    return this.businessCode === "PRODUCTO_SIN_COSTO";
+  }
 }
+
