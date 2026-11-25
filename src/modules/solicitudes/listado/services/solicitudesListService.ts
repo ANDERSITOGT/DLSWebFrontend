@@ -1,6 +1,6 @@
 import { apiFetch } from "@/services/api"
 import { ApiError } from "@/services/apiError"
-import { toNumberOrNull } from "@/modules/movimientos/utils/format"
+import { extraerCantidad, toNumberOrNull } from "@/modules/movimientos/utils/format"
 import type {
   CambioEstadoPayload,
   EntregarResultado,
@@ -82,7 +82,9 @@ export async function listSolicitudes(params: ListSolicitudesParams): Promise<So
 /** Normaliza una línea de producto del detalle (cantidad/costos tolerantes). */
 function normalizarProducto(raw: unknown, index: number): SolicitudProducto {
   const p = (raw ?? {}) as Record<string, unknown>
-  const cantidad = toNumberOrNull(p.cantidad) ?? 0
+  // Mismo parser robusto que movimientos: prioriza `cantidadNumero` y tolera
+  // textos con unidad (p.ej. "75 cc"), evitando que la cantidad quede en 0.
+  const cantidad = extraerCantidad(p) ?? 0
   const costo =
     toNumberOrNull(p.costounit) ??
     toNumberOrNull(p.costoUnitario) ??
