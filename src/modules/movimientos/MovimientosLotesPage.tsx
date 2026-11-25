@@ -22,7 +22,7 @@ import { exportMovimientoDetalle } from "./utils/descargas";
 import { getMovimiento } from "./services/movimientosListService";
 import { formatCantidad, formatFecha } from "./utils/format";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 // --- TIPOS ACTUALIZADOS ---
 type LoteBasic = {

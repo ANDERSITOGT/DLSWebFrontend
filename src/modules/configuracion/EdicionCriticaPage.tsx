@@ -9,7 +9,7 @@ import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "@/services/api";
 import { aFechaInputGT, fechaDiaAISO, formatFecha } from "@/modules/movimientos/utils/format";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 // ==============================================================
 // COMPONENTE: BUSCADOR INTELIGENTE DE PRODUCTOS (AUTOCOMPLETADO)

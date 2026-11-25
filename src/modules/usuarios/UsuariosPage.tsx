@@ -4,7 +4,7 @@ import { ArrowLeft, Lock, Loader2, ShieldCheck } from "lucide-react";
 import { UsuariosManager } from "./UsuariosManager";
 import { useAuth } from "../../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 export default function UsuariosPage() {
   const navigate = useNavigate();

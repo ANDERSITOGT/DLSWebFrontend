@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Key, Loader2, X, Power, Shield } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 type Usuario = {
   id: string;

@@ -4,7 +4,7 @@ import { ArrowLeft, Lock, ShieldCheck, Search, X, Save, Loader2, Check, MapPin, 
 import { useAuth } from "../../context/AuthContext";
 import { apiFetch } from "@/services/api";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 // --- TIPOS DE DATOS ---
 interface Lote {

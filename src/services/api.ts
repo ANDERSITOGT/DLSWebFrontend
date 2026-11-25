@@ -9,7 +9,7 @@ import { ApiError } from "./apiError";
  * - `VITE_API_URL="http://host/api"` → sin duplicar `/api`.
  */
 const RAW_API_URL = (import.meta.env.VITE_API_URL ?? "").trim();
-const API_URL = (RAW_API_URL || "http://localhost:4000").replace(/\/+$/, "");
+export const API_URL = (RAW_API_URL || "http://localhost:4000").replace(/\/+$/, "");
 
 /**
  * Detecta si un 403 corresponde a "rol sin permiso para este módulo".

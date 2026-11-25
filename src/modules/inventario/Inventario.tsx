@@ -34,7 +34,7 @@ import InfoProductoModal from "../../modules/inventario/components/InfoProductoM
 //    crash (shape obsoleto → .map()/length sobre `productos` undefined).
 import { MovimientoDetailSheet } from "../../modules/movimientos/listado/components/MovimientoDetailSheet";
 
-const API_BASE = import.meta.env.VITE_API_URL;
+import { API_URL as API_BASE } from "@/services/api";
 
 // --- TIPOS DE DATOS ---
 type EstadoStock = "Normal" | "Bajo" | "Crítico";
